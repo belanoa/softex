@@ -1,0 +1,93 @@
+`include "sfm_macros.svh"
+
+module sfm_fp_glob_minmax #(
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = fpnew_pkg::FP16ALT    ,
+    parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE       ,
+    parameter int unsigned              NUM_REGS    = 0                     ,
+    parameter int unsigned              VECT_WIDTH  = 1                     ,
+    parameter sfm_pkg::min_max_mode_t   MM_MODE     = sfm_pkg::MAX          ,   //Might as well become an input in the future
+
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)      
+) (
+    input   logic                                       clk_i           ,
+    input   logic                                       rst_ni          ,
+    input   logic                                       clear_i         ,
+    input   logic                                       enable_i        ,
+    input   logic                                       valid_i         ,
+    input   logic                                       ready_i         ,
+    input   logic [VECT_WIDTH - 1 : 0]                  strb_i          ,
+    input   logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  vect_i          ,
+    output  logic [WIDTH - 1 : 0]                       cur_minmax_o    ,
+    output  logic [WIDTH - 1 : 0]                       new_minmax_o    ,
+    output  logic                                       new_flg_o       ,
+    output  logic                                       valid_o         ,
+    output  logic                                       ready_o
+);
+
+    logic [WIDTH - 1 : 0]   minmax_q,
+                            vect_minmax;
+
+    logic   minmax_strb,
+            minmax_valid,
+            new_flg;
+
+    logic   o_valid_q;
+
+    assign valid_o = o_valid_q;
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin : o_valid_register
+        if (~rst_ni) begin
+            o_valid_q <= '0;
+        end else begin
+            if (clear_i) begin
+                o_valid_q <= '0;
+            end else if (minmax_valid) begin
+                o_valid_q <= '1;
+            end else begin
+                o_valid_q <= o_valid_q;
+            end
+        end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin : minmax_register
+        if (~rst_ni) begin
+            minmax_q <= (MM_MODE == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
+        end else begin
+            if (clear_i) begin
+                minmax_q <= (MM_MODE == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
+            end else if (minmax_valid & new_flg) begin
+                minmax_q <= vect_minmax;
+            end else begin
+                minmax_q <= minmax_q;
+            end
+        end
+    end
+
+    sfm_fp_red_minmax #(
+        .FPFORMAT   (   FPFORMAT    ),
+        .REG_POS    (   REG_POS     ),
+        .NUM_REGS   (   NUM_REGS    ),
+        .VECT_WIDTH (   VECT_WIDTH  )                                     
+    ) minmax_reduction (
+        .clk_i      (   clk_i           ),
+        .rst_ni     (   rst_ni          ),
+        .clear_i    (   clear_i         ),
+        .enable_i   (   enable_i        ),
+        .valid_i    (   valid_i         ),
+        .ready_i    (   ready_i         ),
+        .strb_i     (   strb_i          ),
+        .vect_i     (   vect_i          ),
+        .mode_i     (   MM_MODE         ),
+        .res_o      (   vect_minmax     ),
+        .strb_o     (   minmax_strb     ),
+        .valid_o    (   minmax_valid    ),
+        .ready_o    (   ready_o         )
+    );
+
+    assign new_flg      = minmax_strb & ((MM_MODE == sfm_pkg::MAX) ? `FP_GT(vect_minmax, minmax_q, FPFORMAT) : `FP_LT(vect_minmax, minmax_q, FPFORMAT));
+
+    assign cur_minmax_o = minmax_q;
+    assign new_minmax_o = new_flg ? vect_minmax : minmax_q;
+    assign new_flg_o    = new_flg;
+
+endmodule
