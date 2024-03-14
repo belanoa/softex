@@ -4,7 +4,7 @@ module sfm_accumulator #(
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT    ,
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 5                     ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = 3                     ,
-    parameter int unsigned              N_FACT_FIFO         = 2                     ,
+    parameter int unsigned              N_FACT_FIFO         = 1                     ,
     parameter int unsigned              N_ADD_FIFO          = 1                     ,   //Different values will most likely be never supproted
     parameter int unsigned              NUM_REGS_FMA        = 3                     ,   
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE        ,         
@@ -45,23 +45,25 @@ module sfm_accumulator #(
                     next_state;
 
     logic [$clog2(NUM_REGS_FMA) - 1 : 0] op_in_flight_cnt;
-    logic   op_cnt_enable;
+    logic   op_cnt_enable_inc,
+            op_cnt_enable_dec;
 
     logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] tag_cnt;
     logic tag_cnt_enable;
 
-    //Do I really need you two?
-    logic [$clog2(N_FACT_FIFO) - 1 : 0] factor_cnt;
-    logic   factor_cnt_enable;
+    logic   active_q,
+            disable_ready,
+            push_fma_res,
+            red_out_cnt,
+            red_out_cnt_enable,
+            reducing;
 
-    logic   active_q;
-
-    
 
     //Addend FIFO Signals
     addend_t    addend,
                 i_addend;
     logic       addend_pop,
+                addend_push,
                 addend_match;
 
     logic       addend_full,
@@ -81,8 +83,10 @@ module sfm_accumulator #(
     logic [N_FACT_FIFO - 1 : 0] [$clog2(NUM_REGS_FMA) - 1 : 0]  factor_uses_cnt;
     logic [N_FACT_FIFO - 1 : 0]                                 factor_uses_cnt_enable;
 
-    
+    logic [$clog2(N_FACT_FIFO) - 1 : 0]                         factor_cnt;
+    logic                                                       factor_cnt_enable;
 
+    
     //FMA Signals
     fpnew_pkg::operation_e                                  fma_operation;
     logic                                                   fma_i_valid,
@@ -127,14 +131,17 @@ module sfm_accumulator #(
         end
     end
 
-    assign op_cnt_enable = addend_pop;
+    assign op_cnt_enable_inc = addend_pop & op_in_flight_cnt != (NUM_REGS_FMA - 1);
+    assign op_cnt_enable_dec = reducing & fma_i_valid;
     always_ff @(posedge clk_i or negedge rst_ni) begin : op_in_flight_counter
         if (~rst_ni) begin
             op_in_flight_cnt <= '0;
         end else begin
             if (clear_i) begin
                 op_in_flight_cnt <= '0;
-            end else if (op_cnt_enable & op_in_flight_cnt != (NUM_REGS_FMA - 1)) begin
+            end else if (op_cnt_enable_dec) begin
+                op_in_flight_cnt <= op_in_flight_cnt - 1;
+            end else if (op_cnt_enable_inc) begin
                 op_in_flight_cnt <= op_in_flight_cnt + 1;
             end else begin
                 op_in_flight_cnt <= op_in_flight_cnt;
@@ -177,9 +184,27 @@ module sfm_accumulator #(
         end
     end
 
+    always_ff @(posedge clk_i or negedge rst_ni) begin : red_out_counter
+        if (~rst_ni) begin
+            red_out_cnt <= '0;
+        end else begin
+            if (clear_i) begin
+                red_out_cnt <= '0;
+            end else if (red_out_cnt_enable & fma_o_valid) begin
+                red_out_cnt <= ~red_out_cnt;
+            end else begin
+                red_out_cnt <= red_out_cnt;
+            end
+        end
+    end
+
     always_comb begin : sfm_accumulator_fsm
-        next_state = current_state;
-        valid_o = '0;
+        next_state          = current_state;
+        valid_o             = '0;
+        disable_ready       = '0;
+        push_fma_res       = '0;
+        red_out_cnt_enable  = '0;
+        reducing            = '0;
 
         unique case (current_state)
             IDLE: begin
@@ -195,17 +220,30 @@ module sfm_accumulator #(
             end
 
             FINISHING: begin
+                disable_ready = '1;
+
                 if (addend_empty & &factor_empty) begin
-                    next_state = REDUCTION;
+                    next_state          = REDUCTION;
+                    push_fma_res       = '1;
+                    red_out_cnt_enable  = '1;
                 end
             end
 
             REDUCTION: begin
-                    //TODO
+                disable_ready       = '1;
+                red_out_cnt_enable  = '1;
+                push_fma_res       = ~red_out_cnt;
+                reducing            = '1;
+
+                if (op_in_flight_cnt == 0 & fma_o_valid) begin
+                    next_state = FINISHED;
+                    push_fma_res = '0;
+                end
             end
 
             FINISHED: begin
-                valid_o <= '1;
+                valid_o = '1;
+                disable_ready = '0;
 
                 if (add_valid_i) begin
                     next_state = COMPUTING;
@@ -215,9 +253,10 @@ module sfm_accumulator #(
     end
 
     assign addend_match = (|factor_match ? ((fma_o_tag + 1) == addend.tag) : (fma_o_tag == addend.tag)) & fma_o_valid & ~addend_empty;
-    assign addend_pop   = addend_match | (~fma_o_valid & ~addend_empty)/*TAG equal to ADD TAG  or no valid data*/;
+    assign addend_pop   = reducing ? (addend_match & fma_o_valid) : (addend_match | (~fma_o_valid & ~addend_empty));
+    assign addend_push  = (add_valid_i & ready_o) | (push_fma_res & fma_o_valid);
 
-    assign i_addend.value   = add_i;
+    assign i_addend.value   = push_fma_res ? fma_res : add_i;
     assign i_addend.tag     = tag_cnt_enable ? (tag_cnt + 1) : (tag_cnt);
 
     fifo_v3 #(
@@ -234,9 +273,9 @@ module sfm_accumulator #(
         .empty_o    (   addend_empty    ),
         .usage_o    (   ),
         .data_i     (   i_addend        ),
-        .push_i     (   add_valid_i & ready_o    ),          
+        .push_i     (   addend_push     ),    
         .data_o     (   addend          ),
-        .pop_i      (   addend_pop       )
+        .pop_i      (   addend_pop      )
     );
 
     assign i_factor.value   = mul_i;
@@ -258,7 +297,7 @@ module sfm_accumulator #(
             .empty_o    (   factor_empty [i]    ),
             .usage_o    (   ),
             .data_i     (   i_factor            ),
-            .push_i     (   factor_push [i] & ready_o   ),          
+            .push_i     (   factor_push [i]     ),          
             .data_o     (   factor [i]          ),
             .pop_i      (   factor_pop [i]      )
         );
@@ -266,7 +305,7 @@ module sfm_accumulator #(
         assign factor_match [i] = (factor[i].tag == fma_o_tag) & fma_o_valid & ~factor_empty[i] & ((factor[i].tag != addend.tag) | addend_empty);
         assign factor_uses_cnt_enable [i] = factor_match [i];
 
-        assign factor_push [i] = mul_valid_i & (factor_cnt == i ? '1 : '0);
+        assign factor_push [i] = mul_valid_i & (factor_cnt == i ? '1 : '0) & ready_o;
         assign factor_pop [i] = (factor_uses_cnt [i] == (factor[i].uses)) & factor_uses_cnt_enable [i];
 
         always_ff @(posedge clk_i or negedge rst_ni) begin : factor_uses_counter
@@ -311,12 +350,11 @@ module sfm_accumulator #(
     end
 
 
-    assign fma_i_valid  = ~addend_empty | (~(|factor_empty) & fma_o_valid);
+    assign fma_i_valid  = reducing ? (~addend_empty & fma_o_valid) : (~addend_empty | (~(|factor_empty) & fma_o_valid));
     assign fma_i_tag    = |factor_uses_cnt_enable ? (fma_o_tag + 1) : (fma_o_valid ? fma_o_tag : addend.tag);
 
     assign fma_addend   = (fma_o_valid & addend_match) ? addend.value : '0;
     
-    //assign fma_operands = fma_o_valid ? {fma_res, fma_factor, fma_addend} : {addend.value, fma_factor, fma_addend};
     assign fma_operands = fma_o_valid ? {fma_addend, fma_res, fma_factor} : {fma_addend, addend.value, fma_factor};
 
     fpnew_fma #(
@@ -326,30 +364,30 @@ module sfm_accumulator #(
         .TagType        (   logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] ),
         .AuxType        (   logic                                                   )
     ) accumulator_fma (
-        .clk_i              (   clk_i           ),
-        .rst_ni             (   rst_ni          ),
-        .operands_i         (   fma_operands    ),
-        .is_boxed_i         (   '1              ),
-        .rnd_mode_i         (   ROUND_MODE      ),
-        .op_i               (   fma_operation   ),
-        .op_mod_i           (   '0              ),
-        .tag_i              (   fma_i_tag       ),
-        .mask_i             (   '1              ),
-        .aux_i              (   '0              ),
-        .in_valid_i         (   fma_i_valid     ),
-        .in_ready_o         (   fma_o_ready     ),
-        .flush_i            (   clear_i         ),
-        .result_o           (   fma_res         ),
+        .clk_i              (   clk_i                       ),
+        .rst_ni             (   rst_ni                      ),
+        .operands_i         (   fma_operands                ),
+        .is_boxed_i         (   '1                          ),
+        .rnd_mode_i         (   ROUND_MODE                  ),
+        .op_i               (   fma_operation               ),
+        .op_mod_i           (   '0                          ),
+        .tag_i              (   fma_i_tag                   ),
+        .mask_i             (   '1                          ),
+        .aux_i              (   '0                          ),
+        .in_valid_i         (   fma_i_valid                 ),
+        .in_ready_o         (   fma_o_ready                 ),
+        .flush_i            (   clear_i                     ),
+        .result_o           (   fma_res                     ),
         .status_o           (   ),
         .extension_bit_o    (   ),
-        .tag_o              (   fma_o_tag       ),
-        .mask_o             (         ),
+        .tag_o              (   fma_o_tag                   ),
+        .mask_o             (   ),
         .aux_o              (   ),
-        .out_valid_o        (   fma_o_valid     ),
-        .out_ready_i        (   fma_o_ready | ~addend_empty        ),     //FIXME?
+        .out_valid_o        (   fma_o_valid                 ),
+        .out_ready_i        (   fma_o_ready | ~addend_empty ),     //FIXME?
         .busy_o             (   )
     );
 
-    assign ready_o = ~(addend_full | |factor_full);
+    assign ready_o = ~(addend_full | |factor_full) & ~disable_ready;
 
 endmodule
