@@ -250,6 +250,8 @@ module sfm_fp_red_sum #(
                 cast_vect [i] = {vect_i [i], 16'b0};
             end
         end
+    end else begin
+        assign cast_vect = vect_i;
     end
 
     sfm_fp_add_rec #(

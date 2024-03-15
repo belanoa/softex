@@ -220,7 +220,7 @@ module sfm_accumulator #(
             end
 
             FINISHING: begin
-                disable_ready = '1;
+                //disable_ready = '1;     //Remove it from here?
 
                 if (addend_empty & &factor_empty) begin
                     next_state          = REDUCTION;
@@ -384,7 +384,7 @@ module sfm_accumulator #(
         .mask_o             (   ),
         .aux_o              (   ),
         .out_valid_o        (   fma_o_valid                 ),
-        .out_ready_i        (   fma_o_ready | ~addend_empty ),     //FIXME?
+        .out_ready_i        (   fma_o_ready | ~addend_empty ),
         .busy_o             (   )
     );
 

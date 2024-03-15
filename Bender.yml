@@ -4,20 +4,25 @@ package:
 dependencies:
   fpnew         : { git: "https://github.com/pulp-platform/cvfpu.git"       , rev: "pulp-v0.1.3"  }
   common_cells  : { git: "git@github.com:pulp-platform/common_cells.git"    , rev: "v1.32.0"      } 
-  #ez_expu       : { git: "https://github.com/belanoa/ez_expu.git"           , rev: "e13e945"      }
+  ez_expu       : { git: "https://github.com/belanoa/ez_expu.git"           , rev: "e13e945"      }
 
 sources:
   files:
     - rtl/sfm_pkg.sv
     - rtl/sfm_fp_red_minmax.sv
     - rtl/sfm_fp_red_sum.sv
+    - rtl/sfm_fp_vect_addsub.sv
     - rtl/sfm_pipeline.sv
     - rtl/sfm_macros.svh
     - rtl/sfm_delay.sv
     - rtl/sfm_fp_glob_minmax.sv
+    - rtl/sfm_accumulator.sv
+    - rtl/sfm_datapath.sv
 
     - target: sfm_sim
       files:
         - tb/sfm_fp_vect_minmax_tb.sv
         - tb/sfm_fp_vect_sum_tb.sv
         - tb/sfm_fp_glob_minmax_tb.sv
+        - tb/sfm_accumulator_tb.sv
+        - tb/sfm_datapath_tb.sv
