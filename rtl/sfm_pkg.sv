@@ -1,8 +1,9 @@
 import fpnew_pkg::*;
 
 package sfm_pkg;
-    typedef enum int unsigned { BEFORE, AFTER, AROUND } regs_config_t;
-    typedef enum int unsigned { MIN, MAX }              min_max_mode_t;
+    typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
+    typedef enum logic          { MIN, MAX }                min_max_mode_t;
+    typedef enum logic          { SUM, SUB }                operation_t;
 
     function sfm_to_cvfpu(sfm_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;

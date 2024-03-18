@@ -16,3 +16,5 @@
 
 `define POS_INFTY(FPFORMAT) {1'b0, {fpnew_pkg::exp_bits(FPFORMAT){1'b1}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
 `define NEG_INFTY(FPFORMAT) {1'b1, {fpnew_pkg::exp_bits(FPFORMAT){1'b1}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
+
+`define FP_CAST_UP(NUM, SRC_FPFORMAT, DEST_FPFORMAT) {NUM[`SIGN(SRC_FPFORMAT)], {(fpnew_pkg::exp_bits(DEST_FPFORMAT)  - fpnew_pkg::exp_bits(SRC_FPFORMAT)){1'b0}}, NUM[`EXPONENT(SRC_FPFORMAT)], NUM[`MANTISSA(SRC_FPFORMAT)], {(fpnew_pkg::man_bits(DEST_FPFORMAT)  - fpnew_pkg::man_bits(SRC_FPFORMAT)){1'b0}}}

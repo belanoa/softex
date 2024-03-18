@@ -27,8 +27,8 @@ module sfm_pipeline #(
 
     input   logic [NUM_IN - 1 : 0]                      i_strb_i    ,
     output  logic [NUM_IN - 1 : 0]                      i_strb_o    ,
-    input   logic [NUM_IN - 1 : 0]                      o_strb_i    ,
-    output  logic [NUM_IN - 1 : 0]                      o_strb_o    
+    input   logic [NUM_OUT - 1 : 0]                     o_strb_i    ,
+    output  logic [NUM_OUT - 1 : 0]                     o_strb_o    
 );
 
     logic [NUM_REGS_I : 0] [NUM_IN - 1 : 0] [WIDTH_IN - 1 : 0]    i_data;

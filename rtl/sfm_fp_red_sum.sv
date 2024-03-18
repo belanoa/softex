@@ -1,3 +1,5 @@
+`include "sfm_macros.svh"
+
 import sfm_pkg::*;
 import fpnew_pkg::*;
 
@@ -243,15 +245,10 @@ module sfm_fp_red_sum #(
 
     logic [VECT_WIDTH - 1 : 0] [ACC_WIDTH - 1 : 0]  cast_vect;
 
-    //Let's assume that ACC_FPFORMAT is FP32 for now...
-    if (IN_FPFORMAT != ACC_FPFORMAT) begin
-        always_comb begin
-            for (int unsigned i = 0; i < VECT_WIDTH; i++) begin
-                cast_vect [i] = {vect_i [i], 16'b0};
-            end
+    always_comb begin
+        for (int unsigned i = 0; i < VECT_WIDTH; i++) begin
+            cast_vect[i] = `FP_CAST_UP(vect_i [i], IN_FPFORMAT, ACC_FPFORMAT);
         end
-    end else begin
-        assign cast_vect = vect_i;
     end
 
     sfm_fp_add_rec #(

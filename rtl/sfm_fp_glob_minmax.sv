@@ -55,7 +55,7 @@ module sfm_fp_glob_minmax #(
         end else begin
             if (clear_i) begin
                 minmax_q <= (MM_MODE == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
-            end else if (minmax_valid & new_flg) begin
+            end else if (minmax_valid & new_flg & ready_i) begin
                 minmax_q <= vect_minmax;
             end else begin
                 minmax_q <= minmax_q;
