@@ -14,7 +14,19 @@
                                 ((A[`SIGN(FPFORMAT)] == B[`SIGN(FPFORMAT)]) & (B[`SIGN(FPFORMAT)] == 1) & (A[`EXPONENT(FPFORMAT)] > B[`EXPONENT(FPFORMAT)])) | \
                                 ((A[`SIGN(FPFORMAT)] == B[`SIGN(FPFORMAT)]) & (B[`SIGN(FPFORMAT)] == 1) & (A[`EXPONENT(FPFORMAT)] == B[`EXPONENT(FPFORMAT)]) & (A[`MANTISSA(FPFORMAT)] > B[`MANTISSA(FPFORMAT)]))
 
+`define FP_INV_SIGN(NUM, FPFORMAT) {~NUM[`SIGN(FPFORMAT)], NUM[`SIGN(FPFORMAT) - 1 : 0]}
+
 `define POS_INFTY(FPFORMAT) {1'b0, {fpnew_pkg::exp_bits(FPFORMAT){1'b1}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
 `define NEG_INFTY(FPFORMAT) {1'b1, {fpnew_pkg::exp_bits(FPFORMAT){1'b1}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
 
+`define FP_TWO(FPFORMAT) {1'b0, {1'b1, {(fpnew_pkg::exp_bits(FPFORMAT) - 1){1'b0}}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
+
+//Note that the bias is not changed
 `define FP_CAST_UP(NUM, SRC_FPFORMAT, DEST_FPFORMAT) {NUM[`SIGN(SRC_FPFORMAT)], {(fpnew_pkg::exp_bits(DEST_FPFORMAT)  - fpnew_pkg::exp_bits(SRC_FPFORMAT)){1'b0}}, NUM[`EXPONENT(SRC_FPFORMAT)], NUM[`MANTISSA(SRC_FPFORMAT)], {(fpnew_pkg::man_bits(DEST_FPFORMAT)  - fpnew_pkg::man_bits(SRC_FPFORMAT)){1'b0}}}
+
+`define FP_CAST_DOWN(NUM, SRC_FPFORMAT, DEST_FPFORMAT) {NUM[`SIGN(SRC_FPFORMAT)], NUM[fpnew_pkg::fp_width(SRC_FPFORMAT) - 2 -: fpnew_pkg::exp_bits(DEST_FPFORMAT)], NUM[fpnew_pkg::man_bits(SRC_FPFORMAT) - 1 -: fpnew_pkg::man_bits(DEST_FPFORMAT)]}
+
+
+//fpnew_pkg::fp_width(SRC_FPFORMAT) - 2 -: fpnew_pkg::exp_bits(DEST_FPFORMAT)
+
+//fpnew_pkg::man_bits(SRC_FPFORMAT) - 1 -: fpnew_pkg::man_bits(DEST_FPFORMAT)

@@ -1,17 +1,21 @@
+`include "sfm_macros.svh"
+
 module sfm_accumulator #(
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = fpnew_pkg::FP32       ,
     parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = fpnew_pkg::FP32       ,
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT    ,
-    parameter int unsigned              FACTOR_FIFO_DEPTH   = 5                     ,
-    parameter int unsigned              ADDEND_FIFO_DEPTH   = 3                     ,
+    parameter fpnew_pkg::fp_format_e    INV_FPFORMAT        = fpnew_pkg::FP16ALT    ,
+    parameter int unsigned              N_INV_ITERS         = 2                     ,
+    parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                     ,
+    parameter int unsigned              ADDEND_FIFO_DEPTH   = 12                    ,
     parameter int unsigned              N_FACT_FIFO         = 1                     ,
-    parameter int unsigned              N_ADD_FIFO          = 1                     ,   //Different values will most likely be never supproted
     parameter int unsigned              NUM_REGS_FMA        = 3                     ,   
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE        ,         
 
     localparam int unsigned             ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT) ,
     localparam int unsigned             ADD_WIDTH       = fpnew_pkg::fp_width(ADD_FPFORMAT) ,
     localparam int unsigned             MUL_WIDTH       = fpnew_pkg::fp_width(MUL_FPFORMAT) ,
+    localparam int unsigned             INV_WIDTH       = fpnew_pkg::fp_width(INV_FPFORMAT) ,
     localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = fpnew_pkg::BEFORE
 ) (
     input   logic                       clk_i       ,
@@ -21,42 +25,59 @@ module sfm_accumulator #(
     input   logic [ADD_WIDTH - 1 : 0]   add_i       ,
     input   logic                       mul_valid_i ,
     input   logic [MUL_WIDTH - 1 : 0]   mul_i       ,
-    //input   logic                       strb_i      , Let's just ignore it for the time being
     input   logic                       finish_i    ,
     output  logic                       ready_o     ,
     output  logic                       valid_o     ,
     output  logic [ACC_WIDTH - 1 : 0]   acc_o
 );
 
-    typedef enum logic [2:0] { IDLE, COMPUTING, FINISHING, REDUCTION, /*OTHER STUFF*/ FINISHED } acc_states_t;
+    typedef enum logic [3:0] { IDLE, COMPUTING, FINISHING, REDUCTION, INVERSION, INV_MUL, INV_FMA, FINISHED } acc_state_t;
     
     typedef struct packed {
         logic [MUL_WIDTH - 1 : 0]                               value;
-        logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] tag;
+        logic [$clog2(NUM_REGS_FMA) - 1 : 0]                    tag;
         logic [$clog2(NUM_REGS_FMA) - 1 : 0]                    uses;
     } factor_t;
 
     typedef struct packed {
-        logic [MUL_WIDTH - 1 : 0]                               value;
-        logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] tag;
+        logic [ADD_WIDTH - 1 : 0]                               value;
+        logic [$clog2(NUM_REGS_FMA) - 1: 0]                     tag;
     } addend_t;
 
-    acc_states_t    current_state,
+    acc_state_t     current_state,
                     next_state;
 
     logic [$clog2(NUM_REGS_FMA) - 1 : 0] op_in_flight_cnt;
     logic   op_cnt_enable_inc,
             op_cnt_enable_dec;
 
-    logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] tag_cnt;
+    logic [$clog2(NUM_REGS_FMA) - 1: 0] tag_cnt;
     logic tag_cnt_enable;
+
+    logic [$clog2(N_INV_ITERS) + 1 : 0] iteration_cnt;
+    logic iteration_cnt_enable;
 
     logic   active_q,
             disable_ready,
             push_fma_res,
             red_out_cnt,
             red_out_cnt_enable,
-            reducing;
+            inv_enable,
+            reducing,
+            inverting,
+            inv_fma;
+
+
+    logic   den_enable;
+    logic [ACC_WIDTH - 1 : 0]   den_q;
+
+    logic   inv_appr_valid,
+            inv_appr_enable;
+
+    logic [INV_WIDTH - 1 : 0]   inv_appr;
+
+    logic [ACC_WIDTH - 1 : 0]   inv_appr_d,
+                                inv_appr_q;
 
 
     //Addend FIFO Signals
@@ -88,21 +109,25 @@ module sfm_accumulator #(
 
     
     //FMA Signals
-    fpnew_pkg::operation_e                                  fma_operation;
-    logic                                                   fma_i_valid,
-                                                            fma_o_valid;
+    fpnew_pkg::operation_e                  fma_operation;
 
-    logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] fma_i_tag,
-                                                            fma_o_tag;
+    logic                                   fma_i_valid,
+                                            fma_i_ready,
+                                            fma_o_valid,
+                                            fma_o_ready,
+                                            fma_inv_valid;
 
-    logic [ACC_WIDTH - 1 : 0]                               fma_factor;
-    logic [ACC_WIDTH - 1 : 0]                               fma_addend;
+    logic [$clog2(NUM_REGS_FMA) - 1 : 0]    fma_i_tag,
+                                            fma_o_tag;
 
-    logic [3 * ACC_WIDTH - 1 : 0]                           fma_operands;
-    logic [ACC_WIDTH - 1 : 0]                               fma_res;
+    logic [ADD_WIDTH - 1 : 0]               fma_addend_pre_cast;
 
-    logic                                                   fma_o_ready;
+    logic [ACC_WIDTH - 1 : 0]               fma_factor;
+    logic [ACC_WIDTH - 1 : 0]               fma_addend;
 
+    logic [3 * ACC_WIDTH - 1 : 0]           fma_operands,
+                                            fma_operands_inv;
+    logic [ACC_WIDTH - 1 : 0]               fma_res;
 
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : active_register
@@ -131,7 +156,37 @@ module sfm_accumulator #(
         end
     end
 
-    assign op_cnt_enable_inc = addend_pop & op_in_flight_cnt != (NUM_REGS_FMA - 1);
+    always_ff @(posedge clk_i or negedge rst_ni) begin : denominator_register
+        if (~rst_ni) begin
+            den_q <= '0;
+        end else begin
+            if (clear_i) begin
+                den_q <= '0;
+            end else if (den_enable) begin
+                den_q <= `FP_INV_SIGN(fma_res, ACC_FPFORMAT);
+            end else begin
+                den_q <= den_q;
+            end
+        end
+    end
+
+    assign inv_appr_enable  = inv_appr_valid | (fma_o_valid & iteration_cnt_enable); //| (fma_o_valid & iteration_cnt [0]);
+    assign inv_appr_d       = inv_appr_valid ? `FP_CAST_UP(inv_appr, INV_FPFORMAT, ACC_FPFORMAT) : fma_res;
+    always_ff @(posedge clk_i or negedge rst_ni) begin : inverse_approximation_register
+        if (~rst_ni) begin
+            inv_appr_q <= '0;
+        end else begin
+            if (clear_i) begin
+                inv_appr_q <= '0;
+            end else if (inv_appr_enable) begin
+                inv_appr_q <= inv_appr_d;
+            end else begin
+                inv_appr_q <= inv_appr_q;
+            end
+        end
+    end
+
+    assign op_cnt_enable_inc = addend_pop & ~fma_o_valid & op_in_flight_cnt != (NUM_REGS_FMA);
     assign op_cnt_enable_dec = reducing & fma_i_valid;
     always_ff @(posedge clk_i or negedge rst_ni) begin : op_in_flight_counter
         if (~rst_ni) begin
@@ -198,13 +253,34 @@ module sfm_accumulator #(
         end
     end
 
+    //assign iteration_cnt_enable = inverting & fma_o_valid;
+    always_ff @(posedge clk_i or negedge rst_ni) begin : iteration_counter
+        if (~rst_ni) begin
+            iteration_cnt <= '0;
+        end else begin
+            if (clear_i) begin
+                iteration_cnt <= '0;
+            end else if (iteration_cnt_enable) begin
+                iteration_cnt <= iteration_cnt + 1;
+            end else begin
+                iteration_cnt <= iteration_cnt;
+            end
+        end
+    end
+
     always_comb begin : sfm_accumulator_fsm
-        next_state          = current_state;
-        valid_o             = '0;
-        disable_ready       = '0;
-        push_fma_res       = '0;
-        red_out_cnt_enable  = '0;
-        reducing            = '0;
+        next_state              = current_state;
+        valid_o                 = '0;
+        disable_ready           = '0;
+        push_fma_res            = '0;
+        red_out_cnt_enable      = '0;
+        iteration_cnt_enable    = '0;
+        den_enable              = '0;
+        inv_enable              = '0;
+        reducing                = '0;
+        inverting               = '0;
+        fma_inv_valid           = '0;
+        inv_fma                 = '0;
 
         unique case (current_state)
             IDLE: begin
@@ -220,24 +296,68 @@ module sfm_accumulator #(
             end
 
             FINISHING: begin
-                //disable_ready = '1;     //Remove it from here?
+                //disable_ready = '1;
 
-                if (addend_empty & &factor_empty) begin
+                if (addend_empty & &factor_empty & ~add_valid_i) begin
                     next_state          = REDUCTION;
-                    push_fma_res       = '1;
+                    push_fma_res        = '1;
                     red_out_cnt_enable  = '1;
+                    reducing            = '1;
                 end
             end
 
             REDUCTION: begin
                 disable_ready       = '1;
                 red_out_cnt_enable  = '1;
-                push_fma_res       = ~red_out_cnt;
+                push_fma_res        = ~red_out_cnt;
                 reducing            = '1;
 
-                if (op_in_flight_cnt == 0 & fma_o_valid) begin
-                    next_state = FINISHED;
-                    push_fma_res = '0;
+                if (op_in_flight_cnt == 1 & fma_o_valid) begin
+                    //next_state = FINISHED;
+
+                    next_state = INVERSION;
+
+                    inverting       = '1;
+                    push_fma_res    = '0;
+                    den_enable      = '1;
+                    inv_enable      = '1;
+                end
+            end
+
+            INVERSION: begin
+                inverting = '1;
+
+                if (inv_appr_valid) begin
+                    next_state = INV_FMA;
+                    fma_inv_valid = '1;
+                    inv_fma = '1;
+                end
+            end
+
+            INV_FMA: begin
+                inverting = '1;
+                
+
+                if (fma_o_valid) begin
+                    next_state = INV_MUL;
+                    fma_inv_valid = '1;
+                end
+                
+            end
+            
+            INV_MUL: begin
+                inverting = '1;
+                
+                if (fma_o_valid) begin
+                    iteration_cnt_enable = '1;
+
+                    if (iteration_cnt == (N_INV_ITERS - 1)) begin
+                        next_state = FINISHED;
+                    end else begin
+                        next_state = INV_FMA;
+                        inv_fma = '1;
+                        fma_inv_valid = '1;
+                    end
                 end
             end
 
@@ -252,12 +372,12 @@ module sfm_accumulator #(
         endcase
     end
 
-    assign addend_match = (|factor_match ? ((fma_o_tag + 1) == addend.tag) : (fma_o_tag == addend.tag)) & fma_o_valid & ~addend_empty;
-    assign addend_pop   = reducing ? (addend_match & fma_o_valid) : (addend_match | (~fma_o_valid & ~addend_empty));
+    assign addend_match = (|factor_match ? ((fma_o_tag + 1'b1) == addend.tag) : (fma_o_tag == addend.tag)) & fma_o_valid & ~addend_empty;
+    assign addend_pop   = (reducing | inverting) ? (addend_match & fma_o_valid) : (addend_match | (~fma_o_valid & ~addend_empty));
     assign addend_push  = (add_valid_i & ready_o) | (push_fma_res & fma_o_valid);
 
-    assign i_addend.value   = push_fma_res ? fma_res : add_i;
-    assign i_addend.tag     = tag_cnt_enable ? (tag_cnt + 1) : (tag_cnt);
+    assign i_addend.value   =   push_fma_res ? fma_res : add_i;
+    assign i_addend.tag     =   tag_cnt_enable ? (tag_cnt + 1) : (tag_cnt);
 
     fifo_v3 #(
         .FALL_THROUGH   (   '0                  ),
@@ -280,7 +400,7 @@ module sfm_accumulator #(
 
     assign i_factor.value   = mul_i;
     assign i_factor.tag     = tag_cnt;
-    assign i_factor.uses    = op_in_flight_cnt;
+    assign i_factor.uses    = op_cnt_enable_inc ? (op_in_flight_cnt + 1) : op_in_flight_cnt;
 
     for (genvar i = 0; i < N_FACT_FIFO; i++) begin : gen_factor_fifos
         fifo_v3 #(
@@ -306,7 +426,7 @@ module sfm_accumulator #(
         assign factor_uses_cnt_enable [i] = factor_match [i];
 
         assign factor_push [i] = mul_valid_i & (factor_cnt == i ? '1 : '0) & ready_o;
-        assign factor_pop [i] = (factor_uses_cnt [i] == (factor[i].uses)) & factor_uses_cnt_enable [i];
+        assign factor_pop [i] = (factor_uses_cnt [i] == (factor[i].uses) - 1) & factor_uses_cnt_enable [i];
 
         always_ff @(posedge clk_i or negedge rst_ni) begin : factor_uses_counter
             if (~rst_ni) begin
@@ -315,7 +435,7 @@ module sfm_accumulator #(
                 if (clear_i) begin
                     factor_uses_cnt [i] <= '0;
                 end else if (factor_uses_cnt_enable [i]) begin
-                    if (factor_uses_cnt [i] == (factor[i].uses)) begin
+                    if (factor_uses_cnt [i] == (factor[i].uses) - 1) begin
                         factor_uses_cnt [i] <= '0;
                     end else begin
                         factor_uses_cnt [i] <= factor_uses_cnt [i] + 1;
@@ -328,11 +448,11 @@ module sfm_accumulator #(
     end
 
     always_comb begin
-        fma_factor = factor[0].value;
+        fma_factor = `FP_CAST_UP(factor[0].value, MUL_FPFORMAT, ACC_FPFORMAT);
 
         for (int i = 0; i < N_FACT_FIFO; i++) begin
             if (factor_match [i]) begin
-                fma_factor = factor[i].value;
+                fma_factor = `FP_CAST_UP(factor[i].value, MUL_FPFORMAT, ACC_FPFORMAT);
                 break;
             end
         end
@@ -340,54 +460,88 @@ module sfm_accumulator #(
 
 
     always_comb begin : fma_op_selection
-        unique casex ({fma_o_valid, |factor_match, addend_match})
-            3'b0??: fma_operation = fpnew_pkg::ADD;
-            3'b100: fma_operation = fpnew_pkg::ADD; //Should not happen
-            3'b110: fma_operation = fpnew_pkg::MUL;
-            3'b101: fma_operation = fpnew_pkg::ADD;
-            3'b111: fma_operation = fpnew_pkg::FMADD;
+        unique casex ({inv_fma, inverting, fma_o_valid, |factor_match, addend_match})
+            5'b?00??:   fma_operation = fpnew_pkg::ADD;
+            5'b?0100:   fma_operation = fpnew_pkg::ADD;
+            5'b?0110:   fma_operation = fpnew_pkg::MUL;
+            5'b?0101:   fma_operation = fpnew_pkg::ADD;
+            5'b?0111:   fma_operation = fpnew_pkg::FMADD;
+            5'b01???:   fma_operation = fpnew_pkg::MUL;
+            5'b11???:   fma_operation = fpnew_pkg::FMADD;
         endcase
     end
 
 
-    assign fma_i_valid  = reducing ? (~addend_empty & fma_o_valid) : (~addend_empty | (~(|factor_empty) & fma_o_valid));
+    assign fma_i_valid  = (reducing ? (~addend_empty & fma_o_valid) : (~addend_empty | (~(|factor_empty) & fma_o_valid))) | fma_inv_valid;
     assign fma_i_tag    = |factor_uses_cnt_enable ? (fma_o_tag + 1) : (fma_o_valid ? fma_o_tag : addend.tag);
+    assign fma_i_ready  = '1; //(reducing | inverting) ? fma_o_valid : (~addend_empty | (~(|factor_empty)));
 
-    assign fma_addend   = (fma_o_valid & addend_match) ? addend.value : '0;
+    assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
+
+    assign fma_addend   = `FP_CAST_UP(fma_addend_pre_cast, ADD_FPFORMAT, ACC_FPFORMAT);
     
-    assign fma_operands = fma_o_valid ? {fma_addend, fma_res, fma_factor} : {fma_addend, addend.value, fma_factor};
+    //assign fma_operands = fma_o_valid ? {fma_addend, fma_res, fma_factor} : {fma_addend, addend.value, fma_factor};
+
+    always_comb begin
+        unique casex ({inv_fma, inverting, fma_o_valid})
+            3'b?00:  fma_operands = {fma_addend, addend.value, fma_factor};
+            3'b?01:  fma_operands = {fma_addend, fma_res, fma_factor};
+            3'b11?:  fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, den_q}; 
+            3'b01?:  fma_operands = {{ACC_WIDTH{1'b0}}, fma_res, inv_appr_q};
+        endcase
+    end
 
     fpnew_fma #(
-        .FpFormat       (   ACC_FPFORMAT                                            ),
-        .NumPipeRegs    (   NUM_REGS_FMA                                            ),
-        .PipeConfig     (   REG_POS_CVFPU                                           ),
-        .TagType        (   logic [$clog2(FACTOR_FIFO_DEPTH * N_FACT_FIFO) - 1 : 0] ),
-        .AuxType        (   logic                                                   )
+        .FpFormat       (   ACC_FPFORMAT                            ),
+        .NumPipeRegs    (   NUM_REGS_FMA                            ),
+        .PipeConfig     (   REG_POS_CVFPU                           ),
+        .TagType        (   logic [$clog2(NUM_REGS_FMA) - 1 : 0]    ),
+        .AuxType        (   logic                                   )
     ) accumulator_fma (
-        .clk_i              (   clk_i                       ),
-        .rst_ni             (   rst_ni                      ),
-        .operands_i         (   fma_operands                ),
-        .is_boxed_i         (   '1                          ),
-        .rnd_mode_i         (   ROUND_MODE                  ),
-        .op_i               (   fma_operation               ),
-        .op_mod_i           (   '0                          ),
-        .tag_i              (   fma_i_tag                   ),
-        .mask_i             (   '1                          ),
-        .aux_i              (   '0                          ),
-        .in_valid_i         (   fma_i_valid                 ),
-        .in_ready_o         (   fma_o_ready                 ),
-        .flush_i            (   clear_i                     ),
-        .result_o           (   fma_res                     ),
+        .clk_i              (   clk_i           ),
+        .rst_ni             (   rst_ni          ),
+        .operands_i         (   fma_operands    ),
+        .is_boxed_i         (   '1              ),
+        .rnd_mode_i         (   ROUND_MODE      ),
+        .op_i               (   fma_operation   ),
+        .op_mod_i           (   '0              ),
+        .tag_i              (   fma_i_tag       ),
+        .mask_i             (   '1              ),
+        .aux_i              (   '0              ),
+        .in_valid_i         (   fma_i_valid     ),
+        .in_ready_o         (   fma_o_ready     ),
+        .flush_i            (   clear_i         ),
+        .result_o           (   fma_res         ),
         .status_o           (   ),
         .extension_bit_o    (   ),
-        .tag_o              (   fma_o_tag                   ),
+        .tag_o              (   fma_o_tag       ),
         .mask_o             (   ),
         .aux_o              (   ),
-        .out_valid_o        (   fma_o_valid                 ),
-        .out_ready_i        (   fma_o_ready | ~addend_empty ),
+        .out_valid_o        (   fma_o_valid     ),
+        .out_ready_i        (   fma_i_ready     ),
         .busy_o             (   )
     );
 
-    assign ready_o = ~(addend_full | |factor_full) & ~disable_ready;
+    sfm_den_inverter #(
+        .IN_FPFORMAT    (   ACC_FPFORMAT    ),
+        .OUT_FPFORMAT   (   INV_FPFORMAT    ),
+        .REG_POS        (   sfm_pkg::BEFORE ),
+        .NUM_REGS       (   2               )
+    ) denominator_inverter (
+        .clk_i      (   clk_i           ),
+        .rst_ni     (   rst_ni          ),
+        .clear_i    (   clear_i         ),
+        .valid_i    (   inv_enable      ),
+        .ready_i    (   '1              ),
+        .den_i      (   fma_res         ),
+        .ready_o    (   ),
+        .valid_o    (   inv_appr_valid  ),
+        .inv_o      (   inv_appr        )
+    );
+
+
+    assign acc_o    = inv_appr_q;
+
+    assign ready_o  = ~(addend_full | |factor_full) & ~disable_ready;
 
 endmodule

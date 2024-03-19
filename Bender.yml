@@ -18,6 +18,7 @@ sources:
     - rtl/sfm_fp_glob_minmax.sv
     - rtl/sfm_accumulator.sv
     - rtl/sfm_datapath.sv
+    - rtl/sfm_den_inverter.sv
 
     - target: sfm_sim
       files:
