@@ -74,9 +74,8 @@ module sfm_accumulator #(
     logic   inv_appr_valid,
             inv_appr_enable;
 
-    logic [INV_WIDTH - 1 : 0]   inv_appr;
-
-    logic [ACC_WIDTH - 1 : 0]   inv_appr_d,
+    logic [ACC_WIDTH - 1 : 0]   inv_appr,
+                                inv_appr_d,
                                 inv_appr_q;
 
 
@@ -171,7 +170,7 @@ module sfm_accumulator #(
     end
 
     assign inv_appr_enable  = inv_appr_valid | (fma_o_valid & iteration_cnt_enable); //| (fma_o_valid & iteration_cnt [0]);
-    assign inv_appr_d       = inv_appr_valid ? `FP_CAST_UP(inv_appr, INV_FPFORMAT, ACC_FPFORMAT) : fma_res;
+    assign inv_appr_d       = inv_appr_valid ? inv_appr : fma_res;
     always_ff @(posedge clk_i or negedge rst_ni) begin : inverse_approximation_register
         if (~rst_ni) begin
             inv_appr_q <= '0;
@@ -523,10 +522,10 @@ module sfm_accumulator #(
     );
 
     sfm_den_inverter #(
-        .IN_FPFORMAT    (   ACC_FPFORMAT    ),
-        .OUT_FPFORMAT   (   INV_FPFORMAT    ),
+        .FPFORMAT       (   ACC_FPFORMAT    ),
         .REG_POS        (   sfm_pkg::BEFORE ),
-        .NUM_REGS       (   2               )
+        .NUM_REGS       (   2               ),
+        .N_MANT_BITS    (   7               )
     ) denominator_inverter (
         .clk_i      (   clk_i           ),
         .rst_ni     (   rst_ni          ),

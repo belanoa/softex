@@ -21,20 +21,26 @@ module sfm_datapath #(
     input   logic                                           valid_i     ,
     input   logic                                           ready_i     ,
     input   logic                                           finish_i    ,       //This signal will most likely end up in a structure
+    input   logic                                           dividing_i  ,
     input   logic [VECT_WIDTH - 1 : 0]                      strb_i      ,
-    input   logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   data_i   ,
+    input   logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   data_i      ,
     output  logic                                           valid_o     ,
     output  logic                                           ready_o     ,
-    output  logic [IN_WIDTH - 1 : 0]                        res_o   
+    output  logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   res_o   
 );
 
     logic [IN_WIDTH - 1 : 0]    old_max,
                                 new_max,
                                 max_diff,
                                 scal_exp_res,
-                                exp_delay;
+                                exp_delay,
+                                inv_cast;
 
-    logic [ACC_WIDTH - 1 : 0]   sum_res;
+    logic [ACC_WIDTH - 1 : 0]   sum_res,
+                                inv_pre_cast;
+
+    logic   fma_arb_cnt,
+            fma_arb_cnt_enable;
 
     logic   new_max_flag;
 
@@ -54,18 +60,43 @@ module sfm_datapath #(
             exp_ready,
             sum_valid,
             sum_ready,
-            acc_ready;
+            acc_ready,
+            acc_valid,
+            mul_valid,
+            mul_ready;
 
     logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   delayed_data,
                                                     diff_vect,
-                                                    exp_vect;
+                                                    exp_vect,
+                                                    mul_res;
 
     logic [VECT_WIDTH - 1 : 0]  delayed_strb,
                                 exp_strb,
-                                diff_strb; 
+                                diff_strb,
+                                mul_strb; 
+
+    sfm_pkg::operation_t    addmul_op;
 
                             
-    assign ready_o = max_ready & delay_ready;
+    assign ready_o  = max_ready & delay_ready;
+    assign valid_o  = mul_valid;
+
+    assign res_o    = mul_res;
+
+    assign fma_arb_cnt_enable = dividing_i; //TODO
+    always_ff @(posedge clk_i or negedge rst_ni) begin : fma_arbitration_counter
+        if (~rst_ni) begin
+            fma_arb_cnt <= '0;
+        end else begin
+            if (clear_i) begin
+                fma_arb_cnt <= '0;
+            end else if (fma_arb_cnt_enable) begin
+                fma_arb_cnt <= fma_arb_cnt + 1;
+            end else begin
+                fma_arb_cnt <= fma_arb_cnt;
+            end
+        end
+    end
 
     sfm_fp_glob_minmax #(
         .FPFORMAT   (   IN_FPFORMAT     ),
@@ -78,7 +109,7 @@ module sfm_datapath #(
         .rst_ni          (  rst_ni                      ),
         .clear_i         (  clear_i                     ),
         .enable_i        (  '1                          ),
-        .valid_i         (  valid_i                     ),
+        .valid_i         (  valid_i & ~dividing_i       ),
         .ready_i         (  max_diff_ready & diff_ready ),
         .strb_i          (  strb_i                      ),
         .vect_i          (  data_i                      ),
@@ -102,7 +133,7 @@ module sfm_datapath #(
         .valid_i        (   new_max_flag & max_valid    ),
         .ready_i        (   scal_exp_ready              ),
         .round_mode_i   (   fpnew_pkg::RNE              ),
-        .operation_i    (   sfm_pkg::SUB                ),
+        .operation_i    (   '1                          ),
         .strb_i         (   '1                          ),
         .vect_i         (   old_max                     ),
         .scal_i         (   new_max                     ),
@@ -181,27 +212,43 @@ module sfm_datapath #(
         .strb_o     (   delayed_strb    )
     ); 
 
-    sfm_fp_vect_addsub #(
-        .FPFORMAT   (   IN_FPFORMAT ),           
-        .REG_POS    (   REG_POS     ),            
-        .NUM_REGS   (   ADD_REGS    ),              
-        .VECT_WIDTH (   VECT_WIDTH  )              
-    ) vect_max_diff (
+
+    assign addmul_op = fma_arb_cnt == '0 ? sfm_pkg::ADD : sfm_pkg::MUL;
+
+    sfm_fp_vect_addmul #(
+        .FPFORMAT           (   IN_FPFORMAT ),      
+        .REG_POS            (   REG_POS     ),      
+        .NUM_REGS           (   ADD_REGS    ),      
+        .VECT_WIDTH         (   VECT_WIDTH  ),      
+        .ADD_OUT_FIFO_DEPTH (   0           ),      
+        .MUL_OUT_FIFO_DEPTH (   1           )      
+    ) i_addmul_time_mux (
         .clk_i          (   clk_i           ),
         .rst_ni         (   rst_ni          ),
         .clear_i        (   clear_i         ),
         .enable_i       (   '1              ),
-        .valid_i        (   delay_valid     ),
-        .ready_i        (   exp_ready       ),
         .round_mode_i   (   fpnew_pkg::RNE  ),
-        .operation_i    (   sfm_pkg::SUB    ),
-        .strb_i         (   delayed_strb    ),
-        .vect_i         (   delayed_data    ),
-        .scal_i         (   new_max         ),
-        .res_o          (   diff_vect       ),
-        .strb_o         (   diff_strb       ),
-        .valid_o        (   diff_valid      ),
-        .ready_o        (   diff_ready      )
+        .operation_i    (   addmul_op       ),
+        .op_mod_add_i   (   '1              ),
+        .op_mod_mul_i   (   '0              ),
+        .add_valid_i    (   delay_valid     ),
+        .add_ready_i    (   exp_ready       ),
+        .add_strb_i     (   delayed_strb    ),
+        .add_vect_i     (   delayed_data    ),
+        .add_scal_i     (   new_max         ),
+        .add_valid_o    (   diff_valid      ),
+        .add_ready_o    (   diff_ready      ),
+        .add_strb_o     (   diff_strb       ),
+        .add_res_o      (   diff_vect       ),
+        .mul_valid_i    (   exp_valid       ),
+        .mul_ready_i    (   ready_i         ),
+        .mul_strb_i     (   exp_strb        ),
+        .mul_vect_i     (   exp_vect        ),
+        .mul_scal_i     (   inv_cast        ),
+        .mul_valid_o    (   mul_valid       ),
+        .mul_ready_o    (   mul_ready       ),
+        .mul_strb_o     (   mul_strb        ),
+        .mul_res_o      (   mul_res         )       
     );
 
     expu_top #(
@@ -221,18 +268,18 @@ module sfm_datapath #(
         .GAMMA_1_REAL           (   2.8359375           ),
         .GAMMA_2_REAL           (   2.16796875          )
     ) vect_exp (
-        .clk_i      (   clk_i       ),
-        .rst_ni     (   rst_ni      ),
-        .clear_i    (   clear_i     ),
-        .enable_i   (   '1          ),
-        .valid_i    (   diff_valid  ),
-        .ready_i    (   sum_ready   ),
-        .strb_i     (   diff_strb   ),
-        .op_i       (   diff_vect   ),
-        .res_o      (   exp_vect    ),
-        .valid_o    (   exp_valid   ),
-        .ready_o    (   exp_ready   ),
-        .strb_o     (   exp_strb    )
+        .clk_i      (   clk_i                               ),
+        .rst_ni     (   rst_ni                              ),
+        .clear_i    (   clear_i                             ),
+        .enable_i   (   '1                                  ),
+        .valid_i    (   diff_valid                          ),
+        .ready_i    (   dividing_i ? mul_ready : sum_ready  ),
+        .strb_i     (   diff_strb                           ),
+        .op_i       (   diff_vect                           ),
+        .res_o      (   exp_vect                            ),
+        .valid_o    (   exp_valid                           ),
+        .ready_o    (   exp_ready                           ),
+        .strb_o     (   exp_strb                            )
     );
 
     sfm_fp_red_sum #(
@@ -242,19 +289,19 @@ module sfm_datapath #(
         .NUM_REGS       (   ADD_REGS        ),
         .VECT_WIDTH     (   VECT_WIDTH      )
     ) vect_sum (
-        .clk_i      (   clk_i           ),
-        .rst_ni     (   rst_ni          ),
-        .clear_i    (   clear_i         ),
-        .enable_i   (   '1              ),
-        .valid_i    (   exp_valid       ),
-        .ready_i    (   acc_ready       ),
-        .mode_i     (   fpnew_pkg::RNE  ),
-        .strb_i     (   exp_strb        ),
-        .vect_i     (   exp_vect        ),
-        .res_o      (   sum_res         ),
-        .strb_o     (   ),
-        .valid_o    (   sum_valid       ),
-        .ready_o    (   sum_ready       )
+        .clk_i      (   clk_i                   ),
+        .rst_ni     (   rst_ni                  ),
+        .clear_i    (   clear_i                 ),
+        .enable_i   (   '1                      ),
+        .valid_i    (   exp_valid & ~dividing_i ),
+        .ready_i    (   acc_ready               ),
+        .mode_i     (   fpnew_pkg::RNE          ),
+        .strb_i     (   exp_strb                ),
+        .vect_i     (   exp_vect                ),
+        .res_o      (   sum_res                 ),
+        .strb_o     (                           ),
+        .valid_o    (   sum_valid               ),
+        .ready_o    (   sum_ready               )
     );
 
     sfm_accumulator #(  
@@ -276,8 +323,43 @@ module sfm_datapath #(
         .mul_i          (   exp_delay       ),      
         .finish_i       (   finish_i        ),   
         .ready_o        (   acc_ready       ),    
-        .valid_o        (   ),    
-        .acc_o          (   )
+        .valid_o        (   acc_valid       ),    
+        .acc_o          (   inv_pre_cast    )
+    );
+
+    fpnew_cast_multi #(
+        .FpFmtConfig    (   '1                  ),
+        .IntFmtConfig   (   '0                  ),
+        .NumPipeRegs    (   0                   ),
+        .PipeConfig     (   fpnew_pkg::BEFORE   ),
+        .TagType        (   logic               ),
+        .AuxType        (   logic               )
+    ) i_inv_cast (
+        .clk_i              (   clk_i                   ),
+        .rst_ni             (   rst_ni                  ),
+        .operands_i         (   inv_pre_cast            ),
+        .is_boxed_i         (   '1                      ),
+        .rnd_mode_i         (   fpnew_pkg::RNE          ),
+        .op_i               (   '0                      ),
+        .op_mod_i           (   '0                      ),
+        .src_fmt_i          (   ACC_FPFORMAT            ),
+        .dst_fmt_i          (   IN_FPFORMAT             ),
+        .int_fmt_i          (   '0                      ),
+        .tag_i              (   '0                      ),
+        .mask_i             (   '0                      ),
+        .aux_i              (   '0                      ),
+        .in_valid_i         (   '1                      ),
+        .in_ready_o         (                           ),
+        .flush_i            (   '0                      ),
+        .result_o           (   inv_cast                ),
+        .status_o           (                           ),
+        .extension_bit_o    (                           ),
+        .tag_o              (                           ),
+        .mask_o             (                           ),
+        .aux_o              (                           ),
+        .out_valid_o        (                           ),
+        .out_ready_i        (   '1                      ),
+        .busy_o             (                           )
     );
 
 endmodule
