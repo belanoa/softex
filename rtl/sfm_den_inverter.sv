@@ -73,7 +73,7 @@ module sfm_den_inverter #(
 
     assign out_exponent = (mantissa_sel == '0) ? 2 * BIAS - exponent : 2 * BIAS - 1 - exponent;
 
-    assign mantissa_prod    = (mantissa_n >> 1) * mantissa_n;//mantissa_n [N_MANT_BITS - 2 : 0] * mantissa_n;
+    assign mantissa_prod    = (mantissa_n >> 1) * mantissa_n;
     assign out_mantissa     = (mantissa_sel == '0) ? '0 : {mantissa_prod [2 * N_MANT_BITS - 2 -: N_MANT_BITS], {(MANTISSA_BITS - N_MANT_BITS){1'b0}}};
 
     assign res = {sign, out_exponent, out_mantissa};

@@ -4,7 +4,6 @@ module sfm_accumulator #(
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = fpnew_pkg::FP32       ,
     parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = fpnew_pkg::FP32       ,
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT    ,
-    parameter fpnew_pkg::fp_format_e    INV_FPFORMAT        = fpnew_pkg::FP16ALT    ,
     parameter int unsigned              N_INV_ITERS         = 2                     ,
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                     ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = 12                    ,
@@ -15,20 +14,20 @@ module sfm_accumulator #(
     localparam int unsigned             ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT) ,
     localparam int unsigned             ADD_WIDTH       = fpnew_pkg::fp_width(ADD_FPFORMAT) ,
     localparam int unsigned             MUL_WIDTH       = fpnew_pkg::fp_width(MUL_FPFORMAT) ,
-    localparam int unsigned             INV_WIDTH       = fpnew_pkg::fp_width(INV_FPFORMAT) ,
     localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = fpnew_pkg::BEFORE
 ) (
-    input   logic                       clk_i       ,
-    input   logic                       rst_ni      ,
-    input   logic                       clear_i     ,
-    input   logic                       add_valid_i ,
-    input   logic [ADD_WIDTH - 1 : 0]   add_i       ,
-    input   logic                       mul_valid_i ,
-    input   logic [MUL_WIDTH - 1 : 0]   mul_i       ,
-    input   logic                       finish_i    ,
-    output  logic                       ready_o     ,
-    output  logic                       valid_o     ,
-    output  logic [ACC_WIDTH - 1 : 0]   acc_o
+    input   logic                           clk_i       ,
+    input   logic                           rst_ni      ,
+    input   logic                           clear_i     ,
+    input   sfm_pkg::accumulator_ctrl_t     ctrl_i      ,
+    input   logic                           add_valid_i ,
+    input   logic [ADD_WIDTH - 1 : 0]       add_i       ,
+    input   logic                           mul_valid_i ,
+    input   logic [MUL_WIDTH - 1 : 0]       mul_i       ,
+    output  logic                           ready_o     ,
+    output  logic                           valid_o     ,
+    output  sfm_pkg::accumulator_flags_t    flags_o     ,
+    output  logic [ACC_WIDTH - 1 : 0]       acc_o
 );
 
     typedef enum logic [3:0] { IDLE, COMPUTING, FINISHING, REDUCTION, INVERSION, INV_MUL, INV_FMA, FINISHED } acc_state_t;
@@ -133,7 +132,7 @@ module sfm_accumulator #(
         if (~rst_ni) begin
             active_q <= '0;
         end else begin
-            if (clear_i | finish_i) begin
+            if (clear_i | ctrl_i.acc_finished) begin
                 active_q <= '0;
             end else if (add_valid_i) begin
                 active_q <= '1;
@@ -267,6 +266,8 @@ module sfm_accumulator #(
         end
     end
 
+    assign flags_o.reducing = reducing;
+
     always_comb begin : sfm_accumulator_fsm
         next_state              = current_state;
         valid_o                 = '0;
@@ -289,7 +290,7 @@ module sfm_accumulator #(
             end
 
             COMPUTING: begin
-                if (finish_i) begin
+                if (ctrl_i.acc_finished) begin
                     next_state = FINISHING;
                 end
             end
@@ -341,7 +342,6 @@ module sfm_accumulator #(
                     next_state = INV_MUL;
                     fma_inv_valid = '1;
                 end
-                
             end
             
             INV_MUL: begin
@@ -467,6 +467,8 @@ module sfm_accumulator #(
             5'b?0111:   fma_operation = fpnew_pkg::FMADD;
             5'b01???:   fma_operation = fpnew_pkg::MUL;
             5'b11???:   fma_operation = fpnew_pkg::FMADD;
+
+            default:    fma_operation = fpnew_pkg::ADD;
         endcase
     end
 
@@ -483,10 +485,12 @@ module sfm_accumulator #(
 
     always_comb begin
         unique casex ({inv_fma, inverting, fma_o_valid})
-            3'b?00:  fma_operands = {fma_addend, addend.value, fma_factor};
-            3'b?01:  fma_operands = {fma_addend, fma_res, fma_factor};
-            3'b11?:  fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, den_q}; 
-            3'b01?:  fma_operands = {{ACC_WIDTH{1'b0}}, fma_res, inv_appr_q};
+            3'b?00:     fma_operands = {fma_addend, addend.value, fma_factor};
+            3'b?01:     fma_operands = {fma_addend, fma_res, fma_factor};
+            3'b11?:     fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, den_q}; 
+            3'b01?:     fma_operands = {{ACC_WIDTH{1'b0}}, fma_res, inv_appr_q};
+
+            default:    fma_operands = {fma_addend, addend.value, fma_factor};
         endcase
     end
 

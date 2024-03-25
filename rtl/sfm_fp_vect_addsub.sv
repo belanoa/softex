@@ -18,7 +18,7 @@ module sfm_fp_vect_addsub #(
     input   logic [VECT_WIDTH - 1 : 0]                  strb_i          ,
     input   logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  vect_i          ,
     input   logic [WIDTH - 1 : 0]                       scal_i          ,
-    output  logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]       res_o           ,
+    output  logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  res_o           ,
     output  logic [VECT_WIDTH - 1 : 0]                  strb_o          ,
     output  logic                                       valid_o         ,
     output  logic                                       ready_o

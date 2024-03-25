@@ -1,0 +1,121 @@
+import hci_package::*;
+import hwpe_stream_package::*;
+
+module sfm_ctrl #(
+
+) (
+    input   logic                       clk_i               ,
+    input   logic                       rst_ni              ,
+    input   logic                       clear_i             ,
+    input   logic                       enable_i            ,
+    input   hci_streamer_flags_t        in_stream_flags_i   ,
+    input   hci_streamer_flags_t        out_stream_flags_i  ,
+    input   sfm_pkg::datapath_flags_t   datapath_flgs_i     ,
+    output  hci_streamer_ctrl_t         in_stream_ctrl_o    ,
+    output  hci_streamer_ctrl_t         out_stream_ctrl_o   ,
+    output  sfm_pkg::datapath_ctrl_t    datapath_ctrl_o     
+);
+
+    typedef enum logic [2:0] {
+        IDLE,
+        ACCUMULATION,
+        WAITING,
+        DIVIDING,
+        FINISHED
+    } sfm_state_t;
+
+    sfm_state_t current_state,
+                next_state;
+
+    logic   in_start,
+            out_start;
+
+    logic   dp_acc_finished,
+            dp_dividing;
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin : state_register
+        if (~rst_ni) begin
+            current_state <= IDLE;
+        end else begin
+            if (clear_i) begin
+                current_state <= IDLE;
+            end else begin
+                current_state <= next_state;
+            end
+        end
+    end
+
+    //TODO: Insert reg file
+
+    assign in_stream_ctrl_o.req_start                       = in_start;
+    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = '0;           
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = 'h10;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = 'd1024;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = 'h10;
+    assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
+    assign in_stream_ctrl_o.addressgen_ctrl.d1_stride       = '0;
+    assign in_stream_ctrl_o.addressgen_ctrl.d2_stride       = '0;
+    assign in_stream_ctrl_o.addressgen_ctrl.dim_enable_1h   = '0;
+
+    assign out_stream_ctrl_o.req_start                      = out_start;
+    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = '0;           
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = 'h10;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = 'd1024;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = 'h10;
+    assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;
+    assign out_stream_ctrl_o.addressgen_ctrl.d1_stride      = '0;
+    assign out_stream_ctrl_o.addressgen_ctrl.d2_stride      = '0;
+    assign out_stream_ctrl_o.addressgen_ctrl.dim_enable_1h  = '0;
+
+    assign datapath_ctrl_o.accumulator_ctrl.acc_finished    = dp_acc_finished;
+    assign datapath_ctrl_o.dividing                         = dp_dividing;
+
+    always_comb begin : ctrl_sfm
+        next_state      = current_state;
+        out_start       = '0;
+        in_start        = '0;
+        dp_acc_finished = '0;
+        dp_dividing     = '0;
+        
+        case (current_state)
+            IDLE: begin
+                next_state  = ACCUMULATION;
+                in_start    = '1;
+            end
+
+            ACCUMULATION: begin
+                if (in_stream_flags_i.done) begin
+                    next_state      = WAITING;
+                    dp_acc_finished = '1;
+                end
+            end
+
+            WAITING: begin
+                dp_acc_finished = '1;
+
+                if (datapath_flgs_i.accumulator_flags.reducing) begin
+                    dp_acc_finished = '0;
+                    out_start       = '1;
+                    in_start        = '1;
+
+                    next_state      = DIVIDING;
+                end
+            end
+
+            DIVIDING: begin
+                dp_dividing = '1;
+
+                if (out_stream_flags_i.done) begin
+                    dp_dividing = '0;
+                    next_state  = FINISHED;
+                end
+            end
+
+            FINISHED: begin
+
+            end
+        endcase
+    end
+
+
+endmodule

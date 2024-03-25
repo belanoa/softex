@@ -3,27 +3,7 @@ import fpnew_pkg::*;
 package sfm_pkg;
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
-    typedef enum logic          { ADD, MUL }                operation_t;
-
-    typedef struct packed {
-        logic   reducing;
-    } accumulator_flags_t;
-
-    typedef struct packed {
-        logic acc_finished;
-    } accumulator_ctrl_t;
-
-    typedef struct packed {
-        
-        accumulator_flags_t accumulator_flags;
-    } datapath_flags_t;
-
-    typedef struct packed {
-        //logic               acc_finished;
-        logic               dividing;
-
-        accumulator_ctrl_t  accumulator_ctrl;
-    } datapath_ctrl_t;
+    typedef enum logic          { SUM, SUB }                operation_t;
 
     function sfm_to_cvfpu(sfm_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;
