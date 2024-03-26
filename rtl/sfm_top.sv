@@ -7,13 +7,14 @@ module sfm_top #(
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)          
 ) (
-    input   logic   clk_i       ,
-    input   logic   rst_ni      ,
-    input   logic   clear_i     ,
+    input   logic   clk_i               ,
+    input   logic   rst_ni              ,
 
     //Insert other stuff here...
 
-    hci_core_intf.master tcdm
+    hci_core_intf.master tcdm           ,
+
+    hwpe_ctrl_intf_periph.slave periph  
 );
 
     hci_streamer_flags_t        stream_in_flgs;
@@ -30,19 +31,22 @@ module sfm_top #(
     logic [DATA_WIDTH / WIDTH - 1 : 0]  in_strb,
                                         out_strb;
 
+    logic   clear;
+
     sfm_ctrl #(
 
     ) i_ctrl (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
-        .clear_i            (   clear_i         ),
+        .clear_o            (   clear           ),
         .enable_i           (   '1              ),
         .in_stream_flags_i  (   stream_in_flgs  ),
         .out_stream_flags_i (   stream_out_flgs ),
         .datapath_flgs_i    (   datapath_flgs   ),
         .in_stream_ctrl_o   (   stream_in_ctrl  ),
         .out_stream_ctrl_o  (   stream_out_ctrl ),
-        .datapath_ctrl_o    (   datapath_ctrl   )
+        .datapath_ctrl_o    (   datapath_ctrl   ),
+        .periph             (   periph          )
     );
 
     sfm_datapath #(
@@ -60,7 +64,7 @@ module sfm_top #(
     ) i_datapath (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
-        .clear_i    (   clear_i             ),
+        .clear_i    (   clear               ),
         .valid_i    (   in_stream.valid     ),
         .ready_i    (   out_stream.ready    ),
         .ctrl_i     (   datapath_ctrl       ),
@@ -86,7 +90,7 @@ module sfm_top #(
     ) i_streamer (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
-        .clear_i            (   clear_i         ),  
+        .clear_i            (   clear           ),  
         .enable_i           (   '1              ), 
         .in_stream_ctrl_i   (   stream_in_ctrl  ), 
         .out_stream_ctrl_i  (   stream_out_ctrl ),

@@ -2,18 +2,23 @@ import hci_package::*;
 import hwpe_stream_package::*;
 
 module sfm_ctrl #(
-
+    parameter int unsigned  N_CORES     = 1 ,
+    parameter int unsigned  N_CONTEXT   = 2 ,
+    parameter int unsigned  IO_REGS     = 4 ,   //Provisonal number
+    parameter int unsigned  ID_WIDTH    = 8 
 ) (
     input   logic                       clk_i               ,
     input   logic                       rst_ni              ,
-    input   logic                       clear_i             ,
+    output  logic                       clear_o             ,
     input   logic                       enable_i            ,
     input   hci_streamer_flags_t        in_stream_flags_i   ,
     input   hci_streamer_flags_t        out_stream_flags_i  ,
     input   sfm_pkg::datapath_flags_t   datapath_flgs_i     ,
     output  hci_streamer_ctrl_t         in_stream_ctrl_o    ,
     output  hci_streamer_ctrl_t         out_stream_ctrl_o   ,
-    output  sfm_pkg::datapath_ctrl_t    datapath_ctrl_o     
+    output  sfm_pkg::datapath_ctrl_t    datapath_ctrl_o     ,
+
+    hwpe_ctrl_intf_periph.slave         periph
 );
 
     typedef enum logic [2:0] {
@@ -33,11 +38,35 @@ module sfm_ctrl #(
     logic   dp_acc_finished,
             dp_dividing;
 
+    logic   clear;
+
+    hwpe_ctrl_package::ctrl_regfile_t   reg_file;
+    hwpe_ctrl_package::ctrl_slave_t     cntrl_slave;
+    hwpe_ctrl_package::flags_slave_t    flgs_slave;
+
+    hwpe_ctrl_slave  #(
+        //.REGFILE_SCM    (   0               ),
+        .N_CORES        (   N_CORES         ),
+        .N_CONTEXT      (   N_CONTEXT       ),
+        .N_IO_REGS      (   IO_REGS         ),
+        //.N_GENERIC_REGS (   6               ),
+        .ID_WIDTH       (   ID_WIDTH        )
+    ) i_slave (
+        .clk_i      (   clk_i       ),
+        .rst_ni     (   rst_ni      ),
+        .clear_o    (   clear       ),
+        .cfg        (   periph      ),
+        .ctrl_i     (   cntrl_slave ),
+        .flags_o    (   flgs_slave  ),
+        .reg_file   (   reg_file    )
+    );
+    
+
     always_ff @(posedge clk_i or negedge rst_ni) begin : state_register
         if (~rst_ni) begin
             current_state <= IDLE;
         end else begin
-            if (clear_i) begin
+            if (clear) begin
                 current_state <= IDLE;
             end else begin
                 current_state <= next_state;
@@ -79,8 +108,10 @@ module sfm_ctrl #(
         
         case (current_state)
             IDLE: begin
-                next_state  = ACCUMULATION;
-                in_start    = '1;
+                //if (flgs_slave.start) begin
+                    next_state  = ACCUMULATION;
+                    in_start    = '1;
+                //end
             end
 
             ACCUMULATION: begin
