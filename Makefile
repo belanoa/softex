@@ -1,46 +1,103 @@
 mkfile_path := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
+SW          ?= $(mkfile_path)sw
 BUILD_DIR  	?= $(mkfile_path)/work
 BENDER_DIR	?= .
 BENDER_NAME	?= bender
 QUESTA      ?= #questa-2020.1
 PYTHON		?= python
+ISA         ?= riscv
+ARCH        ?= rv
+XLEN        ?= 32
+XTEN        ?= imc
 
-BENDER			?= $(BENDER_DIR)/$(BENDER_NAME)
+BENDER		?= $(BENDER_DIR)/$(BENDER_NAME)
+
+TEST_SRCS 	:= $(SW)/sfm.c
 
 compile_script 	?= scripts/compile.tcl
 compile_flag  	?= -suppress 2583 -suppress 13314 -suppress 8386
 
 sim_flags		?= -suppress 3999
 
-#bender_defs += -D COREV_ASSERT_OFF
+bender_defs += -D COREV_ASSERT_OFF
 
 sim_targs += -t rtl
 sim_targs += -t test
-#bender_targs += -t cv32e40p_exclude_tracer
+bender_targs += -t cv32e40p_exclude_tracer
 sim_targs += -t sfm_sim
 
 INI_PATH  = $(mkfile_path)/modelsim.ini
 WORK_PATH = $(BUILD_DIR)
 WAVES	  = wave.do
 
-tb := sfm_fp_glob_minmax_tb
+tb := sfm_tb
 
 gui      ?= 0
 
 P_STALL_GEN ?= 0.0
 P_STALL_RCV ?= 0.0
 
-fpformat				?= BFLOAT16
-a_fraction				?= 14
-coefficient_fraction	?= 4
-constant_fraction		?= 7
-mul_surplus_bits		?= 1
-not_surplus_bits		?= 0
-n_inputs				?= 100
-alpha					?= 0.218750000
-beta					?= 0.410156250
-gamma1					?= 2.835937500
-gamma2					?= 2.167968750
+# Include directories
+INC += -I$(SW)
+INC += -I$(SW)/inc
+INC += -I$(SW)/utils
+
+BOOTSCRIPT := $(SW)/kernel/crt0.S
+LINKSCRIPT := $(SW)/kernel/link.ld
+
+CC=$(ISA)$(XLEN)-unknown-elf-gcc
+LD=$(CC)
+OBJDUMP=$(ISA)$(XLEN)-unknown-elf-objdump
+CC_OPTS=-march=$(ARCH)$(XLEN)$(XTEN) -mabi=ilp32 -D__$(ISA)__ -O2 -g -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections -MMD -MP
+LD_OPTS=-march=$(ARCH)$(XLEN)$(XTEN) -mabi=ilp32 -D__$(ISA)__ -MMD -MP -nostartfiles -nostdlib -Wl,--gc-sections
+
+# Setup build object dirs
+CRT=$(BUILD_DIR)/crt0.o
+OBJ=$(BUILD_DIR)/verif.o
+BIN=$(BUILD_DIR)/verif
+DUMP=$(BUILD_DIR)/verif.dump
+
+STIM_INSTR=$(mkfile_path)/stim_instr.txt
+STIM_DATA=$(mkfile_path)/stim_data.txt
+
+#STIM_INSTR=$(VSIM_DIR)/stim_instr.txt
+#STIM_DATA=$(VSIM_DIR)/stim_data.txt
+
+# Build implicit rules
+$(STIM_INSTR) $(STIM_DATA): $(BIN)
+	objcopy --srec-len 1 --output-target=srec $(BIN) $(BIN).s19
+	scripts/parse_s19.pl $(BIN).s19 > $(BIN).txt
+	python scripts/s19tomem.py $(BIN).txt $(STIM_INSTR) $(STIM_DATA)
+
+$(BIN): $(CRT) $(OBJ)
+	$(LD) $(LD_OPTS) -o $(BIN) $(CRT) $(OBJ) -T$(LINKSCRIPT)
+
+$(CRT): $(BUILD_DIR)
+	$(CC) $(CC_OPTS) -c $(BOOTSCRIPT) -o $(CRT)
+
+$(OBJ): $(TEST_SRCS)
+	$(CC) $(CC_OPTS) -c $(TEST_SRCS) $(FLAGS) $(INC) -o $(OBJ)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# Generate instructions and data stimuli
+sw-build: $(STIM_INSTR) $(STIM_DATA) dis
+
+dis:
+	$(OBJDUMP) -d $(BIN) > $(DUMP)
+
+#fpformat				?= BFLOAT16
+#a_fraction				?= 14
+#coefficient_fraction	?= 4
+#constant_fraction		?= 7
+#mul_surplus_bits		?= 1
+#not_surplus_bits		?= 0
+#n_inputs				?= 100
+#alpha					?= 0.218750000
+#beta					?= 0.410156250
+#gamma1					?= 2.835937500
+#gamma2					?= 2.167968750
 
 # Run the simulation
 run:

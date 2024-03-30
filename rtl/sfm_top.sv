@@ -4,17 +4,18 @@ import hwpe_stream_package::*;
 module sfm_top #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = fpnew_pkg::FP16ALT    ,
     parameter int unsigned              DATA_WIDTH  = 128                   ,
+    parameter int unsigned              N_CORES     = 8                     ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)          
 ) (
-    input   logic   clk_i               ,
-    input   logic   rst_ni              ,
+    input   logic                           clk_i   ,
+    input   logic                           rst_ni  ,
 
-    //Insert other stuff here...
+    output  logic                           busy_o  ,
+    output  logic [N_CORES - 1 : 0] [1 : 0] evt_o   ,
 
-    hci_core_intf.master tcdm           ,
-
-    hwpe_ctrl_intf_periph.slave periph  
+    hci_core_intf.master                    tcdm    ,
+    hwpe_ctrl_intf_periph.slave             periph  
 );
 
     hci_streamer_flags_t        stream_in_flgs;
@@ -34,15 +35,18 @@ module sfm_top #(
     logic   clear;
 
     sfm_ctrl #(
-
+        .N_CORES    (   N_CORES     ),
+        .DATA_WIDTH (   DATA_WIDTH  )
     ) i_ctrl (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
-        .clear_o            (   clear           ),
         .enable_i           (   '1              ),
         .in_stream_flags_i  (   stream_in_flgs  ),
         .out_stream_flags_i (   stream_out_flgs ),
         .datapath_flgs_i    (   datapath_flgs   ),
+        .clear_o            (   clear           ),
+        .busy_o             (   busy_o          ),
+        .evt_o              (   evt_o           ),
         .in_stream_ctrl_o   (   stream_in_ctrl  ),
         .out_stream_ctrl_o  (   stream_out_ctrl ),
         .datapath_ctrl_o    (   datapath_ctrl   ),
@@ -68,7 +72,7 @@ module sfm_top #(
         .valid_i    (   in_stream.valid     ),
         .ready_i    (   out_stream.ready    ),
         .ctrl_i     (   datapath_ctrl       ),
-        .strb_i     (   in_strb/*in_stream.strb*/      ),
+        .strb_i     (   in_strb             ),
         .data_i     (   in_stream.data      ),
         .valid_o    (   out_stream.valid    ),
         .ready_o    (   in_stream.ready     ),

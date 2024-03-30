@@ -1,6 +1,11 @@
 import fpnew_pkg::*;
 
 package sfm_pkg;
+    //Register file indexes
+    parameter int unsigned  IN_ADDR     = 0;
+    parameter int unsigned  OUT_ADDR    = 1;
+    parameter int unsigned  TOT_LEN     = 2;
+
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
     typedef enum logic          { ADD, MUL }                operation_t;

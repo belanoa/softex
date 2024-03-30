@@ -2,9 +2,14 @@ package:
   name: ez_sfm  #Provisional name
 
 dependencies:
-  fpnew         : { git: "https://github.com/pulp-platform/cvfpu.git"       , rev: "pulp-v0.1.3"  }
-  common_cells  : { git: "git@github.com:pulp-platform/common_cells.git"    , rev: "v1.32.0"      } 
-  ez_expu       : { git: "https://github.com/belanoa/ez_expu.git"           , rev: "e13e945"      }
+  #cv32e40p      : { git: "https://github.com/pulp-platform/cv32e40p.git"    , rev: "pulpissimo-v4.1.0"  }
+  ibex          : { git: "https://github.com/pulp-platform/ibex.git"        , rev: pulpissimo-v6.1.2    }
+  fpnew         : { git: "https://github.com/pulp-platform/fpnew.git"       , rev: "v0.8.1"             }
+  common_cells  : { git: "git@github.com:pulp-platform/common_cells.git"    , rev: "v1.32.0"            } 
+  hci           : { git: "https://github.com/pulp-platform/hci.git"         , rev: "v1.1"               }
+  hwpe-stream   : { git: "https://github.com/pulp-platform/hwpe-stream.git" , version: 1.7              }
+  hwpe-ctrl     : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"   , rev: "v1.7.3"             }
+  ez_expu       : { git: "https://github.com/belanoa/ez_expu.git"           , rev: "daf9cef"            }
 
 sources:
   files:
@@ -19,6 +24,11 @@ sources:
     - rtl/sfm_accumulator.sv
     - rtl/sfm_datapath.sv
     - rtl/sfm_den_inverter.sv
+    - rtl/sfm_fp_vect_addmul.sv
+    - rtl/sfm_streamer.sv
+    - rtl/sfm_top.sv
+    - rtl/sfm_ctrl.sv
+    - rtl/sfm_wrap.sv
 
     - target: sfm_sim
       files:
@@ -27,3 +37,7 @@ sources:
         - tb/sfm_fp_glob_minmax_tb.sv
         - tb/sfm_accumulator_tb.sv
         - tb/sfm_datapath_tb.sv
+        - tb/sfm_stream_tb.sv
+        - tb/tb_dummy_memory.sv
+        - tb/sfm_top_tb.sv
+        - tb/sfm_tb.sv

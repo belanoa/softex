@@ -149,7 +149,7 @@ module sfm_datapath #(
 
     expu_top #(
         .FPFORMAT               (   IN_FPFORMAT         ),
-        .REG_POS                (   expu_pkg::BEFORE    ),
+        .REG_POS                (   sfm_pkg::BEFORE     ),
         .NUM_REGS               (   EXP_REGS            ),
         .N_ROWS                 (   1                   ),
         .A_FRACTION             (   14                  ),

@@ -1,22 +1,26 @@
 import hci_package::*;
 import hwpe_stream_package::*;
+import sfm_pkg::*;
 
 module sfm_ctrl #(
-    parameter int unsigned  N_CORES     = 1 ,
-    parameter int unsigned  N_CONTEXT   = 2 ,
-    parameter int unsigned  IO_REGS     = 4 ,   //Provisonal number
-    parameter int unsigned  ID_WIDTH    = 8 
+    parameter int unsigned  N_CORES     = 1     ,
+    parameter int unsigned  N_CONTEXT   = 2     ,
+    parameter int unsigned  IO_REGS     = 20     ,   //Provisonal number
+    parameter int unsigned  ID_WIDTH    = 8     ,
+    parameter int unsigned  DATA_WIDTH  = 128   
 ) (
-    input   logic                       clk_i               ,
-    input   logic                       rst_ni              ,
-    output  logic                       clear_o             ,
-    input   logic                       enable_i            ,
-    input   hci_streamer_flags_t        in_stream_flags_i   ,
-    input   hci_streamer_flags_t        out_stream_flags_i  ,
-    input   sfm_pkg::datapath_flags_t   datapath_flgs_i     ,
-    output  hci_streamer_ctrl_t         in_stream_ctrl_o    ,
-    output  hci_streamer_ctrl_t         out_stream_ctrl_o   ,
-    output  sfm_pkg::datapath_ctrl_t    datapath_ctrl_o     ,
+    input   logic                           clk_i               ,
+    input   logic                           rst_ni              ,
+    input   logic                           enable_i            ,
+    input   hci_streamer_flags_t            in_stream_flags_i   ,
+    input   hci_streamer_flags_t            out_stream_flags_i  ,
+    input   sfm_pkg::datapath_flags_t       datapath_flgs_i     ,
+    output  logic                           clear_o             ,
+    output  logic                           busy_o              ,
+    output  logic [N_CORES - 1 : 0] [1 : 0] evt_o               ,
+    output  hci_streamer_ctrl_t             in_stream_ctrl_o    ,
+    output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
+    output  sfm_pkg::datapath_ctrl_t        datapath_ctrl_o     ,
 
     hwpe_ctrl_intf_periph.slave         periph
 );
@@ -41,7 +45,7 @@ module sfm_ctrl #(
     logic   clear;
 
     hwpe_ctrl_package::ctrl_regfile_t   reg_file;
-    hwpe_ctrl_package::ctrl_slave_t     cntrl_slave;
+    hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
     hwpe_ctrl_package::flags_slave_t    flgs_slave;
 
     hwpe_ctrl_slave  #(
@@ -56,7 +60,7 @@ module sfm_ctrl #(
         .rst_ni     (   rst_ni      ),
         .clear_o    (   clear       ),
         .cfg        (   periph      ),
-        .ctrl_i     (   cntrl_slave ),
+        .ctrl_i     (   ctrl_slave  ),
         .flags_o    (   flgs_slave  ),
         .reg_file   (   reg_file    )
     );
@@ -77,20 +81,20 @@ module sfm_ctrl #(
     //TODO: Insert reg file
 
     assign in_stream_ctrl_o.req_start                       = in_start;
-    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = '0;           
-    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = 'h10;
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = 'd1024;
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = 'h10;
+    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];//'h1c010000;           
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN];//'h10;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = '1;//'d1024;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = DATA_WIDTH / 8;//'h10;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_stride       = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d2_stride       = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.dim_enable_1h   = '0;
 
     assign out_stream_ctrl_o.req_start                      = out_start;
-    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = '0;           
-    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = 'h10;
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = 'd1024;
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = 'h10;
+    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];//'h1c010000;
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN];//'h10;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = '1;//'d1024;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = DATA_WIDTH / 8;//'h10;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_stride      = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d2_stride      = '0;
@@ -105,13 +109,17 @@ module sfm_ctrl #(
         in_start        = '0;
         dp_acc_finished = '0;
         dp_dividing     = '0;
+        ctrl_slave      = '0;
+        busy_o          = '1;
         
         case (current_state)
             IDLE: begin
-                //if (flgs_slave.start) begin
+                busy_o = '0;
+
+                if (flgs_slave.start) begin
                     next_state  = ACCUMULATION;
                     in_start    = '1;
-                //end
+                end
             end
 
             ACCUMULATION: begin
@@ -137,16 +145,22 @@ module sfm_ctrl #(
                 dp_dividing = '1;
 
                 if (out_stream_flags_i.done) begin
-                    dp_dividing = '0;
-                    next_state  = FINISHED;
+                    dp_dividing     = '0;
+                    ctrl_slave.done = '1;
+                    busy_o          = '0;
+                    next_state      = FINISHED;
                 end
             end
 
             FINISHED: begin
+                busy_o = '0;
 
             end
         endcase
     end
 
+    assign clear_o  = clear;
+
+    assign  evt_o   = flgs_slave.evt;
 
 endmodule
