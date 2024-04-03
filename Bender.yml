@@ -9,7 +9,7 @@ dependencies:
   hci           : { git: "https://github.com/pulp-platform/hci.git"         , rev: "v1.1"               }
   hwpe-stream   : { git: "https://github.com/pulp-platform/hwpe-stream.git" , version: 1.7              }
   hwpe-ctrl     : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"   , rev: "v1.7.3"             }
-  ez_expu       : { git: "https://github.com/belanoa/ez_expu.git"           , rev: "daf9cef"            }
+  ez_expu       : { git: "https://github.com/belanoa/ez_expu.git"           , rev: "dd05356"            }
 
 sources:
   files:

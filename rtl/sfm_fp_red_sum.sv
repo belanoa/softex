@@ -28,7 +28,8 @@ module sfm_fp_add_rec #(
     output  logic                                   valid_o ,
     output  logic [WIDTH - 1 : 0]                   res_o   ,
     output  logic                                   strb_o  ,
-    output  TAG_TYPE                                tag_o   
+    output  TAG_TYPE                                tag_o   ,
+    output  logic                                   busy_o  
 );
     logic [A_WIDTH - 1 : 0] [WIDTH - 1 : 0] a;
     logic [B_WIDTH - 1 : 0] [WIDTH - 1 : 0] b;
@@ -55,6 +56,9 @@ module sfm_fp_add_rec #(
             o_ready_b_del,
             o_strb_b_del;
 
+    logic   a_o_busy,
+            fma_o_busy;
+
     logic [WIDTH - 1 : 0]   res_b_del;
 
     logic [2 : 0][WIDTH - 1 : 0]    operands;
@@ -75,6 +79,7 @@ module sfm_fp_add_rec #(
         assign res_o    = op_i;
         assign strb_o   = strb_i;
         assign tag_o    = tag_i;
+        assign busy_o   = '0;
     end else if (N_INP == 2) begin
         assign operands [0] = '0;
         assign operands [1] = strb_i [0] ? a : '0;
@@ -101,14 +106,14 @@ module sfm_fp_add_rec #(
             .in_ready_o         (   ready_o         ),
             .flush_i            (   clear_i         ),
             .result_o           (   res_o           ),
-            .status_o           (   ),
-            .extension_bit_o    (   ),
+            .status_o           (                   ),
+            .extension_bit_o    (                   ),
             .tag_o              (   tag_o           ),
             .mask_o             (   strb_o          ),
-            .aux_o              (   ),
+            .aux_o              (                   ),
             .out_valid_o        (   valid_o         ),
             .out_ready_i        (   ready_i         ),
-            .busy_o             (   )
+            .busy_o             (   busy_o          )
         );
     end else begin
          sfm_fp_add_rec #(
@@ -117,7 +122,7 @@ module sfm_fp_add_rec #(
             .NUM_REGS   (   NUM_REGS    ),
             .REG_POS    (   REG_POS     ),
             .TAG_TYPE   (   TAG_TYPE    )
-         ) a_sum (
+         ) i_a_sum (
             .clk_i      (   clk_i       ),
             .rst_ni     (   rst_ni      ),
             .clear_i    (   clear_i     ),
@@ -131,7 +136,8 @@ module sfm_fp_add_rec #(
             .valid_o    (   o_valid_a   ),
             .res_o      (   res_a       ),
             .strb_o     (   o_strb_a    ),
-            .tag_o      (   a_o_tag     )
+            .tag_o      (   a_o_tag     ),
+            .busy_o     (   a_o_busy    )
         );
 
         sfm_fp_add_rec #(
@@ -140,7 +146,7 @@ module sfm_fp_add_rec #(
             .NUM_REGS   (   NUM_REGS    ),
             .REG_POS    (   REG_POS     ),
             .TAG_TYPE   (   TAG_TYPE    )
-        ) b_sum (
+        ) i_b_sum (
             .clk_i      (   clk_i       ),
             .rst_ni     (   rst_ni      ),
             .clear_i    (   clear_i     ),
@@ -154,7 +160,8 @@ module sfm_fp_add_rec #(
             .valid_o    (   o_valid_b   ),
             .res_o      (   res_b       ),
             .strb_o     (   o_strb_b    ),
-            .tag_o      (               )
+            .tag_o      (               ),
+            .busy_o     (               )
         );
 
         if ((A_WIDTH > B_WIDTH) && ($countones(B_WIDTH) == 1)) begin
@@ -162,7 +169,7 @@ module sfm_fp_add_rec #(
                 .NUM_REGS   (   NUM_REGS    ),
                 .DATA_WIDTH (   WIDTH       ),
                 .NUM_ROWS   (   1           )
-            ) b_delay (
+            ) i_b_delay (
                 .clk_i      (   clk_i           ),
                 .rst_ni     (   rst_ni          ),
                 .enable_i   (   '1              ),
@@ -217,15 +224,17 @@ module sfm_fp_add_rec #(
             .in_ready_o         (   o_ready_sum     ),
             .flush_i            (   clear_i         ),
             .result_o           (   res_o           ),
-            .status_o           (   ),
-            .extension_bit_o    (   ),
+            .status_o           (                   ),
+            .extension_bit_o    (                   ),
             .tag_o              (   tag_o           ),
             .mask_o             (   strb_o          ),
-            .aux_o              (   ),
+            .aux_o              (                   ),
             .out_valid_o        (   valid_o         ),
             .out_ready_i        (   ready_i         ),
-            .busy_o             (   )
+            .busy_o             (   fma_o_busy      )
         );
+
+        assign busy_o = a_o_busy | fma_o_busy;
     end
 
 endmodule
@@ -255,7 +264,8 @@ module sfm_fp_red_sum #(
     output  logic                                           strb_o      ,
     output  logic                                           valid_o     ,
     output  logic                                           ready_o     ,
-    output  TAG_TYPE                                        tag_o       
+    output  TAG_TYPE                                        tag_o       ,
+    output  logic                                           busy_o      
 );
 
     logic [VECT_WIDTH - 1 : 0] [ACC_WIDTH - 1 : 0]  cast_vect;
@@ -286,7 +296,8 @@ module sfm_fp_red_sum #(
         .valid_o    (   valid_o             ),
         .res_o      (   res_o               ),
         .strb_o     (   strb_o              ),
-        .tag_o      (   tag_o               )
+        .tag_o      (   tag_o               ),
+        .busy_o     (   busy_o              )
     );
 
 endmodule

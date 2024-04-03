@@ -5,7 +5,7 @@ import sfm_pkg::*;
 module sfm_ctrl #(
     parameter int unsigned  N_CORES     = 1     ,
     parameter int unsigned  N_CONTEXT   = 2     ,
-    parameter int unsigned  IO_REGS     = 4     ,   //Provisonal number
+    parameter int unsigned  IO_REGS     = 4     ,
     parameter int unsigned  ID_WIDTH    = 8     ,
     parameter int unsigned  DATA_WIDTH  = 128   
 ) (
@@ -22,13 +22,14 @@ module sfm_ctrl #(
     output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
     output  sfm_pkg::datapath_ctrl_t        datapath_ctrl_o     ,
 
-    hwpe_ctrl_intf_periph.slave         periph
+    hwpe_ctrl_intf_periph.slave             periph
 );
 
     typedef enum logic [2:0] {
         IDLE,
         ACCUMULATION,
-        WAITING,
+        WAIT_DATAPATH_EMPTY,
+        WAIT_ACCUMULATION,
         DIVIDING,
         FINISHED
     } sfm_state_t;
@@ -78,23 +79,21 @@ module sfm_ctrl #(
         end
     end
 
-    //TODO: Insert reg file
-
     assign in_stream_ctrl_o.req_start                       = in_start;
-    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];//'h1c010000;           
-    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN];//'h10;
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = '1;//'d1024;
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = DATA_WIDTH / 8;//'h10;
+    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN];
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = '1;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = DATA_WIDTH / 8;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_stride       = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d2_stride       = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.dim_enable_1h   = '0;
 
     assign out_stream_ctrl_o.req_start                      = out_start;
-    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];//'h1c010000;
-    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN];//'h10;
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = '1;//'d1024;
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = DATA_WIDTH / 8;//'h10;
+    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN];
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = '1;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = DATA_WIDTH / 8;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_stride      = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d2_stride      = '0;
@@ -124,12 +123,18 @@ module sfm_ctrl #(
 
             ACCUMULATION: begin
                 if (in_stream_flags_i.done) begin
-                    next_state      = WAITING;
+                    next_state      = WAIT_DATAPATH_EMPTY;
+                end
+            end
+
+            WAIT_DATAPATH_EMPTY: begin
+                if (~datapath_flgs_i.datapath_busy) begin
+                    next_state      = WAIT_ACCUMULATION;
                     dp_acc_finished = '1;
                 end
             end
 
-            WAITING: begin
+            WAIT_ACCUMULATION: begin
                 dp_acc_finished = '1;
 
                 if (datapath_flgs_i.accumulator_flags.reducing) begin

@@ -3,8 +3,6 @@ module sfm_fp_vect_addmul #(
     parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS                = 0                     ,
     parameter int unsigned              VECT_WIDTH              = 1                     ,
-    parameter int unsigned              ADD_OUT_FIFO_DEPTH      = 0                     ,
-    parameter int unsigned              MUL_OUT_FIFO_DEPTH      = 0                     ,
     parameter type                      TAG_TYPE                = logic                 ,
 
     localparam int unsigned             WIDTH           = fpnew_pkg::fp_width(FPFORMAT)     ,
@@ -18,6 +16,7 @@ module sfm_fp_vect_addmul #(
     input   sfm_pkg::operation_t                        operation_i         ,
     input   logic                                       op_mod_add_i        ,
     input   logic                                       op_mod_mul_i        ,
+    output  logic                                       busy_o              ,
     
     input   logic                                       add_valid_i         ,
     input   logic                                       add_scal_valid_i    ,
@@ -46,11 +45,9 @@ module sfm_fp_vect_addmul #(
     output  TAG_TYPE                                    mul_tag_o       
 );
 
-    typedef struct packed {
-        logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  data;
-        logic [VECT_WIDTH - 1 : 0]                  strb;
-        TAG_TYPE                                    tag;
-    } fifo_element_t;
+    logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  fma_res;
+    logic [VECT_WIDTH - 1 : 0]                  fma_o_strb;
+    TAG_TYPE                                    fma_o_tag;
 
     logic [VECT_WIDTH - 1 : 0] [2 : 0] [WIDTH - 1 : 0]  fma_operands;
     logic [VECT_WIDTH - 1 : 0]                          fma_valids,
@@ -63,34 +60,21 @@ module sfm_fp_vect_addmul #(
 
     TAG_TYPE [VECT_WIDTH - 1 : 0] fma_o_auxs;
 
-    fifo_element_t  fifo_d,
-                    add_fifo_q,
-                    mul_fifo_out;
-
-    logic   add_fifo_full,
-            add_fifo_empty,
-            add_fifo_push,
-            add_fifo_pop;
-
-    logic   mul_fifo_full,
-            mul_fifo_empty,
-            mul_fifo_push,
-            mul_fifo_pop;
-
     fpnew_pkg::operation_e  fpnew_op;
 
     sfm_pkg::operation_t [VECT_WIDTH - 1 : 0]   o_operations;
     
     logic   op_mod;
 
-    logic   [VECT_WIDTH - 1 : 0]    strb;
+    logic   [VECT_WIDTH - 1 : 0]    strb,
+                                    busy;
 
     assign fpnew_op     = operation_i == sfm_pkg::MUL ? fpnew_pkg::MUL : fpnew_pkg::ADD;
     assign op_mod       = operation_i == sfm_pkg::MUL ? op_mod_mul_i : op_mod_add_i;
     assign strb         = operation_i == sfm_pkg::MUL ? mul_strb_i : add_strb_i;
 
     assign fma_i_valid  = operation_i == sfm_pkg::MUL ? mul_valid_i & mul_scal_valid_i : add_valid_i & add_scal_valid_i;
-    assign fma_i_ready  = o_operations [0] == sfm_pkg::MUL ? ~mul_fifo_full : ~add_fifo_full;
+    assign fma_i_ready  = o_operations [0] == sfm_pkg::MUL ? mul_ready_i : add_ready_i;
 
     assign fma_i_aux    = operation_i == sfm_pkg::MUL ? mul_tag_i : add_tag_i;
 
@@ -119,74 +103,34 @@ module sfm_fp_vect_addmul #(
             .in_valid_i         (   fma_i_valid         ),
             .in_ready_o         (   fma_readies [i]     ),
             .flush_i            (   clear_i             ),
-            .result_o           (   fifo_d.data [i]     ),
+            .result_o           (   fma_res [i]         ),
             .status_o           (   ),
             .extension_bit_o    (   ),
             .tag_o              (   o_operations [i]    ),
-            .mask_o             (   fifo_d.strb [i]     ),
+            .mask_o             (   fma_o_strb [i]      ),
             .aux_o              (   fma_o_auxs [i]      ),
             .out_valid_o        (   fma_valids [i]      ),
             .out_ready_i        (   fma_i_ready         ),
-            .busy_o             (   )
+            .busy_o             (   busy [i]            )
         );
     end
 
-    assign fifo_d.tag      = fma_o_auxs [0];
+    assign fma_o_tag    = fma_o_auxs [0];
 
-    assign add_fifo_push    = o_operations [0] == sfm_pkg::ADD ? fma_valids [0] & (ADD_OUT_FIFO_DEPTH == 0 ? add_ready_i : ~add_fifo_full) : '0;
-    assign add_fifo_pop     = add_ready_i & (ADD_OUT_FIFO_DEPTH == 0 ? (fma_valids [0] & (o_operations [0] == sfm_pkg::ADD)) : ~add_fifo_empty);
+    assign busy_o       = |busy;
 
-    fifo_v3 #(
-        .FALL_THROUGH   (   0                   ),
-        .DEPTH          (   ADD_OUT_FIFO_DEPTH  ),
-        .dtype          (   fifo_element_t      )
-    ) i_add_fifo (
-        .clk_i       (  clk_i           ),            
-        .rst_ni      (  rst_ni          ),           
-        .flush_i     (  clear_i         ),          
-        .testmode_i  (  '0              ),
-        .full_o      (  add_fifo_full   ),           
-        .empty_o     (  add_fifo_empty  ),          
-        .usage_o     (),  
-        .data_i      (  fifo_d         ),          
-        .push_i      (  add_fifo_push   ),          
-        .data_o      (  add_fifo_q    ),          
-        .pop_i       (  add_fifo_pop    )     
-    );
+    assign add_res_o    = fma_res;
+    assign add_strb_o   = fma_o_strb;
+    assign add_tag_o    = fma_o_tag;
 
-    assign mul_fifo_push    = o_operations [0] == sfm_pkg::MUL ? fma_valids [0] & (MUL_OUT_FIFO_DEPTH == 0 ? mul_ready_i : ~mul_fifo_full) : '0;
-    assign mul_fifo_pop     = mul_ready_i & (MUL_OUT_FIFO_DEPTH == 0 ? (fma_valids [0] & (o_operations [0] == sfm_pkg::MUL)) : ~mul_fifo_empty);
-
-    fifo_v3 #(
-        .FALL_THROUGH   (   0                   ),
-        .DEPTH          (   MUL_OUT_FIFO_DEPTH  ),
-        .dtype          (   fifo_element_t      )
-    ) i_mul_fifo (
-        .clk_i       (  clk_i           ),
-        .rst_ni      (  rst_ni          ),
-        .flush_i     (  clear_i         ),
-        .testmode_i  (  '0              ),
-        .full_o      (  mul_fifo_full   ),
-        .empty_o     (  mul_fifo_empty  ),
-        .usage_o     (),
-        .data_i      (  fifo_d         ),
-        .push_i      (  mul_fifo_push   ),
-        .data_o      (  mul_fifo_out    ),
-        .pop_i       (  mul_fifo_pop    )
-    );
-
-    assign add_res_o    = add_fifo_q.data;
-    assign add_strb_o   = add_fifo_q.strb;
-    assign add_tag_o    = add_fifo_q.tag;
-
-    assign mul_res_o    = mul_fifo_out.data;
-    assign mul_strb_o   = mul_fifo_out.strb;
-    assign mul_tag_o    = mul_fifo_out.tag;
+    assign mul_res_o    = fma_res;
+    assign mul_strb_o   = fma_o_strb;
+    assign mul_tag_o    = fma_o_tag;
 
     assign add_ready_o  = operation_i == sfm_pkg::ADD ? fma_readies [0] & add_scal_valid_i : '0;
     assign mul_ready_o  = operation_i == sfm_pkg::MUL ? fma_readies [0] & mul_scal_valid_i : '0;
 
-    assign add_valid_o  = ~add_fifo_empty;
-    assign mul_valid_o  = ~mul_fifo_empty;
+    assign add_valid_o  = o_operations [0] == sfm_pkg::ADD ? fma_valids [0] : '0;
+    assign mul_valid_o  = o_operations [0] == sfm_pkg::MUL ? fma_valids [0] : '0;
 
 endmodule

@@ -19,7 +19,8 @@ package sfm_pkg;
     } accumulator_ctrl_t;
 
     typedef struct packed {
-        
+        logic               datapath_busy;
+
         accumulator_flags_t accumulator_flags;
     } datapath_flags_t;
 
