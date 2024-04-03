@@ -5,10 +5,10 @@ module sfm_accumulator #(
     parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = fpnew_pkg::FP32                   ,
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT                ,
     parameter int unsigned              N_INV_ITERS         = 2                                 ,
+    parameter int unsigned              NUM_REGS_FMA        = 3                                 , 
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                                 ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,
-    parameter int unsigned              N_FACT_FIFO         = 1                                 ,
-    parameter int unsigned              NUM_REGS_FMA        = 3                                 ,   
+    parameter int unsigned              N_FACT_FIFO         = 1                                 ,  
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,         
 
     localparam int unsigned             ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT) ,
@@ -475,7 +475,7 @@ module sfm_accumulator #(
 
     assign fma_i_valid  = (reducing ? (~addend_empty & fma_o_valid) : (~addend_empty | (~(|factor_empty) & fma_o_valid))) | fma_inv_valid;
     assign fma_i_tag    = |factor_uses_cnt_enable ? (fma_o_tag + 1) : (fma_o_valid ? fma_o_tag : addend.tag);
-    assign fma_i_ready  = '1; //(reducing | inverting) ? fma_o_valid : (~addend_empty | (~(|factor_empty)));
+    assign fma_i_ready  = (reducing | inverting) ? fma_o_valid : (~addend_empty | (~(|factor_empty)));
 
     assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
 

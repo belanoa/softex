@@ -63,6 +63,7 @@ module sfm_datapath #(
             sum_ready,
             acc_ready,
             acc_valid,
+            cast_valid,
             mul_valid,
             mul_ready;
 
@@ -78,8 +79,17 @@ module sfm_datapath #(
                                 diff_strb,
                                 mul_strb; 
 
+    logic   addmul_o_tag,
+            expu_o_tag,
+            sum_o_tag;
+
     sfm_pkg::operation_t    addmul_op;
 
+    hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH))    fact_fifo_d (.clk(clk_i));
+    hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH))    fact_fifo_q (.clk(clk_i));
+
+    hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_d  (.clk(clk_i));
+    hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_q  (.clk(clk_i));
                             
     assign ready_o  = max_ready & delay_ready;
     assign valid_o  = mul_valid;
@@ -108,12 +118,12 @@ module sfm_datapath #(
         .NUM_REGS   (   MAX_REGS        ),
         .VECT_WIDTH (   VECT_WIDTH      ),
         .MM_MODE    (   sfm_pkg::MAX    )
-    ) global_maximum (
+    ) i_global_maximum (
         .clk_i           (  clk_i                       ),
         .rst_ni          (  rst_ni                      ),
         .clear_i         (  clear_i                     ),
         .enable_i        (  '1                          ),
-        .valid_i         (  valid_i & ~ctrl_i.dividing       ),
+        .valid_i         (  valid_i & ~ctrl_i.dividing  ),
         .ready_i         (  max_diff_ready & diff_ready ),
         .strb_i          (  strb_i                      ),
         .vect_i          (  data_i                      ),
@@ -129,7 +139,7 @@ module sfm_datapath #(
         .REG_POS    (   REG_POS     ),            
         .NUM_REGS   (   ADD_REGS    ),              
         .VECT_WIDTH (   1           )              
-    ) new_old_max_diff (
+    ) i_new_old_max_diff (
         .clk_i          (   clk_i                       ),
         .rst_ni         (   rst_ni                      ),
         .clear_i        (   clear_i                     ),
@@ -163,13 +173,13 @@ module sfm_datapath #(
         .BETA_REAL              (   0.41015625          ),
         .GAMMA_1_REAL           (   2.8359375           ),
         .GAMMA_2_REAL           (   2.16796875          )
-    ) scal_exp (
+    ) i_scal_exp (
         .clk_i      (   clk_i           ),
         .rst_ni     (   rst_ni          ),
         .clear_i    (   clear_i         ),
         .enable_i   (   '1              ),
         .valid_i    (   max_diff_valid  ),
-        .ready_i    (   exp_delay_ready ),
+        .ready_i    (   /*exp_delay_ready*/fact_fifo_d.ready ),
         .strb_i     (   '1              ),
         .op_i       (   max_diff        ),
         .res_o      (   scal_exp_res    ),
@@ -178,11 +188,29 @@ module sfm_datapath #(
         .strb_o     (                   )
     );
 
-    sfm_delay #(
+    assign fact_fifo_d.valid    = scal_exp_valid;
+    assign fact_fifo_d.data     = scal_exp_res;
+    assign fact_fifo_d.strb     = '1;
+
+    hwpe_stream_fifo #(
+        .DATA_WIDTH (   IN_WIDTH            ),
+        .FIFO_DEPTH (   VECT_SUM_DELAY + 2  )
+    ) i_fact_fifo (
+        .clk_i      (   clk_i       ),
+        .rst_ni     (   rst_ni      ),
+        .clear_i    (   clear_i     ),
+        .flags_o    (               ),
+        .push_i     (   fact_fifo_d ),
+        .pop_o      (   fact_fifo_q )
+    );
+
+    assign fact_fifo_q.ready    = acc_ready & sum_o_tag;
+
+    /*sfm_delay #(
         .NUM_REGS   (   VECT_SUM_DELAY  ),  
         .DATA_WIDTH (   IN_WIDTH        ),
         .NUM_ROWS   (   1               )
-    ) correction_delay (
+    ) i_correction_delay (
         .clk_i      (   clk_i           ),
         .rst_ni     (   rst_ni          ),
         .enable_i   (   '1              ),
@@ -195,13 +223,13 @@ module sfm_datapath #(
         .ready_o    (   exp_delay_ready ),
         .data_o     (   exp_delay       ),
         .strb_o     (                   )
-    ); 
+    );*/ 
 
     sfm_delay #(
         .NUM_REGS   (   MAX_REGS    ),
         .DATA_WIDTH (   IN_WIDTH    ),
         .NUM_ROWS   (   VECT_WIDTH  )
-    ) data_delay (
+    ) i_data_delay (
         .clk_i      (   clk_i           ),
         .rst_ni     (   rst_ni          ),
         .enable_i   (   '1              ),
@@ -223,39 +251,44 @@ module sfm_datapath #(
     assign addmul_ready [1] = mul_ready;
 
     sfm_fp_vect_addmul #(
-        .FPFORMAT           (   IN_FPFORMAT ),      
-        .REG_POS            (   REG_POS     ),      
-        .NUM_REGS           (   ADD_REGS    ),      
-        .VECT_WIDTH         (   VECT_WIDTH  ),      
-        .ADD_OUT_FIFO_DEPTH (   0           ),      
-        .MUL_OUT_FIFO_DEPTH (   1           )      
+        .FPFORMAT           (   IN_FPFORMAT ),
+        .REG_POS            (   REG_POS     ),
+        .NUM_REGS           (   ADD_REGS    ),
+        .VECT_WIDTH         (   VECT_WIDTH  ),
+        .ADD_OUT_FIFO_DEPTH (   0           ),
+        .MUL_OUT_FIFO_DEPTH (   2           ),
+        .TAG_TYPE           (   logic       )    
     ) i_addmul_time_mux (
-        .clk_i          (   clk_i           ),
-        .rst_ni         (   rst_ni          ),
-        .clear_i        (   clear_i         ),
-        .enable_i       (   '1              ),
-        .round_mode_i   (   fpnew_pkg::RNE  ),
-        .operation_i    (   addmul_op       ),
-        .op_mod_add_i   (   '1              ),
-        .op_mod_mul_i   (   '0              ),
-        .add_valid_i    (   delay_valid     ),
-        .add_ready_i    (   exp_ready       ),
-        .add_strb_i     (   delayed_strb    ),
-        .add_vect_i     (   delayed_data    ),
-        .add_scal_i     (   new_max         ),
-        .add_valid_o    (   diff_valid      ),
-        .add_ready_o    (   diff_ready      ),
-        .add_strb_o     (   diff_strb       ),
-        .add_res_o      (   diff_vect       ),
-        .mul_valid_i    (   exp_valid       ),
-        .mul_ready_i    (   ready_i         ),
-        .mul_strb_i     (   exp_strb        ),
-        .mul_vect_i     (   exp_vect        ),
-        .mul_scal_i     (   inv_cast        ),
-        .mul_valid_o    (   mul_valid       ),
-        .mul_ready_o    (   mul_ready       ),
-        .mul_strb_o     (   mul_strb        ),
-        .mul_res_o      (   mul_res         )       
+        .clk_i              (   clk_i                       ),
+        .rst_ni             (   rst_ni                      ),
+        .clear_i            (   clear_i                     ),
+        .enable_i           (   '1                          ),
+        .round_mode_i       (   fpnew_pkg::RNE              ),
+        .operation_i        (   addmul_op                   ),
+        .op_mod_add_i       (   '1                          ),
+        .op_mod_mul_i       (   '0                          ),
+        .add_valid_i        (   delay_valid                 ),
+        .add_scal_valid_i   (   '1                          ),
+        .add_ready_i        (   exp_ready                   ),
+        .add_strb_i         (   delayed_strb                ),
+        .add_vect_i         (   delayed_data                ),
+        .add_scal_i         (   new_max                     ),
+        .add_tag_i          (   new_max_flag & max_valid    ),
+        .add_valid_o        (   diff_valid                  ),
+        .add_ready_o        (   diff_ready                  ),
+        .add_strb_o         (   diff_strb                   ),
+        .add_res_o          (   diff_vect                   ),
+        .add_tag_o          (   addmul_o_tag                ),
+        .mul_valid_i        (   add_fifo_q.valid            ),
+        .mul_scal_valid_i   (  cast_valid                   ),
+        .mul_ready_i        (   ready_i                     ),
+        .mul_strb_i         (   add_fifo_q.strb             ),
+        .mul_vect_i         (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
+        .mul_scal_i         (   inv_cast                    ),
+        .mul_valid_o        (   mul_valid                   ),
+        .mul_ready_o        (   mul_ready                   ),
+        .mul_strb_o         (   mul_strb                    ),
+        .mul_res_o          (   mul_res                     )       
     );
 
     expu_top #(
@@ -273,42 +306,66 @@ module sfm_datapath #(
         .ALPHA_REAL             (   0.24609375          ),
         .BETA_REAL              (   0.41015625          ),
         .GAMMA_1_REAL           (   2.8359375           ),
-        .GAMMA_2_REAL           (   2.16796875          )
-    ) vect_exp (
-        .clk_i      (   clk_i                               ),
-        .rst_ni     (   rst_ni                              ),
-        .clear_i    (   clear_i                             ),
-        .enable_i   (   '1                                  ),
-        .valid_i    (   diff_valid                          ),
-        .ready_i    (   ctrl_i.dividing ? mul_ready : sum_ready  ),
-        .strb_i     (   diff_strb                           ),
-        .op_i       (   diff_vect                           ),
-        .res_o      (   exp_vect                            ),
-        .valid_o    (   exp_valid                           ),
-        .ready_o    (   exp_ready                           ),
-        .strb_o     (   exp_strb                            )
+        .GAMMA_2_REAL           (   2.16796875          ),
+        .TAG_TYPE               (   logic               )
+    ) i_vect_exp (
+        .clk_i      (   clk_i               ),
+        .rst_ni     (   rst_ni              ),
+        .clear_i    (   clear_i             ),
+        .enable_i   (   '1                  ),
+        .valid_i    (   diff_valid          ),
+        .ready_i    (   add_fifo_d.ready    ), //TODO?
+        .strb_i     (   diff_strb           ),
+        .op_i       (   diff_vect           ),
+        .tag_i      (   addmul_o_tag        ),
+        .res_o      (   exp_vect            ),
+        .valid_o    (   exp_valid           ),
+        .ready_o    (   exp_ready           ),
+        .strb_o     (   exp_strb            ),
+        .tag_o      (   expu_o_tag          )
     );
+
+    assign add_fifo_d.valid = exp_valid;
+    assign add_fifo_d.data  = {expu_o_tag, exp_vect};
+    assign add_fifo_d.strb  = {2{{>>{exp_strb}}}};//exp_strb;
+
+    hwpe_stream_fifo #(
+        .DATA_WIDTH (   IN_WIDTH * VECT_WIDTH + 1   ),
+        .FIFO_DEPTH (   2                           )
+    ) i_add_fifo (
+        .clk_i      (   clk_i       ),
+        .rst_ni     (   rst_ni      ),
+        .clear_i    (   clear_i     ),
+        .flags_o    (               ),
+        .push_i     (   add_fifo_d  ),
+        .pop_o      (   add_fifo_q  )
+    );
+
+    assign add_fifo_q.ready = ctrl_i.dividing ? mul_ready : sum_ready;
 
     sfm_fp_red_sum #(
         .IN_FPFORMAT    (   IN_FPFORMAT     ),
         .ACC_FPFORMAT   (   ACC_FPFORMAT    ),
         .REG_POS        (   REG_POS         ),
         .NUM_REGS       (   ADD_REGS        ),
-        .VECT_WIDTH     (   VECT_WIDTH      )
-    ) vect_sum (
-        .clk_i      (   clk_i                   ),
-        .rst_ni     (   rst_ni                  ),
-        .clear_i    (   clear_i                 ),
-        .enable_i   (   '1                      ),
-        .valid_i    (   exp_valid & ~ctrl_i.dividing ),
-        .ready_i    (   acc_ready               ),
-        .mode_i     (   fpnew_pkg::RNE          ),
-        .strb_i     (   exp_strb                ),
-        .vect_i     (   exp_vect                ),
-        .res_o      (   sum_res                 ),
-        .strb_o     (                           ),
-        .valid_o    (   sum_valid               ),
-        .ready_o    (   sum_ready               )
+        .VECT_WIDTH     (   VECT_WIDTH      ),
+        .TAG_TYPE       (   logic           )
+    ) i_vect_sum (
+        .clk_i      (   clk_i                           ),
+        .rst_ni     (   rst_ni                          ),
+        .clear_i    (   clear_i                         ),
+        .enable_i   (   '1                              ),
+        .valid_i    (   /*exp_valid*/add_fifo_q.valid & ~ctrl_i.dividing    ),
+        .ready_i    (   acc_ready                       ),
+        .mode_i     (   fpnew_pkg::RNE                  ),
+        .strb_i     (   add_fifo_q.strb                 ),
+        .vect_i     (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
+        .tag_i      (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH]         ),
+        .res_o      (   sum_res                         ),
+        .strb_o     (                                   ),
+        .valid_o    (   sum_valid                       ),
+        .ready_o    (   sum_ready                       ),
+        .tag_o      (   sum_o_tag                       )
     );
 
     sfm_accumulator #(  
@@ -320,15 +377,15 @@ module sfm_datapath #(
         .N_FACT_FIFO        (   1                   ),
         .NUM_REGS_FMA       (   FMA_REGS            ),
         .ROUND_MODE         (   fpnew_pkg::RNE      )
-    ) denominator_accumulator (
+    ) i_denominator_accumulator (
         .clk_i          (   clk_i                       ),     
         .rst_ni         (   rst_ni                      ),     
         .clear_i        (   clear_i                     ),
         .ctrl_i         (   ctrl_i.accumulator_ctrl     ),    
         .add_valid_i    (   sum_valid                   ),
         .add_i          (   sum_res                     ),      
-        .mul_valid_i    (   exp_delay_valid             ),
-        .mul_i          (   exp_delay                   ),      
+        .mul_valid_i    (   /*exp_delay_valid*/ fact_fifo_q.valid & sum_o_tag   ),
+        .mul_i          (   /*exp_delay*/ fact_fifo_q.data          ),      
         //.finish_i       (   ctrl_i.acc_finished ),   
         .ready_o        (   acc_ready                   ),    
         .valid_o        (   acc_valid                   ),
@@ -357,7 +414,7 @@ module sfm_datapath #(
         .tag_i              (   '0                      ),
         .mask_i             (   '0                      ),
         .aux_i              (   '0                      ),
-        .in_valid_i         (   '1                      ),
+        .in_valid_i         (   acc_valid               ),
         .in_ready_o         (                           ),
         .flush_i            (   '0                      ),
         .result_o           (   inv_cast                ),
@@ -366,7 +423,7 @@ module sfm_datapath #(
         .tag_o              (                           ),
         .mask_o             (                           ),
         .aux_o              (                           ),
-        .out_valid_o        (                           ),
+        .out_valid_o        (   cast_valid              ),
         .out_ready_i        (   '1                      ),
         .busy_o             (                           )
     );

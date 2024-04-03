@@ -5,7 +5,7 @@ import sfm_pkg::*;
 module sfm_ctrl #(
     parameter int unsigned  N_CORES     = 1     ,
     parameter int unsigned  N_CONTEXT   = 2     ,
-    parameter int unsigned  IO_REGS     = 20     ,   //Provisonal number
+    parameter int unsigned  IO_REGS     = 4     ,   //Provisonal number
     parameter int unsigned  ID_WIDTH    = 8     ,
     parameter int unsigned  DATA_WIDTH  = 128   
 ) (

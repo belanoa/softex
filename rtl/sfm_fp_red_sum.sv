@@ -8,6 +8,7 @@ module sfm_fp_add_rec #(
     parameter int unsigned              N_INP       = 1                 ,
     parameter int unsigned              NUM_REGS    = 0                 ,
     parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE   ,
+    parameter type                      TAG_TYPE    = logic             ,
 
     localparam int unsigned             WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
     localparam int unsigned             A_WIDTH         = (N_INP + 1) / 2               ,
@@ -22,10 +23,12 @@ module sfm_fp_add_rec #(
     input   logic [N_INP - 1 : 0] [WIDTH - 1 : 0]   op_i    ,
     input   logic [N_INP - 1 : 0]                   strb_i  ,
     input   fpnew_pkg::roundmode_e                  mode_i  ,
+    input   TAG_TYPE                                tag_i   ,
     output  logic                                   ready_o ,
     output  logic                                   valid_o ,
     output  logic [WIDTH - 1 : 0]                   res_o   ,
-    output  logic                                   strb_o  
+    output  logic                                   strb_o  ,
+    output  TAG_TYPE                                tag_o   
 );
     logic [A_WIDTH - 1 : 0] [WIDTH - 1 : 0] a;
     logic [B_WIDTH - 1 : 0] [WIDTH - 1 : 0] b;
@@ -56,6 +59,8 @@ module sfm_fp_add_rec #(
 
     logic [2 : 0][WIDTH - 1 : 0]    operands;
 
+    TAG_TYPE    a_o_tag;
+
     if (N_INP != 1) begin
         assign a = op_i [A_WIDTH - 1 : 0];
         assign b = op_i [N_INP - 1 -: B_WIDTH];
@@ -69,6 +74,7 @@ module sfm_fp_add_rec #(
         assign ready_o  = ready_i;
         assign res_o    = op_i;
         assign strb_o   = strb_i;
+        assign tag_o    = tag_i;
     end else if (N_INP == 2) begin
         assign operands [0] = '0;
         assign operands [1] = strb_i [0] ? a : '0;
@@ -78,7 +84,7 @@ module sfm_fp_add_rec #(
             .FpFormat       (   FPFORMAT        ),
             .NumPipeRegs    (   NUM_REGS        ),
             .PipeConfig     (   REG_POS_CVFPU   ),
-            .TagType        (   logic           ),
+            .TagType        (   TAG_TYPE        ),
             .AuxType        (   logic           )
         ) i_sum (
             .clk_i              (   clk_i           ),
@@ -88,7 +94,7 @@ module sfm_fp_add_rec #(
             .rnd_mode_i         (   mode_i          ),
             .op_i               (   fpnew_pkg::ADD  ),
             .op_mod_i           (   '0              ),
-            .tag_i              (   '0              ),
+            .tag_i              (   tag_i           ),
             .mask_i             (   |strb_i         ),
             .aux_i              (   '0              ),
             .in_valid_i         (   valid_i         ),
@@ -97,7 +103,7 @@ module sfm_fp_add_rec #(
             .result_o           (   res_o           ),
             .status_o           (   ),
             .extension_bit_o    (   ),
-            .tag_o              (   ),
+            .tag_o              (   tag_o           ),
             .mask_o             (   strb_o          ),
             .aux_o              (   ),
             .out_valid_o        (   valid_o         ),
@@ -109,7 +115,8 @@ module sfm_fp_add_rec #(
             .FPFORMAT   (   FPFORMAT    ),
             .N_INP      (   A_WIDTH     ),
             .NUM_REGS   (   NUM_REGS    ),
-            .REG_POS    (   REG_POS     )
+            .REG_POS    (   REG_POS     ),
+            .TAG_TYPE   (   TAG_TYPE    )
          ) a_sum (
             .clk_i      (   clk_i       ),
             .rst_ni     (   rst_ni      ),
@@ -119,17 +126,20 @@ module sfm_fp_add_rec #(
             .op_i       (   a           ),
             .strb_i     (   i_strb_a    ),
             .mode_i     (   mode_i      ),
+            .tag_i      (   tag_i       ),
             .ready_o    (   o_ready_a   ),
             .valid_o    (   o_valid_a   ),
             .res_o      (   res_a       ),
-            .strb_o     (   o_strb_a    )
+            .strb_o     (   o_strb_a    ),
+            .tag_o      (   a_o_tag     )
         );
 
         sfm_fp_add_rec #(
             .FPFORMAT   (   FPFORMAT    ),
             .N_INP      (   B_WIDTH     ),
             .NUM_REGS   (   NUM_REGS    ),
-            .REG_POS    (   REG_POS     )
+            .REG_POS    (   REG_POS     ),
+            .TAG_TYPE   (   TAG_TYPE    )
         ) b_sum (
             .clk_i      (   clk_i       ),
             .rst_ni     (   rst_ni      ),
@@ -139,10 +149,12 @@ module sfm_fp_add_rec #(
             .op_i       (   b           ),
             .strb_i     (   i_strb_b    ),
             .mode_i     (   mode_i      ),
+            .tag_i      (   '0          ),
             .ready_o    (   o_ready_b   ),
             .valid_o    (   o_valid_b   ),
             .res_o      (   res_b       ),
-            .strb_o     (   o_strb_b    )
+            .strb_o     (   o_strb_b    ),
+            .tag_o      (               )
         );
 
         if ((A_WIDTH > B_WIDTH) && ($countones(B_WIDTH) == 1)) begin
@@ -188,7 +200,7 @@ module sfm_fp_add_rec #(
             .FpFormat       (   FPFORMAT        ),
             .NumPipeRegs    (   NUM_REGS        ),
             .PipeConfig     (   REG_POS_CVFPU   ),
-            .TagType        (   logic           ),
+            .TagType        (   TAG_TYPE        ),
             .AuxType        (   logic           )
         ) i_sum (
             .clk_i              (   clk_i           ),
@@ -198,7 +210,7 @@ module sfm_fp_add_rec #(
             .rnd_mode_i         (   mode_i          ),
             .op_i               (   fpnew_pkg::ADD  ),
             .op_mod_i           (   '0              ),
-            .tag_i              (   '0              ),
+            .tag_i              (   a_o_tag         ),
             .mask_i             (   sum_mask        ),
             .aux_i              (   '0              ),
             .in_valid_i         (   sum_valid       ),
@@ -207,7 +219,7 @@ module sfm_fp_add_rec #(
             .result_o           (   res_o           ),
             .status_o           (   ),
             .extension_bit_o    (   ),
-            .tag_o              (   ),
+            .tag_o              (   tag_o           ),
             .mask_o             (   strb_o          ),
             .aux_o              (   ),
             .out_valid_o        (   valid_o         ),
@@ -224,6 +236,7 @@ module sfm_fp_red_sum #(
     parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS                = 0                     ,
     parameter int unsigned              VECT_WIDTH              = 1                     ,
+    parameter type                      TAG_TYPE                = logic                 ,
 
     localparam int unsigned IN_WIDTH   = fpnew_pkg::fp_width(IN_FPFORMAT)   ,
     localparam int unsigned ACC_WIDTH  = fpnew_pkg::fp_width(ACC_FPFORMAT)
@@ -237,10 +250,12 @@ module sfm_fp_red_sum #(
     input   fpnew_pkg::roundmode_e                          mode_i      ,
     input   logic [VECT_WIDTH - 1 : 0]                      strb_i      ,
     input   logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   vect_i      ,
+    input   TAG_TYPE                                        tag_i       ,
     output  logic [ACC_WIDTH - 1 : 0]                       res_o       ,
     output  logic                                           strb_o      ,
     output  logic                                           valid_o     ,
-    output  logic                                           ready_o
+    output  logic                                           ready_o     ,
+    output  TAG_TYPE                                        tag_o       
 );
 
     logic [VECT_WIDTH - 1 : 0] [ACC_WIDTH - 1 : 0]  cast_vect;
@@ -255,20 +270,23 @@ module sfm_fp_red_sum #(
         .FPFORMAT   (   ACC_FPFORMAT    ),    
         .N_INP      (   VECT_WIDTH      ),       
         .NUM_REGS   (   NUM_REGS        ),    
-        .REG_POS    (   REG_POS         )     
+        .REG_POS    (   REG_POS         ),
+        .TAG_TYPE   (   TAG_TYPE        ) 
     ) i_add_rec (
-        .clk_i   (   clk_i              ),
-        .rst_ni  (   rst_ni             ),
-        .clear_i (   clear_i            ),
-        .valid_i (   valid_i            ),
-        .ready_i (   ready_i & enable_i ),
-        .op_i    (   cast_vect          ),
-        .strb_i  (   strb_i             ),
-        .mode_i  (   mode_i             ),
-        .ready_o (   ready_o            ),
-        .valid_o (   valid_o            ),
-        .res_o   (   res_o              ),
-        .strb_o  (   strb_o             )
+        .clk_i      (   clk_i               ),
+        .rst_ni     (   rst_ni              ),
+        .clear_i    (   clear_i             ),
+        .valid_i    (   valid_i             ),
+        .ready_i    (   ready_i & enable_i  ),
+        .op_i       (   cast_vect           ),
+        .strb_i     (   strb_i              ),
+        .mode_i     (   mode_i              ),
+        .tag_i      (   tag_i               ),
+        .ready_o    (   ready_o             ),
+        .valid_o    (   valid_o             ),
+        .res_o      (   res_o               ),
+        .strb_o     (   strb_o              ),
+        .tag_o      (   tag_o               )
     );
 
 endmodule
