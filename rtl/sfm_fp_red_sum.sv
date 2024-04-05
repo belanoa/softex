@@ -270,10 +270,42 @@ module sfm_fp_red_sum #(
 
     logic [VECT_WIDTH - 1 : 0] [ACC_WIDTH - 1 : 0]  cast_vect;
 
-    always_comb begin
-        for (int unsigned i = 0; i < VECT_WIDTH; i++) begin
-            cast_vect[i] = `FP_CAST_UP(vect_i [i], IN_FPFORMAT, ACC_FPFORMAT);
-        end
+
+    for (genvar i = 0; i < VECT_WIDTH; i++) begin
+        fpnew_cast_multi #(
+            .FpFmtConfig    (   '1                  ),
+            .IntFmtConfig   (   '0                  ),
+            .NumPipeRegs    (   0                   ),
+            .PipeConfig     (   fpnew_pkg::BEFORE   ),
+            .TagType        (   logic               ),
+            .AuxType        (   logic               )
+        ) i_vect_cast (
+            .clk_i              (   clk_i           ),
+            .rst_ni             (   rst_ni          ),
+            .operands_i         (   vect_i [i]      ),
+            .is_boxed_i         (   '1              ),
+            .rnd_mode_i         (   fpnew_pkg::RNE  ),
+            .op_i               (   '0              ),
+            .op_mod_i           (   '0              ),
+            .src_fmt_i          (   IN_FPFORMAT     ),
+            .dst_fmt_i          (   ACC_FPFORMAT    ),
+            .int_fmt_i          (   '0              ),
+            .tag_i              (   '0              ),
+            .mask_i             (   '0              ),
+            .aux_i              (   '0              ),
+            .in_valid_i         (   '1              ),
+            .in_ready_o         (                   ),
+            .flush_i            (   '0              ),
+            .result_o           (   cast_vect [i]   ),
+            .status_o           (                   ),
+            .extension_bit_o    (                   ),
+            .tag_o              (                   ),
+            .mask_o             (                   ),
+            .aux_o              (                   ),
+            .out_valid_o        (                   ),
+            .out_ready_i        (   '1              ),
+            .busy_o             (                   )
+        );
     end
 
     sfm_fp_add_rec #(

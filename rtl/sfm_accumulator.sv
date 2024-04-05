@@ -33,14 +33,14 @@ module sfm_accumulator #(
     typedef enum logic [3:0] { IDLE, COMPUTING, FINISHING, REDUCTION, INVERSION, INV_MUL, INV_FMA, FINISHED } acc_state_t;
     
     typedef struct packed {
-        logic [MUL_WIDTH - 1 : 0]                               value;
-        logic [$clog2(NUM_REGS_FMA) - 1 : 0]                    tag;
-        logic [$clog2(NUM_REGS_FMA) - 1 : 0]                    uses;
+        logic [MUL_WIDTH - 1 : 0]               value;
+        logic [$clog2(NUM_REGS_FMA) - 1 : 0]    tag;
+        logic [$clog2(NUM_REGS_FMA) - 1 : 0]    uses;
     } factor_t;
 
     typedef struct packed {
-        logic [ADD_WIDTH - 1 : 0]                               value;
-        logic [$clog2(NUM_REGS_FMA) - 1: 0]                     tag;
+        logic [ADD_WIDTH - 1 : 0]           value;
+        logic [$clog2(NUM_REGS_FMA) - 1: 0] tag;
     } addend_t;
 
     acc_state_t     current_state,
@@ -101,6 +101,8 @@ module sfm_accumulator #(
 
     logic [N_FACT_FIFO - 1 : 0] [$clog2(NUM_REGS_FMA) - 1 : 0]  factor_uses_cnt;
     logic [N_FACT_FIFO - 1 : 0]                                 factor_uses_cnt_enable;
+
+    logic [N_FACT_FIFO - 1 : 0] [ACC_WIDTH - 1 : 0]             factor_cast;
 
     logic [$clog2(N_FACT_FIFO) - 1 : 0]                         factor_cnt;
     logic                                                       factor_cnt_enable;
@@ -446,17 +448,53 @@ module sfm_accumulator #(
         end
     end
 
+    for (genvar i = 0; i < N_FACT_FIFO; i++) begin
+        fpnew_cast_multi #(
+            .FpFmtConfig    (   '1                  ),
+            .IntFmtConfig   (   '0                  ),
+            .NumPipeRegs    (   0                   ),
+            .PipeConfig     (   fpnew_pkg::BEFORE   ),
+            .TagType        (   logic               ),
+            .AuxType        (   logic               )
+        ) i_factor_cast (
+            .clk_i              (   clk_i           ),
+            .rst_ni             (   rst_ni          ),
+            .operands_i         (   factor[i].value ),
+            .is_boxed_i         (   '1              ),
+            .rnd_mode_i         (   fpnew_pkg::RNE  ),
+            .op_i               (   '0              ),
+            .op_mod_i           (   '0              ),
+            .src_fmt_i          (   MUL_FPFORMAT    ),
+            .dst_fmt_i          (   ACC_FPFORMAT    ),
+            .int_fmt_i          (   '0              ),
+            .tag_i              (   '0              ),
+            .mask_i             (   '0              ),
+            .aux_i              (   '0              ),
+            .in_valid_i         (   '1              ),
+            .in_ready_o         (                   ),
+            .flush_i            (   '0              ),
+            .result_o           (   factor_cast [i] ),
+            .status_o           (                   ),
+            .extension_bit_o    (                   ),
+            .tag_o              (                   ),
+            .mask_o             (                   ),
+            .aux_o              (                   ),
+            .out_valid_o        (                   ),
+            .out_ready_i        (   '1              ),
+            .busy_o             (                   )
+        );
+    end
+
     always_comb begin
-        fma_factor = `FP_CAST_UP(factor[0].value, MUL_FPFORMAT, ACC_FPFORMAT);
+        fma_factor = factor_cast [0];
 
         for (int i = 0; i < N_FACT_FIFO; i++) begin
             if (factor_match [i]) begin
-                fma_factor = `FP_CAST_UP(factor[i].value, MUL_FPFORMAT, ACC_FPFORMAT);
+                fma_factor = factor_cast [i];
                 break;
             end
         end
     end
-
 
     always_comb begin : fma_op_selection
         unique casex ({inv_fma, inverting, fma_o_valid, |factor_match, addend_match})
@@ -479,7 +517,40 @@ module sfm_accumulator #(
 
     assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
 
-    assign fma_addend   = `FP_CAST_UP(fma_addend_pre_cast, ADD_FPFORMAT, ACC_FPFORMAT);
+    fpnew_cast_multi #(
+        .FpFmtConfig    (   '1                  ),
+        .IntFmtConfig   (   '0                  ),
+        .NumPipeRegs    (   0                   ),
+        .PipeConfig     (   fpnew_pkg::BEFORE   ),
+        .TagType        (   logic               ),
+        .AuxType        (   logic               )
+    ) i_addend_cast (
+        .clk_i              (   clk_i               ),
+        .rst_ni             (   rst_ni              ),
+        .operands_i         (   fma_addend_pre_cast ),
+        .is_boxed_i         (   '1                  ),
+        .rnd_mode_i         (   fpnew_pkg::RNE      ),
+        .op_i               (   '0                  ),
+        .op_mod_i           (   '0                  ),
+        .src_fmt_i          (   ADD_FPFORMAT        ),
+        .dst_fmt_i          (   ACC_FPFORMAT        ),
+        .int_fmt_i          (   '0                  ),
+        .tag_i              (   '0                  ),
+        .mask_i             (   '0                  ),
+        .aux_i              (   '0                  ),
+        .in_valid_i         (   '1                  ),
+        .in_ready_o         (                       ),
+        .flush_i            (   '0                  ),
+        .result_o           (   fma_addend          ),
+        .status_o           (                       ),
+        .extension_bit_o    (                       ),
+        .tag_o              (                       ),
+        .mask_o             (                       ),
+        .aux_o              (                       ),
+        .out_valid_o        (                       ),
+        .out_ready_i        (   '1                  ),
+        .busy_o             (                       )
+    );
     
     //assign fma_operands = fma_o_valid ? {fma_addend, fma_res, fma_factor} : {fma_addend, addend.value, fma_factor};
 

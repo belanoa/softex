@@ -5,6 +5,11 @@ package sfm_pkg;
     parameter int unsigned  IN_ADDR     = 0;
     parameter int unsigned  OUT_ADDR    = 1;
     parameter int unsigned  TOT_LEN     = 2;
+    parameter int unsigned  COMMANDS    = 3;
+
+    parameter int unsigned  CMD_ACC_ONLY    = 0;
+    parameter int unsigned  CMD_DIV_ONLY    = 1;
+    parameter int unsigned  CMD_PARTIAL     = 2;
 
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
@@ -25,8 +30,9 @@ package sfm_pkg;
     } datapath_flags_t;
 
     typedef struct packed {
-        //logic               acc_finished;
+        logic               disable_max;
         logic               dividing;
+        logic               clear_regs;
 
         accumulator_ctrl_t  accumulator_ctrl;
     } datapath_ctrl_t;

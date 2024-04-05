@@ -107,12 +107,12 @@ module sfm_datapath #(
 
     assign flags_o.datapath_busy = |{addmul_o_busy, exp_o_busy, sum_o_busy, ~add_fifo_o_flgs.empty};
 
-    assign fma_arb_cnt_enable = ctrl_i.dividing & addmul_ready [fma_arb_cnt]; //TODO
+    assign fma_arb_cnt_enable = ctrl_i.dividing & addmul_ready [fma_arb_cnt];
     always_ff @(posedge clk_i or negedge rst_ni) begin : fma_arbitration_counter
         if (~rst_ni) begin
             fma_arb_cnt <= '0;
         end else begin
-            if (clear_i) begin
+            if (clear_i | ctrl_i.clear_regs) begin
                 fma_arb_cnt <= '0;
             end else if (fma_arb_cnt_enable) begin
                 fma_arb_cnt <= fma_arb_cnt + 1;
@@ -129,19 +129,19 @@ module sfm_datapath #(
         .VECT_WIDTH (   VECT_WIDTH      ),
         .MM_MODE    (   sfm_pkg::MAX    )
     ) i_global_maximum (
-        .clk_i           (  clk_i                       ),
-        .rst_ni          (  rst_ni                      ),
-        .clear_i         (  clear_i                     ),
-        .enable_i        (  '1                          ),
-        .valid_i         (  valid_i & ~ctrl_i.dividing  ),
-        .ready_i         (  max_diff_ready & diff_ready ),
-        .strb_i          (  strb_i                      ),
-        .vect_i          (  data_i                      ),
-        .cur_minmax_o    (  old_max                     ),
-        .new_minmax_o    (  new_max                     ),
-        .new_flg_o       (  new_max_flag                ),
-        .valid_o         (  max_valid                   ),
-        .ready_o         (  max_ready                   )
+        .clk_i           (  clk_i                           ),
+        .rst_ni          (  rst_ni                          ),
+        .clear_i         (  clear_i | ctrl_i.clear_regs     ),
+        .enable_i        (  '1                              ),
+        .valid_i         (  valid_i & ~ctrl_i.disable_max   ),
+        .ready_i         (  max_diff_ready & diff_ready     ),
+        .strb_i          (  strb_i                          ),
+        .vect_i          (  data_i                          ),
+        .cur_minmax_o    (  old_max                         ),
+        .new_minmax_o    (  new_max                         ),
+        .new_flg_o       (  new_max_flag                    ),
+        .valid_o         (  max_valid                       ),
+        .ready_o         (  max_ready                       )
     );
 
     sfm_fp_vect_addsub #(
@@ -391,7 +391,7 @@ module sfm_datapath #(
     ) i_denominator_accumulator (
         .clk_i          (   clk_i                           ),     
         .rst_ni         (   rst_ni                          ),     
-        .clear_i        (   clear_i                         ),
+        .clear_i        (   clear_i | ctrl_i.clear_regs     ),
         .ctrl_i         (   ctrl_i.accumulator_ctrl         ),    
         .add_valid_i    (   sum_valid                       ),
         .add_i          (   sum_res                         ),      

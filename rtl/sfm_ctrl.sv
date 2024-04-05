@@ -41,9 +41,16 @@ module sfm_ctrl #(
             out_start;
 
     logic   dp_acc_finished,
-            dp_dividing;
+            dp_dividing,
+            dp_disable_max;
 
-    logic   clear;
+    logic   clear,
+            clear_regs;
+
+    logic   acc_only,
+            div_only,
+            partial;
+
 
     hwpe_ctrl_package::ctrl_regfile_t   reg_file;
     hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
@@ -101,29 +108,53 @@ module sfm_ctrl #(
 
     assign datapath_ctrl_o.accumulator_ctrl.acc_finished    = dp_acc_finished;
     assign datapath_ctrl_o.dividing                         = dp_dividing;
+    assign datapath_ctrl_o.disable_max                      = dp_disable_max;
+    assign datapath_ctrl_o.clear_regs                       = clear_regs;
+
+    assign acc_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_ACC_ONLY];
+    assign div_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_DIV_ONLY];
+    assign partial                                          = reg_file.hwpe_params [COMMANDS] [CMD_PARTIAL];
+    
+
 
     always_comb begin : ctrl_sfm
         next_state      = current_state;
         out_start       = '0;
         in_start        = '0;
         dp_acc_finished = '0;
+        dp_disable_max  = '0;
         dp_dividing     = '0;
         ctrl_slave      = '0;
         busy_o          = '1;
+        clear_regs      = '0;
         
         case (current_state)
             IDLE: begin
                 busy_o = '0;
 
                 if (flgs_slave.start) begin
-                    next_state  = ACCUMULATION;
-                    in_start    = '1;
+                    casex ({div_only, acc_only})
+                        2'b00:  next_state  = ACCUMULATION;
+                        2'b01:  next_state  = ACCUMULATION;
+                        2'b1?:  next_state  = DIVIDING;
+                    endcase
+                    
+                    if (~div_only) begin
+                        in_start    = '1;
+                    end else begin
+                        out_start   = '1;
+                        in_start    = '1;
+                    end
                 end
             end
 
             ACCUMULATION: begin
                 if (in_stream_flags_i.done) begin
-                    next_state      = WAIT_DATAPATH_EMPTY;
+                    if (acc_only & partial) begin
+                        next_state = FINISHED;
+                    end else begin
+                        next_state = WAIT_DATAPATH_EMPTY;
+                    end
                 end
             end
 
@@ -136,30 +167,40 @@ module sfm_ctrl #(
 
             WAIT_ACCUMULATION: begin
                 dp_acc_finished = '1;
+                dp_disable_max  = '1;
 
                 if (datapath_flgs_i.accumulator_flags.reducing) begin
-                    dp_acc_finished = '0;
-                    out_start       = '1;
-                    in_start        = '1;
+                    if (acc_only) begin
+                        next_state      = FINISHED;
+                    end else begin
+                        dp_acc_finished = '0;
+                        out_start       = '1;
+                        in_start        = '1;
 
-                    next_state      = DIVIDING;
+                        next_state      = DIVIDING;
+                    end
                 end
             end
 
             DIVIDING: begin
-                dp_dividing = '1;
+                dp_dividing     = '1;
+                dp_disable_max  = '1;
 
                 if (out_stream_flags_i.done) begin
-                    dp_dividing     = '0;
-                    ctrl_slave.done = '1;
-                    busy_o          = '0;
                     next_state      = FINISHED;
                 end
             end
 
             FINISHED: begin
-                busy_o = '0;
+                dp_dividing     = '0;
+                ctrl_slave.done = '1;
+                busy_o          = '0;
 
+                if (~partial & ~acc_only) begin
+                    clear_regs      = '1;
+                end
+
+                next_state      = IDLE;
             end
         endcase
     end
