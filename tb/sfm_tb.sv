@@ -2,7 +2,7 @@ timeunit 1ps;
 timeprecision 1ps;
 
 module sfm_tb;
-    parameter int unsigned  PROB_STALL = 0;
+    parameter real          PROB_STALL = 0.03;
     parameter int unsigned  NC = 1;
     parameter int unsigned  ID = 10;
     parameter int unsigned  DW = 128;
@@ -24,7 +24,6 @@ module sfm_tb;
     logic fetch_enable;
     logic busy;
     logic [31:0] core_boot_addr;
-    //logic redmule_busy;
 
     hwpe_stream_intf_tcdm instr[0:0]  (.clk(clk));
     hwpe_stream_intf_tcdm stack[0:0]  (.clk(clk));
@@ -108,7 +107,7 @@ module sfm_tb;
     
     always_comb
     begin : bind_stack
-        stack[0].req  = data_req & (data_addr [31 -: 12] == 12'h1c0) & (data_addr [19 -: 2] == 2'b01); //data_req & (data_addr[31:24] == '0) & ~data_addr[HWPE_ADDR_BASE_BIT];
+        stack[0].req  = data_req & (data_addr [31 -: 12] == 12'h1c0) & (data_addr [19 -: 2] == 2'b01);
         stack[0].add  = data_addr;
         stack[0].wen  = ~data_we;
         stack[0].be   = data_be;
@@ -242,10 +241,6 @@ module sfm_tb;
         .tcdm                ( stack             )
     );
 
-
-    //PROVISIONAL
-    //assign evt = '0;
-
     ibex_core #(
 
     ) i_ibex_core (
@@ -368,7 +363,7 @@ module sfm_tb;
             cycle();
         
         rst_n <= #TA 1'b1;
-        core_boot_addr = 32'h1C000000;//32'h1C000000;
+        core_boot_addr = 32'h1C000000;
 
         for (int i = 0; i < 10; i++)
             cycle();
@@ -385,25 +380,24 @@ module sfm_tb;
         end
     end
   
-    integer f_t0, f_t1;
-    integer f_x, f_W, f_y, f_tau;
-    logic start;
+    int f_t0, f_t1, f_golden;
 
-    int errors = -1;
+    logic done = 0;
+
     always_ff @(posedge clk)
     begin
         if((data_addr == 32'h80000000 ) && (data_we & data_req == 1'b1)) begin
-            errors = data_wdata;
-        end
-
-        if((data_addr == 32'h80000004 ) && (data_we & data_req == 1'b1)) begin
-            $write("%c", data_wdata);
+            done = 1;
         end
     end
+
+    int unsigned error_threshold = 2;
 
     initial begin
         integer id;
         int cnt_rd, cnt_wr;
+
+        int unsigned pos, n, data, difference, errors, tot_err_ulp;
 
         test_mode = 1'b0;
         fetch_enable = 1'b0;
@@ -419,8 +413,8 @@ module sfm_tb;
         fetch_enable = 1'b1;
 
         #(100*TCP);
-        // end WFI + returned != -1 signals end-of-computation
-        while(~core_sleep || busy /*|| errors==-1*/)
+        
+        while(~core_sleep || ~done)
             #(TCP);
 
         cnt_rd = sfm_tb.i_dummy_dmemory.cnt_rd[0] + sfm_tb.i_dummy_dmemory.cnt_rd[1] + sfm_tb.i_dummy_dmemory.cnt_rd[2] + sfm_tb.i_dummy_dmemory.cnt_rd[3] + sfm_tb.i_dummy_dmemory.cnt_rd[4] + sfm_tb.i_dummy_dmemory.cnt_rd[5] + sfm_tb.i_dummy_dmemory.cnt_rd[6] + sfm_tb.i_dummy_dmemory.cnt_rd[7] + sfm_tb.i_dummy_dmemory.cnt_rd[8];
@@ -428,14 +422,33 @@ module sfm_tb;
         
         $display("[TB] - cnt_rd=%-8d", cnt_rd);
         $display("[TB] - cnt_wr=%-8d", cnt_wr);
-        
-        if(errors != 0) begin
-            $error("[TB] - errors=%08x", errors);
-            $display("[TB] - Fail!");
-        end else begin
-            $display("[TB] - errors=%08x", errors);
-            $display("[TB] - Success!");
+
+        f_golden = $fopen("golden-model/golden.txt", "r");
+
+        errors = 0;
+        tot_err_ulp = 0;
+
+        pos = 0;
+
+        while ($fscanf(f_golden, "%d", n) == 1) begin
+            data = ((sfm_tb.i_dummy_dmemory.memory[pos >> 1] >> (16 * pos[0])) & 'h0000FFFF);
+
+            difference = n > data ? n - data : data - n;
+
+            tot_err_ulp += difference;
+
+            if (difference > error_threshold) begin
+                errors += 1;
+
+                $display("[TB] - Misamtch!    Position: %d\tDifference: %d", pos, difference);
+            end
+
+            pos += 1;
         end
+
+        $display("[TB] - Errors: %d", errors);
+
+        $display("[TB] - Average Absolute Error in ULPs: %f", real'(tot_err_ulp) / real'(pos));
 
         $finish;
     end
