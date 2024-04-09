@@ -51,7 +51,6 @@ module sfm_ctrl #(
             div_only,
             partial;
 
-
     hwpe_ctrl_package::ctrl_regfile_t   reg_file;
     hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
     hwpe_ctrl_package::flags_slave_t    flgs_slave;
@@ -88,8 +87,8 @@ module sfm_ctrl #(
 
     assign in_stream_ctrl_o.req_start                       = in_start;
     assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];
-    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN];
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = '1;
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8);
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = reg_file.hwpe_params [TOT_LEN];   //Not used by the address generator per se but still necessary
     assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = DATA_WIDTH / 8;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_stride       = '0;
@@ -98,8 +97,8 @@ module sfm_ctrl #(
 
     assign out_stream_ctrl_o.req_start                      = out_start;
     assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];
-    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN];
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = '1;
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8);
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = reg_file.hwpe_params [TOT_LEN];
     assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = DATA_WIDTH / 8;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_stride      = '0;
@@ -115,8 +114,7 @@ module sfm_ctrl #(
     assign div_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_DIV_ONLY];
     assign partial                                          = reg_file.hwpe_params [COMMANDS] [CMD_PARTIAL];
     
-
-
+    
     always_comb begin : ctrl_sfm
         next_state      = current_state;
         out_start       = '0;
@@ -197,7 +195,7 @@ module sfm_ctrl #(
                 busy_o          = '0;
 
                 if (~partial & ~acc_only) begin
-                    clear_regs      = '1;
+                    clear_regs  = '1;
                 end
 
                 next_state      = IDLE;
