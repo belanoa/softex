@@ -35,8 +35,8 @@ module sfm_top #(
     logic   clear;
 
     sfm_ctrl #(
-        .N_CORES    (   N_CORES     ),
-        .DATA_WIDTH (   DATA_WIDTH  )
+        .N_CORES    (   N_CORES         ),
+        .DATA_WIDTH (   DATA_WIDTH - 32 )
     ) i_ctrl (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
@@ -56,7 +56,7 @@ module sfm_top #(
     sfm_datapath #(
         .IN_FPFORMAT        (   FPFORMAT            ),
         .ACC_FPFORMAT       (   fpnew_pkg::FP32     ),
-        .VECT_WIDTH         (   DATA_WIDTH / WIDTH  ),
+        .VECT_WIDTH         (   (DATA_WIDTH - 32) / WIDTH  ),
         .REG_POS            (   ),
         .ADD_REGS           (   ),
         .MUL_REGS           (   ),
@@ -66,25 +66,29 @@ module sfm_top #(
         .FACTOR_FIFO_DEPTH  (   ),
         .ADDEND_FIFO_DEPTH  (   )
     ) i_datapath (
-        .clk_i      (   clk_i               ),
-        .rst_ni     (   rst_ni              ),
-        .clear_i    (   clear               ),
-        .valid_i    (   in_stream.valid     ),
-        .ready_i    (   out_stream.ready    ),
-        .ctrl_i     (   datapath_ctrl       ),
-        .strb_i     (   in_strb             ),
-        .data_i     (   in_stream.data      ),
-        .valid_o    (   out_stream.valid    ),
-        .ready_o    (   in_stream.ready     ),
-        .flags_o    (   datapath_flgs       ),
-        .strb_o     (   out_strb            ),
-        .res_o      (   out_stream.data     )   
+        .clk_i      (   clk_i                                   ),
+        .rst_ni     (   rst_ni                                  ),
+        .clear_i    (   clear                                   ),
+        .valid_i    (   in_stream.valid                         ),
+        .ready_i    (   out_stream.ready                        ),
+        .ctrl_i     (   datapath_ctrl                           ),
+        .strb_i     (   in_strb                                 ),
+        .data_i     (   in_stream.data                          ),
+        .valid_o    (   out_stream.valid                        ),
+        .ready_o    (   in_stream.ready                         ),
+        .flags_o    (   datapath_flgs                           ),
+        .strb_o     (   out_strb                                ),
+        .res_o      (   out_stream.data [DATA_WIDTH - 33 : 0]   )   
     );
 
+    assign out_stream.data [DATA_WIDTH - 1 -: 32] = '0;
+
     always_comb begin : strb_assignment
+        out_stream.strb = '0;
+
         for (int i = 0; i < DATA_WIDTH / WIDTH; i++) begin
-            in_strb [i]                     = &in_stream.strb[2 * i + 1 -: 2];
-            out_stream.strb[2 * i + 1 -: 2] = {2{out_strb[i]}};
+            in_strb [i]                                         = &in_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)];
+            out_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)] = {(WIDTH / 8){out_strb[i]}};
         end
     end
     

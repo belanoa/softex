@@ -3,7 +3,9 @@ import hci_package::*;
 
 module sfm_streamer #(
     parameter int unsigned  DATA_WIDTH  = 128   ,
-    parameter int unsigned  ADDR_WIDTH  = 32    
+    parameter int unsigned  ADDR_WIDTH  = 32    ,
+
+    localparam int unsigned ACTUAL_DW   = DATA_WIDTH - 32
 ) (
     input   logic                   clk_i               ,
     input   logic                   rst_ni              ,
@@ -31,27 +33,16 @@ module sfm_streamer #(
                     store_cnt_q;
     logic           store_cnt_enable;
 
-    logic [$clog2(DATA_WIDTH / 8) - 1 : 0]  i_init_lftovr,
-                                            i_length_lftovr,
-                                            i_final_lftovr,
-                                            o_init_lftovr,
-                                            o_length_lftovr,
-                                            o_final_lftovr;
+    logic [$clog2(ACTUAL_DW / 8) - 1 : 0]  i_length_lftovr,
+                                            o_length_lftovr;
 
-    logic   i_init_inc,
-            i_final_inc,
-            o_init_inc,
-            o_final_inc;
+    logic   i_inc,
+            o_inc;
 
-    logic [DATA_WIDTH / 8 - 1 : 0]  i_strb,
-                                    i_init_strb,
+    logic [ACTUAL_DW / 8 - 1 : 0]  i_strb,
                                     i_final_strb,
                                     o_strb,
-                                    o_init_strb,
                                     o_final_strb;
-
-    logic [1:0] reqs,
-                r_valids;
 
     hwpe_stream_intf_stream #(
         .DATA_WIDTH (   DATA_WIDTH  )
@@ -82,11 +73,7 @@ module sfm_streamer #(
     hci_core_mux_ooo #(
         .NB_CHAN    (   2           ),
         .DW         (   DATA_WIDTH  ),
-        .AW         (   ),
-        .BW         (   ),
-        .WW         (   ),
-        .UW         (   ),
-        .OW         (   )
+        .UW         (   1           )
     ) i_ldst_mux (
         .clk_i              (   clk_i       ),
         .rst_ni             (   rst_ni      ),
@@ -108,48 +95,32 @@ module sfm_streamer #(
 
     ///////////////////////////////////
 
-    assign i_init_lftovr    = in_stream_ctrl_i.addressgen_ctrl.base_addr [$clog2(DATA_WIDTH / 8) - 1 : 0];
-    assign i_length_lftovr  = in_stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(DATA_WIDTH / 8) - 1 : 0];
-    assign i_final_lftovr   = i_length_lftovr - (~i_init_lftovr + 1'b1);
+    assign i_length_lftovr  = in_stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(ACTUAL_DW / 8) - 1 : 0];
 
-    assign i_init_inc   = |i_init_lftovr;
-    assign i_final_inc  = i_length_lftovr > (~i_init_lftovr + 1'b1);
-
-    always_comb begin
-        i_init_strb = '1;
-
-        for (int i = 0; i < DATA_WIDTH / 8; i++) begin
-            if (i < i_init_lftovr) begin
-                i_init_strb [i] = 1'b0;
-            end 
-        end
-    end
+    assign i_inc    = |i_length_lftovr;
 
     always_comb begin
         i_final_strb = '1;
 
-        if (i_final_lftovr != '0) begin
-            for (int i = 0; i < DATA_WIDTH / 8; i++) begin
-                if (i >= i_final_lftovr) begin
-                    i_final_strb [i] = 1'b0;
-                end 
-            end
+        for (int i = 0; i < ACTUAL_DW / 8; i++) begin
+            if (i >= i_length_lftovr) begin
+                i_final_strb [i] = 1'b0;
+            end 
         end
     end
 
     assign in_stream_ctrl.req_start = in_stream_ctrl_i.req_start;
 
-    assign in_stream_ctrl.addressgen_ctrl.base_addr     = {in_stream_ctrl_i.addressgen_ctrl.base_addr [31 : $clog2(DATA_WIDTH / 8)], {($clog2(DATA_WIDTH / 8)){1'b0}}}; //We're assuming DATA_WIDTH is a power of 2
-    assign in_stream_ctrl.addressgen_ctrl.tot_len       = in_stream_ctrl_i.addressgen_ctrl.tot_len + i_init_inc + i_final_inc;
-    assign in_stream_ctrl.addressgen_ctrl.d0_len        = in_stream_ctrl_i.addressgen_ctrl.d0_len;
-    assign in_stream_ctrl.addressgen_ctrl.d0_stride     = in_stream_ctrl_i.addressgen_ctrl.d0_stride;
-    assign in_stream_ctrl.addressgen_ctrl.d1_len        = in_stream_ctrl_i.addressgen_ctrl.d1_len;
-    assign in_stream_ctrl.addressgen_ctrl.d1_stride     = in_stream_ctrl_i.addressgen_ctrl.d1_stride;
-    assign in_stream_ctrl.addressgen_ctrl.d2_stride     = in_stream_ctrl_i.addressgen_ctrl.d2_stride;
-    assign in_stream_ctrl.addressgen_ctrl.dim_enable_1h = in_stream_ctrl_i.addressgen_ctrl.dim_enable_1h;
+    assign in_stream_ctrl.addressgen_ctrl.base_addr     =   in_stream_ctrl_i.addressgen_ctrl.base_addr;
+    assign in_stream_ctrl.addressgen_ctrl.tot_len       =   in_stream_ctrl_i.addressgen_ctrl.tot_len + i_inc;
+    assign in_stream_ctrl.addressgen_ctrl.d0_len        =   in_stream_ctrl_i.addressgen_ctrl.d0_len;
+    assign in_stream_ctrl.addressgen_ctrl.d0_stride     =   in_stream_ctrl_i.addressgen_ctrl.d0_stride;
+    assign in_stream_ctrl.addressgen_ctrl.d1_len        =   in_stream_ctrl_i.addressgen_ctrl.d1_len;
+    assign in_stream_ctrl.addressgen_ctrl.d1_stride     =   in_stream_ctrl_i.addressgen_ctrl.d1_stride;
+    assign in_stream_ctrl.addressgen_ctrl.d2_stride     =   in_stream_ctrl_i.addressgen_ctrl.d2_stride;
+    assign in_stream_ctrl.addressgen_ctrl.dim_enable_1h =   in_stream_ctrl_i.addressgen_ctrl.dim_enable_1h;
 
-
-    assign load_cnt_enable  = in_stream_o.valid & in_stream_o.ready;
+    assign load_cnt_enable  = in_stream_o.valid & in_stream_o.ready & i_inc;
     assign load_cnt_d       = (load_cnt_q == (in_stream_ctrl.addressgen_ctrl.tot_len - 1)) ? '0 : (load_cnt_q + 1);
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : load_counter
@@ -167,9 +138,7 @@ module sfm_streamer #(
     end
 
     always_comb begin
-        if (load_cnt_q == '0) begin
-            i_strb = i_init_strb;
-        end else if (load_cnt_q == (in_stream_ctrl.addressgen_ctrl.tot_len - 1)) begin
+        if (load_cnt_q == (in_stream_ctrl.addressgen_ctrl.tot_len - 1)) begin
             i_strb = i_final_strb;
         end else begin
             i_strb = '1;
@@ -191,7 +160,7 @@ module sfm_streamer #(
 
     hci_core_source #(
         .DATA_WIDTH             (   DATA_WIDTH  ),
-        .MISALIGNED_ACCESSES    (   0           )
+        .MISALIGNED_ACCESSES    (   1           )
     ) i_stream_in (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
@@ -218,48 +187,33 @@ module sfm_streamer #(
 
     /////////////////////////////////
 
-    assign o_init_lftovr    = out_stream_ctrl_i.addressgen_ctrl.base_addr [$clog2(DATA_WIDTH / 8) - 1 : 0];
-    assign o_length_lftovr  = out_stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(DATA_WIDTH / 8) - 1 : 0];
-    assign o_final_lftovr   = o_length_lftovr - (~o_init_lftovr + 1'b1);
+    assign o_length_lftovr  = out_stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(ACTUAL_DW / 8) - 1 : 0];
 
-    assign o_init_inc   = |o_init_lftovr;
-    assign o_final_inc  = o_length_lftovr > (~o_init_lftovr + 1'b1);
-
-    always_comb begin
-        o_init_strb = '1;
-
-        for (int i = 0; i < DATA_WIDTH / 8; i++) begin
-            if (i < o_init_lftovr) begin
-                o_init_strb [i] = 1'b0;
-            end 
-        end
-    end
+    assign o_inc   = |o_length_lftovr;
 
     always_comb begin
         o_final_strb = '1;
 
-        if (o_final_lftovr != '0) begin
-            for (int i = 0; i < DATA_WIDTH / 8; i++) begin
-                if (i >= o_final_lftovr) begin
-                    o_final_strb [i] = 1'b0;
-                end 
-            end
+        for (int i = 0; i < ACTUAL_DW / 8; i++) begin
+            if (i >= o_length_lftovr) begin
+                o_final_strb [i] = 1'b0;
+            end 
         end
     end
 
     assign out_stream_ctrl.req_start = out_stream_ctrl_i.req_start;
 
-    assign out_stream_ctrl.addressgen_ctrl.base_addr     = {out_stream_ctrl_i.addressgen_ctrl.base_addr [31 : $clog2(DATA_WIDTH / 8)], {($clog2(DATA_WIDTH / 8)){1'b0}}}; //We're assuming DATA_WIDTH is a power of 2
-    assign out_stream_ctrl.addressgen_ctrl.tot_len       = out_stream_ctrl_i.addressgen_ctrl.tot_len + o_init_inc + o_final_inc;
-    assign out_stream_ctrl.addressgen_ctrl.d0_len        = out_stream_ctrl_i.addressgen_ctrl.d0_len;
-    assign out_stream_ctrl.addressgen_ctrl.d0_stride     = out_stream_ctrl_i.addressgen_ctrl.d0_stride;
-    assign out_stream_ctrl.addressgen_ctrl.d1_len        = out_stream_ctrl_i.addressgen_ctrl.d1_len;
-    assign out_stream_ctrl.addressgen_ctrl.d1_stride     = out_stream_ctrl_i.addressgen_ctrl.d1_stride;
-    assign out_stream_ctrl.addressgen_ctrl.d2_stride     = out_stream_ctrl_i.addressgen_ctrl.d2_stride;
-    assign out_stream_ctrl.addressgen_ctrl.dim_enable_1h = out_stream_ctrl_i.addressgen_ctrl.dim_enable_1h;
+    assign out_stream_ctrl.addressgen_ctrl.base_addr        =   out_stream_ctrl_i.addressgen_ctrl.base_addr;
+    assign out_stream_ctrl.addressgen_ctrl.tot_len          =   out_stream_ctrl_i.addressgen_ctrl.tot_len + o_inc;
+    assign out_stream_ctrl.addressgen_ctrl.d0_len           =   out_stream_ctrl_i.addressgen_ctrl.d0_len;
+    assign out_stream_ctrl.addressgen_ctrl.d0_stride        =   out_stream_ctrl_i.addressgen_ctrl.d0_stride;
+    assign out_stream_ctrl.addressgen_ctrl.d1_len           =   out_stream_ctrl_i.addressgen_ctrl.d1_len;
+    assign out_stream_ctrl.addressgen_ctrl.d1_stride        =   out_stream_ctrl_i.addressgen_ctrl.d1_stride;
+    assign out_stream_ctrl.addressgen_ctrl.d2_stride        =   out_stream_ctrl_i.addressgen_ctrl.d2_stride;
+    assign out_stream_ctrl.addressgen_ctrl.dim_enable_1h    =   out_stream_ctrl_i.addressgen_ctrl.dim_enable_1h;
 
 
-    assign store_cnt_enable  = out_stream_i.valid & out_stream_i.ready;
+    assign store_cnt_enable  = out_stream_i.valid & out_stream_i.ready & o_inc;
     assign store_cnt_d       = store_cnt_q == (out_stream_ctrl.addressgen_ctrl.tot_len - 1) ? '0 : (store_cnt_q + 1);
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : store_counter
@@ -277,9 +231,7 @@ module sfm_streamer #(
     end
 
     always_comb begin
-        if (store_cnt_q == '0) begin
-            o_strb = o_init_strb;
-        end else if (store_cnt_q == (in_stream_ctrl.addressgen_ctrl.tot_len - 1)) begin
+        if (store_cnt_q == (in_stream_ctrl.addressgen_ctrl.tot_len - 1)) begin
             o_strb = o_final_strb;
         end else begin
             o_strb = '1;
@@ -301,7 +253,7 @@ module sfm_streamer #(
 
     hci_core_sink #(
         .DATA_WIDTH             (   DATA_WIDTH  ),
-        .MISALIGNED_ACCESSES    (   0           )
+        .MISALIGNED_ACCESSES    (   1           )
     ) i_stream_out (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
