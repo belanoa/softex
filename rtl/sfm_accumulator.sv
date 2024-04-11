@@ -163,12 +163,14 @@ module sfm_accumulator #(
             if (clear_i) begin
                 den_q <= '0;
             end else if (den_enable) begin
-                den_q <= `FP_INV_SIGN(fma_res, ACC_FPFORMAT);
+                den_q <= fma_res;
             end else begin
                 den_q <= den_q;
             end
         end
     end
+
+    assign flags_o.denominator  = {{(32 - ACC_WIDTH){1'b0}}, den_q};
 
     assign inv_appr_enable  = inv_appr_valid | (fma_o_valid & iteration_cnt_enable); //| (fma_o_valid & iteration_cnt [0]);
     assign inv_appr_d       = inv_appr_valid ? inv_appr : fma_res;
@@ -178,6 +180,8 @@ module sfm_accumulator #(
         end else begin
             if (clear_i) begin
                 inv_appr_q <= '0;
+            end else if (ctrl_i.load_reciprocal) begin
+                inv_appr_q <= ctrl_i.reciprocal;
             end else if (inv_appr_enable) begin
                 inv_appr_q <= inv_appr_d;
             end else begin
@@ -185,6 +189,8 @@ module sfm_accumulator #(
             end
         end
     end
+
+    assign flags_o.reciprocal   = {{(32 - ACC_WIDTH){1'b0}}, inv_appr_q};
 
     assign op_cnt_enable_inc = addend_pop & ~fma_o_valid & op_in_flight_cnt != (NUM_REGS_FMA);
     assign op_cnt_enable_dec = reducing & fma_i_valid;
@@ -283,11 +289,15 @@ module sfm_accumulator #(
         inverting               = '0;
         fma_inv_valid           = '0;
         inv_fma                 = '0;
+        flags_o.acc_done        = '0;
+        flags_o.inv_done        = '0;
 
         unique case (current_state)
             IDLE: begin
                 if (add_valid_i) begin
                     next_state = COMPUTING;
+                end else if (ctrl_i.load_reciprocal) begin
+                    next_state = FINISHED;
                 end
             end
 
@@ -298,8 +308,6 @@ module sfm_accumulator #(
             end
 
             FINISHING: begin
-                //disable_ready = '1;
-
                 if (addend_empty & &factor_empty & ~add_valid_i) begin
                     next_state          = REDUCTION;
                     push_fma_res        = '1;
@@ -315,14 +323,18 @@ module sfm_accumulator #(
                 reducing            = '1;
 
                 if (op_in_flight_cnt == 1 & fma_o_valid) begin
-                    //next_state = FINISHED;
+                    flags_o.acc_done = '1;
 
-                    next_state = INVERSION;
+                    if (ctrl_i.acc_only) begin
+                        next_state = IDLE;
+                    end else begin
+                        next_state = INVERSION;
 
-                    inverting       = '1;
-                    push_fma_res    = '0;
-                    den_enable      = '1;
-                    inv_enable      = '1;
+                        inverting       = '1;
+                        push_fma_res    = '0;
+                        den_enable      = '1;
+                        inv_enable      = '1;
+                    end
                 end
             end
 
@@ -363,8 +375,9 @@ module sfm_accumulator #(
             end
 
             FINISHED: begin
-                valid_o = '1;
-                disable_ready = '0;
+                valid_o             = '1;
+                disable_ready       = '0;
+                flags_o.inv_done    = '1;
 
                 if (add_valid_i) begin
                     next_state = COMPUTING;
@@ -558,7 +571,7 @@ module sfm_accumulator #(
         unique casex ({inv_fma, inverting, fma_o_valid})
             3'b?00:     fma_operands = {fma_addend, addend.value, fma_factor};
             3'b?01:     fma_operands = {fma_addend, fma_res, fma_factor};
-            3'b11?:     fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, den_q}; 
+            3'b11?:     fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, `FP_INV_SIGN(den_q, ACC_FPFORMAT)}; 
             3'b01?:     fma_operands = {{ACC_WIDTH{1'b0}}, fma_res, inv_appr_q};
 
             default:    fma_operands = {fma_addend, addend.value, fma_factor};

@@ -5,7 +5,6 @@ module sfm_fp_glob_minmax #(
     parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS    = 0                     ,
     parameter int unsigned              VECT_WIDTH  = 1                     ,
-    parameter sfm_pkg::min_max_mode_t   MM_MODE     = sfm_pkg::MAX          ,   //Might as well become an input in the future
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)      
 ) (
@@ -15,8 +14,11 @@ module sfm_fp_glob_minmax #(
     input   logic                                       enable_i        ,
     input   logic                                       valid_i         ,
     input   logic                                       ready_i         ,
+    input   sfm_pkg::min_max_mode_t                     operation_i     ,
     input   logic [VECT_WIDTH - 1 : 0]                  strb_i          ,
     input   logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  vect_i          ,
+    input   logic [WIDTH - 1 : 0]                       load_i          ,
+    input   logic                                       load_en_i       ,
     output  logic [WIDTH - 1 : 0]                       cur_minmax_o    ,
     output  logic [WIDTH - 1 : 0]                       new_minmax_o    ,
     output  logic                                       new_flg_o       ,
@@ -51,10 +53,12 @@ module sfm_fp_glob_minmax #(
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : minmax_register
         if (~rst_ni) begin
-            minmax_q <= (MM_MODE == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
+            minmax_q <= (operation_i == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
         end else begin
             if (clear_i) begin
-                minmax_q <= (MM_MODE == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
+                minmax_q <= (operation_i == sfm_pkg::MAX) ? `NEG_INFTY(FPFORMAT) : `POS_INFTY(FPFORMAT);
+            end else if (load_en_i) begin
+                minmax_q <= load_i;
             end else if (minmax_valid & new_flg & ready_i) begin
                 minmax_q <= vect_minmax;
             end else begin
@@ -77,14 +81,14 @@ module sfm_fp_glob_minmax #(
         .ready_i    (   ready_i         ),
         .strb_i     (   strb_i          ),
         .vect_i     (   vect_i          ),
-        .mode_i     (   MM_MODE         ),
+        .mode_i     (   operation_i     ),
         .res_o      (   vect_minmax     ),
         .strb_o     (   minmax_strb     ),
         .valid_o    (   minmax_valid    ),
         .ready_o    (   ready_o         )
     );
 
-    assign new_flg      = minmax_strb & ((MM_MODE == sfm_pkg::MAX) ? `FP_GT(vect_minmax, minmax_q, FPFORMAT) : `FP_LT(vect_minmax, minmax_q, FPFORMAT));
+    assign new_flg      = minmax_strb & ((operation_i == sfm_pkg::MAX) ? `FP_GT(vect_minmax, minmax_q, FPFORMAT) : `FP_LT(vect_minmax, minmax_q, FPFORMAT));
 
     assign cur_minmax_o = minmax_q;
     assign new_minmax_o = new_flg ? vect_minmax : minmax_q;

@@ -40,6 +40,7 @@ module sfm_datapath #(
                                 inv_cast;
 
     logic [ACC_WIDTH - 1 : 0]   sum_res,
+                                acc_i_add,
                                 inv_pre_cast;
 
     logic   fma_arb_cnt,
@@ -122,12 +123,13 @@ module sfm_datapath #(
         end
     end
 
+    assign flags_o.max  = {{(32 - IN_WIDTH){1'b0}}, new_max};
+
     sfm_fp_glob_minmax #(
         .FPFORMAT   (   IN_FPFORMAT     ),
         .REG_POS    (   REG_POS         ),
         .NUM_REGS   (   MAX_REGS        ),
-        .VECT_WIDTH (   VECT_WIDTH      ),
-        .MM_MODE    (   sfm_pkg::MAX    )
+        .VECT_WIDTH (   VECT_WIDTH      )
     ) i_global_maximum (
         .clk_i           (  clk_i                           ),
         .rst_ni          (  rst_ni                          ),
@@ -135,8 +137,11 @@ module sfm_datapath #(
         .enable_i        (  '1                              ),
         .valid_i         (  valid_i & ~ctrl_i.disable_max   ),
         .ready_i         (  max_diff_ready & diff_ready     ),
+        .operation_i     (  sfm_pkg::MAX                    ),
         .strb_i          (  strb_i                          ),
         .vect_i          (  data_i                          ),
+        .load_i          (  ctrl_i.max                      ),
+        .load_en_i       (  ctrl_i.load_max                 ),
         .cur_minmax_o    (  old_max                         ),
         .new_minmax_o    (  new_max                         ),
         .new_flg_o       (  new_max_flag                    ),
@@ -302,7 +307,7 @@ module sfm_datapath #(
 
     expu_top #(
         .FPFORMAT               (   IN_FPFORMAT         ),
-        .REG_POS                (   expu_pkg::BEFORE    ),
+        .REG_POS                (   sfm_pkg::BEFORE     ),
         .NUM_REGS               (   EXP_REGS            ),
         .N_ROWS                 (   VECT_WIDTH          ),
         .A_FRACTION             (   14                  ),
@@ -379,6 +384,8 @@ module sfm_datapath #(
         .busy_o     (   sum_o_busy                                      )
     );
 
+    assign acc_i_add = ctrl_i.load_denominator ? ctrl_i.denominator : sum_res;
+
     sfm_accumulator #(  
         .ACC_FPFORMAT       (   ACC_FPFORMAT        ),
         .ADD_FPFORMAT       (   ACC_FPFORMAT        ),
@@ -389,18 +396,18 @@ module sfm_datapath #(
         .NUM_REGS_FMA       (   FMA_REGS            ),
         .ROUND_MODE         (   fpnew_pkg::RNE      )
     ) i_denominator_accumulator (
-        .clk_i          (   clk_i                           ),     
-        .rst_ni         (   rst_ni                          ),     
-        .clear_i        (   clear_i | ctrl_i.clear_regs     ),
-        .ctrl_i         (   ctrl_i.accumulator_ctrl         ),    
-        .add_valid_i    (   sum_valid                       ),
-        .add_i          (   sum_res                         ),      
-        .mul_valid_i    (   fact_fifo_q.valid & sum_o_tag   ),
-        .mul_i          (   fact_fifo_q.data                ),         
-        .ready_o        (   acc_ready                       ),    
-        .valid_o        (   acc_valid                       ),
-        .flags_o        (   flags_o.accumulator_flags       ),
-        .acc_o          (   inv_pre_cast                    )
+        .clk_i          (   clk_i                               ),     
+        .rst_ni         (   rst_ni                              ),     
+        .clear_i        (   clear_i | ctrl_i.clear_regs         ),
+        .ctrl_i         (   ctrl_i.accumulator_ctrl             ),    
+        .add_valid_i    (   sum_valid | ctrl_i.load_denominator ),
+        .add_i          (   acc_i_add                           ),      
+        .mul_valid_i    (   fact_fifo_q.valid & sum_o_tag       ),
+        .mul_i          (   fact_fifo_q.data                    ),         
+        .ready_o        (   acc_ready                           ),    
+        .valid_o        (   acc_valid                           ),
+        .flags_o        (   flags_o.accumulator_flags           ),
+        .acc_o          (   inv_pre_cast                        )
     );
 
     fpnew_cast_multi #(

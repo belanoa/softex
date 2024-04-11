@@ -11,30 +11,38 @@ static uint16_t scores[LENGTH] = SCORES;
 
 int main () {
 
-    int ol_id;
+    int ol_id,
+        slot_id;
 
     hwpe_soft_clear();
+
+    while ((slot_id = HWPE_READ(SFM_REQ_SLOT)) > 0) {
+
+    }
 
     while ((ol_id = hwpe_acquire_job()) < 0) {
 
     }
 
     HWPE_WRITE(scores, SFM_IN_ADDR);
-    HWPE_WRITE(LENGTH * FMT_WIDTH / (DATA_WIDTH / 8), SFM_TOT_LEN);
+    HWPE_WRITE(LENGTH * FMT_WIDTH, SFM_TOT_LEN);
     HWPE_WRITE(0x1c010000, SFM_OUT_ADDR);
-    HWPE_WRITE(SFM_CMD_ACC_ONLY, SFM_COMMANDS);
+    HWPE_WRITE(SFM_CMD_ACC_ONLY | SFM_CMD_LAST | (slot_id << 16), SFM_COMMANDS);
+    
+    hwpe_trigger_job();
+
+    while ((ol_id = hwpe_acquire_job()) < 0) {
+
+    }
+
+    HWPE_WRITE(scores, SFM_IN_ADDR);
+    HWPE_WRITE(LENGTH * FMT_WIDTH, SFM_TOT_LEN);
+    HWPE_WRITE(0x1c010000, SFM_OUT_ADDR);
+    HWPE_WRITE(SFM_CMD_DIV_ONLY | SFM_CMD_LAST | (slot_id << 16), SFM_COMMANDS);
 
     hwpe_trigger_job();
 
     asm volatile("wfi" ::: "memory");
-
-    HWPE_WRITE(scores, SFM_IN_ADDR);
-    HWPE_WRITE(LENGTH * FMT_WIDTH / (DATA_WIDTH / 8), SFM_TOT_LEN);
-    HWPE_WRITE(0x1c010000, SFM_OUT_ADDR);
-    HWPE_WRITE(SFM_CMD_DIV_ONLY, SFM_COMMANDS);
-
-    hwpe_trigger_job();
-
     asm volatile("wfi" ::: "memory");
 
     //End the simulation
