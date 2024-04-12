@@ -1,11 +1,11 @@
 `include "common_cells/registers.svh"
 
 import fpnew_pkg::*;
-import expu_pkg::*;
+import sfm_pkg::*;
 
 module expu_top #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
-    parameter expu_pkg::regs_config_t   REG_POS                 = expu_pkg::BEFORE      ,
+    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS                = 0                     ,
     parameter int unsigned              N_ROWS                  = 1                     ,
     parameter int unsigned              A_FRACTION              = 14                    ,

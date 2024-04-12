@@ -28,14 +28,13 @@ sim_targs += -t sfm_sim
 
 INI_PATH  = $(mkfile_path)/modelsim.ini
 WORK_PATH = $(BUILD_DIR)
-WAVES	  = wave.do
+WAVES	  = scripts/wave.do
 
 tb := sfm_tb
 
 gui      ?= 0
 
-P_STALL_GEN ?= 0.0
-P_STALL_RCV ?= 0.0
+PROB_STALL ?= 0.0
 
 # Include directories
 INC += -I$(SW)
@@ -84,33 +83,29 @@ $(BUILD_DIR):
 # Generate instructions and data stimuli
 sw-build: $(STIM_INSTR) $(STIM_DATA) dis
 
+sw-clean:
+	rm $(BUILD_DIR)/verif.* $(BUILD_DIR)/crt0.*
+
+sw-all: sw-clean sw-build 
+
 dis:
 	$(OBJDUMP) -d $(BIN) > $(DUMP)
 
-#fpformat				?= BFLOAT16
-#a_fraction				?= 14
-#coefficient_fraction	?= 4
-#constant_fraction		?= 7
-#mul_surplus_bits		?= 1
-#not_surplus_bits		?= 0
-#n_inputs				?= 100
-#alpha					?= 0.218750000
-#beta					?= 0.410156250
-#gamma1					?= 2.835937500
-#gamma2					?= 2.167968750
+fpformat	?= BFLOAT16
+length		?= 1024
+range 		?= 128
 
 # Run the simulation
 run:
 ifeq ($(gui), 0)
 	$(QUESTA) vsim -c vopt_tb -do "run -a" 	\
-	-gP_STALL_GEN=$(P_STALL_GEN)			\
-	-gP_STALL_RCV=$(P_STALL_RCV)
+	-gPROB_STALL=$(PROB_STALL)				\
+	$(sim_flags)
 else
-	$(QUESTA) vsim vopt_tb        \
-	-do "add log -r sim:/$(tb)/*" \
-	-do "source $(WAVES)"         \
-	-gP_STALL_GEN=$(P_STALL_GEN)  \
-	-gP_STALL_RCV=$(P_STALL_RCV)  \
+	$(QUESTA) vsim vopt_tb        	\
+	-do "add log -r sim:/$(tb)/*" 	\
+	-do "source $(WAVES)"         	\
+	-gPROB_STALL=$(PROB_STALL)		\
 	$(sim_flags)
 endif
 
@@ -151,4 +146,5 @@ golden-clean:
 	rm -rf golden-model/result.txt
 
 golden: golden-clean
-	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --a_fraction $(a_fraction) --coefficient_fraction $(coefficient_fraction) --constant_fraction $(constant_fraction) --mul_surplus_bits $(mul_surplus_bits) --not_surplus_bits $(mul_surplus_bits) --n_inputs $(n_inputs) --alpha $(alpha) --beta $(beta) --gamma1 $(gamma1) --gamma2 $(gamma2)
+	mkdir -p sw/golden-model/
+	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range)

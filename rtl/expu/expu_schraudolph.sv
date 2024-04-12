@@ -1,10 +1,9 @@
 import fpnew_pkg::*;
-import expu_pkg::*;
 
 module expu_schraudolph #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT        = FP16ALT   ,
-    parameter int unsigned              A_FRACTION      = 14        ,
-    parameter logic                     ENABLE_ROUNDING = 1         ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT        = fpnew_pkg::FP16ALT    ,
+    parameter int unsigned              A_FRACTION      = 14                    ,
+    parameter logic                     ENABLE_ROUNDING = 1                     ,
 
     localparam int unsigned WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
     localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT) ,

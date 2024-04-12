@@ -22,16 +22,4 @@ static inline void hwpe_soft_clear() {
   HWPE_WRITE(0, SFM_SOFT_CLEAR);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #endif

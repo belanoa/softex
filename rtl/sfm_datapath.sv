@@ -149,27 +149,35 @@ module sfm_datapath #(
         .ready_o         (  max_ready                       )
     );
 
-    sfm_fp_vect_addsub #(
-        .FPFORMAT   (   IN_FPFORMAT ),           
-        .REG_POS    (   REG_POS     ),            
-        .NUM_REGS   (   ADD_REGS    ),              
-        .VECT_WIDTH (   1           )              
+    fpnew_fma #(
+        .FpFormat       (   IN_FPFORMAT             ),
+        .NumPipeRegs    (   ADD_REGS                ),
+        .PipeConfig     (   fpnew_pkg::DISTRIBUTED  ),
+        .TagType        (   logic                   ),
+        .AuxType        (   logic                   )
     ) i_new_old_max_diff (
-        .clk_i          (   clk_i                       ),
-        .rst_ni         (   rst_ni                      ),
-        .clear_i        (   clear_i                     ),
-        .enable_i       (   '1                          ),
-        .valid_i        (   new_max_flag & max_valid    ),
-        .ready_i        (   scal_exp_ready              ),
-        .round_mode_i   (   fpnew_pkg::RNE              ),
-        .operation_i    (   '1                          ),
-        .strb_i         (   '1                          ),
-        .vect_i         (   old_max                     ),
-        .scal_i         (   new_max                     ),
-        .res_o          (   max_diff                    ),
-        .strb_o         (                               ),
-        .valid_o        (   max_diff_valid              ),
-        .ready_o        (   max_diff_ready              )
+        .clk_i              (   clk_i                                   ),
+        .rst_ni             (   rst_ni                                  ),
+        .operands_i         (   {new_max, old_max, {(IN_WIDTH){1'b0}}}  ),
+        .is_boxed_i         (   '1                                      ),
+        .rnd_mode_i         (   fpnew_pkg::RNE                          ),
+        .op_i               (   fpnew_pkg::ADD                          ),
+        .op_mod_i           (   '1                                      ),
+        .tag_i              (   '0                                      ),
+        .mask_i             (   '1                                      ),
+        .aux_i              (   '0                                      ),
+        .in_valid_i         (   new_max_flag & max_valid                ),
+        .in_ready_o         (   max_diff_ready                          ),
+        .flush_i            (   clear_i                                 ),
+        .result_o           (   max_diff                                ),
+        .status_o           (                                           ),
+        .extension_bit_o    (                                           ),
+        .tag_o              (                                           ),
+        .mask_o             (                                           ),
+        .aux_o              (                                           ),
+        .out_valid_o        (   max_diff_valid                          ),
+        .out_ready_i        (   scal_exp_ready                          ),
+        .busy_o             (                                           )
     );
 
     expu_top #(
@@ -220,25 +228,6 @@ module sfm_datapath #(
     );
 
     assign fact_fifo_q.ready    = acc_ready & sum_o_tag;
-
-    /*sfm_delay #(
-        .NUM_REGS   (   VECT_SUM_DELAY  ),  
-        .DATA_WIDTH (   IN_WIDTH        ),
-        .NUM_ROWS   (   1               )
-    ) i_correction_delay (
-        .clk_i      (   clk_i           ),
-        .rst_ni     (   rst_ni          ),
-        .enable_i   (   '1              ),
-        .clear_i    (   clear_i         ),
-        .valid_i    (   scal_exp_valid  ),
-        .ready_i    (   acc_ready       ),
-        .data_i     (   scal_exp_res    ),
-        .strb_i     (   '1              ),
-        .valid_o    (   exp_delay_valid ),
-        .ready_o    (   exp_delay_ready ),
-        .data_o     (   exp_delay       ),
-        .strb_o     (                   )
-    );*/ 
 
     sfm_delay #(
         .NUM_REGS   (   MAX_REGS    ),

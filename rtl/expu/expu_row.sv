@@ -1,11 +1,10 @@
 `include "common_cells/registers.svh"
 
 import fpnew_pkg::*;
-import expu_pkg::*;
 
 module expu_row #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
-    parameter expu_pkg::regs_config_t   REG_POS                 = expu_pkg::BEFORE      ,
+    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS                = 0                     ,
     parameter int unsigned              A_FRACTION              = 14                    ,
     parameter int unsigned              ENABLE_ROUNDING         = 1                     ,
@@ -41,15 +40,15 @@ module expu_row #(
     logic [WIDTH - 1 : 0]   op_before;
 
     generate
-        if (REG_POS == expu_pkg::BEFORE) begin
+        if (REG_POS == sfm_pkg::BEFORE) begin
             assign reg_data [0] = op_i;
             assign op_before    = reg_data [NUM_REGS];
             assign res_o        = result;
-        end else if (REG_POS == expu_pkg::AFTER) begin
+        end else if (REG_POS == sfm_pkg::AFTER) begin
             assign reg_data [0] = result;
             assign res_o        = reg_data [NUM_REGS];
             assign op_before    = op_i;
-        end else if (REG_POS == expu_pkg::AROUND) begin
+        end else if (REG_POS == sfm_pkg::AROUND) begin
             assign reg_data [0] = op_i;
             assign op_before    = reg_data [NUM_REGS / 2];
             assign res_o        = reg_data [NUM_REGS];
@@ -58,7 +57,7 @@ module expu_row #(
 
     generate
         for (genvar i = 0; i < NUM_REGS; i ++) begin : gen_regs
-            if (i != NUM_REGS / 2 || REG_POS != expu_pkg::AROUND) begin
+            if (i != NUM_REGS / 2 || REG_POS != sfm_pkg::AROUND) begin
                 `FFLARNC(reg_data [i + 1],  reg_data [i],   enable_i [i],   clear_i,    '0, clk_i,  rst_ni)
             end else begin
                 `FFLARNC(reg_data [i + 1],        result,   enable_i [i],   clear_i,    '0, clk_i,  rst_ni)
