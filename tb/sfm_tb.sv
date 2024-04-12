@@ -2,10 +2,10 @@ timeunit 1ps;
 timeprecision 1ps;
 
 module sfm_tb;
-    parameter real          PROB_STALL = 0.03;
+    parameter real          PROB_STALL = 0.0;
     parameter int unsigned  NC = 1;
     parameter int unsigned  ID = 10;
-    parameter int unsigned  DW = 128;
+    parameter int unsigned  DW = 128 + 32;
     parameter int unsigned  MP = DW/32;
     parameter int unsigned  MEMORY_SIZE = 192*1024;
     parameter int unsigned  STACK_MEMORY_SIZE = 192*1024;
@@ -158,7 +158,7 @@ module sfm_tb;
         .ID_WIDTH           ( ID                 ),
         .N_CORES            ( NC                 ),
         .DW                 ( DW                 ),
-        .MP                 ( MP                  )
+        .MP                 ( MP                 )
     ) i_sfm_wrap      (
         .clk_i              ( clk                ),
         .rst_ni             ( rst_n              ),
@@ -296,63 +296,7 @@ module sfm_tb;
         .alert_major_o      (                               ),
         .core_sleep_o       (   core_sleep                  )
     );
-
-    /*cv32e40p_core #(
-        .PULP_XPULP     ( PULP_XPULP ),
-        .FPU            ( FPU        ),
-        .PULP_ZFINX     ( PULP_ZFINX )
-    ) i_cv32e40p_core (
-        // Clock and Reset
-        .clk_i               ( clk            ),
-        .rst_ni              ( rst_n          ),
-        .pulp_clock_en_i     ( 1'b1           ),  // PULP clock enable (only used if PULP_CLUSTER = 1)
-        .scan_cg_en_i        ( 1'b0           ),  // Enable all clock gates for testing
-        // Core ID, Cluster ID, debug mode halt address and boot address are considered more or less static
-        .boot_addr_i         ( core_boot_addr ),
-        .mtvec_addr_i        ( '0             ),
-        .dm_halt_addr_i      ( '0             ),
-        .hart_id_i           ( '0             ),
-        .dm_exception_addr_i ( '0             ),
-        // Instruction memory interface
-        .instr_req_o         ( instr_req    ),
-        .instr_gnt_i         ( instr_gnt    ),
-        .instr_rvalid_i      ( instr_rvalid ),
-        .instr_addr_o        ( instr_addr   ),
-        .instr_rdata_i       ( instr_rdata  ),
-        // Data memory interface
-        .data_req_o          ( data_req     ),
-        .data_gnt_i          ( data_gnt     ),
-        .data_rvalid_i       ( data_rvalid  ),
-        .data_we_o           ( data_we      ),
-        .data_be_o           ( data_be      ),
-        .data_addr_o         ( data_addr    ),
-        .data_wdata_o        ( data_wdata   ),
-        .data_rdata_i        ( data_rdata   ),
-        // apu-interconnect
-        // handshake signals
-        .apu_req_o           (              ),
-        .apu_gnt_i           ( '0           ),
-        // request channel
-        .apu_operands_o      (              ),
-        .apu_op_o            (              ),
-        .apu_flags_o         (              ),
-        // response channel
-        .apu_rvalid_i        ( '0           ),
-        .apu_result_i        ( '0           ),
-        .apu_flags_i         ( '0           ),
-        // Interrupt inputs
-        .irq_i               ({28'd0, evt[0][0], 3'd0}),  // CLINT interrupts + CLINT extension interrupts
-        .irq_ack_o           (              ),
-        .irq_id_o            (              ),
-        // Debug Interface
-        .debug_req_i         ( '0           ),
-        .debug_havereset_o   (              ),
-        .debug_running_o     (              ),
-        .debug_halted_o      (              ),
-        // CPU Control Signals
-        .fetch_enable_i      ( fetch_enable ),
-        .core_sleep_o        ( core_sleep   )
-    );*/
+    
 
     initial begin
         clk <= 1'b0;
@@ -380,7 +324,7 @@ module sfm_tb;
         end
     end
   
-    int f_t0, f_t1, f_golden;
+    int f_golden;
 
     logic done = 0;
 
@@ -401,9 +345,6 @@ module sfm_tb;
 
         test_mode = 1'b0;
         fetch_enable = 1'b0;
-
-        f_t0 = $fopen("time_start.txt");
-        f_t1 = $fopen("time_stop.txt");
 
         // load instruction memory
         $readmemh(STIM_INSTR, sfm_tb.i_dummy_imemory.memory);
@@ -440,7 +381,7 @@ module sfm_tb;
             if (difference > error_threshold) begin
                 errors += 1;
 
-                $display("[TB] - Misamtch!    Position: %d\tDifference: %d", pos, difference);
+                $display("[TB] - Misamtch!    Expexted: 0x%h\tWas: 0x%h\tPosition: %d\tDifference: %d", n, data, pos, difference);
             end
 
             pos += 1;

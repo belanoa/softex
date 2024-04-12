@@ -20,14 +20,15 @@ int main () {
 
     }
 
+    /**********ACCUMULATION**********/
+
     while ((ol_id = hwpe_acquire_job()) < 0) {
 
     }
 
     HWPE_WRITE(scores, SFM_IN_ADDR);
-    HWPE_WRITE(LENGTH * FMT_WIDTH, SFM_TOT_LEN);
-    HWPE_WRITE(0x1c010000, SFM_OUT_ADDR);
-    HWPE_WRITE(SFM_CMD_ACC_ONLY | SFM_CMD_LAST | (slot_id << 16), SFM_COMMANDS);
+    HWPE_WRITE(LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_TOT_LEN);
+    HWPE_WRITE(SFM_CMD_ACC_ONLY | (slot_id << 16), SFM_COMMANDS);
     
     hwpe_trigger_job();
 
@@ -35,9 +36,35 @@ int main () {
 
     }
 
+    HWPE_WRITE(((int) scores) + LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_IN_ADDR);
+    HWPE_WRITE(LENGTH * FMT_WIDTH - LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_TOT_LEN);
+    HWPE_WRITE(SFM_CMD_ACC_ONLY | SFM_CMD_LAST | (slot_id << 16), SFM_COMMANDS);
+    
+    hwpe_trigger_job();
+
+    asm volatile("wfi" ::: "memory");
+    asm volatile("wfi" ::: "memory");
+
+    /**********NORMALISATION**********/
+
+    while ((ol_id = hwpe_acquire_job()) < 0) {
+
+    }
+
     HWPE_WRITE(scores, SFM_IN_ADDR);
-    HWPE_WRITE(LENGTH * FMT_WIDTH, SFM_TOT_LEN);
+    HWPE_WRITE(LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_TOT_LEN);
     HWPE_WRITE(0x1c010000, SFM_OUT_ADDR);
+    HWPE_WRITE(SFM_CMD_DIV_ONLY | (slot_id << 16), SFM_COMMANDS);
+
+    hwpe_trigger_job();
+
+    while ((ol_id = hwpe_acquire_job()) < 0) {
+
+    }
+
+    HWPE_WRITE(((int) scores) + LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_IN_ADDR);
+    HWPE_WRITE(LENGTH * FMT_WIDTH - LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_TOT_LEN);
+    HWPE_WRITE(0x1c010000 + LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_OUT_ADDR);
     HWPE_WRITE(SFM_CMD_DIV_ONLY | SFM_CMD_LAST | (slot_id << 16), SFM_COMMANDS);
 
     hwpe_trigger_job();
