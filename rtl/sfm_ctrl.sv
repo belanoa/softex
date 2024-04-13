@@ -84,6 +84,10 @@ module sfm_ctrl #(
             slot_select,
             slot_req;
 
+    logic [$clog2(DATA_WIDTH / 8) - 1 : 0]  length_lftovr;
+
+    logic   lftovr_inc;
+
     hwpe_ctrl_package::ctrl_regfile_t   reg_file;
     hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
     hwpe_ctrl_package::flags_slave_t    flgs_slave;
@@ -172,9 +176,12 @@ module sfm_ctrl #(
         end
     end
 
+    assign length_lftovr    = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH / 8) - 1 : 0];
+    assign lftovr_inc       = length_lftovr != '0;
+
     assign in_stream_ctrl_o.req_start                       = in_start;
     assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];
-    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8);
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
     assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = reg_file.hwpe_params [TOT_LEN];   //Not used by the address generator per se but still necessary
     assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = DATA_WIDTH / 8;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
@@ -184,7 +191,7 @@ module sfm_ctrl #(
 
     assign out_stream_ctrl_o.req_start                      = out_start;
     assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];
-    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8);
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
     assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = reg_file.hwpe_params [TOT_LEN];
     assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = DATA_WIDTH / 8;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;

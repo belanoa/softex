@@ -23,6 +23,7 @@ sources:
     - rtl/sfm_den_inverter.sv
     - rtl/sfm_fp_vect_addmul.sv
     - rtl/sfm_streamer.sv
+    - rtl/sfm_streamer_strb_gen.sv
     - rtl/sfm_top.sv
     - rtl/sfm_ctrl.sv
     - rtl/sfm_wrap.sv
