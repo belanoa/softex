@@ -3,9 +3,7 @@ import hci_package::*;
 
 module sfm_streamer #(
     parameter int unsigned  DATA_WIDTH  = 128   ,
-    parameter int unsigned  ADDR_WIDTH  = 32    ,
-
-    localparam int unsigned ACTUAL_DW   = DATA_WIDTH - 32
+    parameter int unsigned  ADDR_WIDTH  = 32    
 ) (
     input   logic                   clk_i               ,
     input   logic                   rst_ni              ,
@@ -21,6 +19,8 @@ module sfm_streamer #(
 
     hci_core_intf.master            tcdm                
 );
+
+    localparam int unsigned ACTUAL_DW   = DATA_WIDTH - 32;
 
     hci_streamer_ctrl_t     in_stream_ctrl,
                             out_stream_ctrl;

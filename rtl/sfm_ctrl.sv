@@ -10,10 +10,7 @@ module sfm_ctrl #(
     parameter int unsigned              N_STATE_SLOTS   = 2                     ,
     parameter int unsigned              DATA_WIDTH      = 128                   ,
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = fpnew_pkg::FP16ALT    ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = fpnew_pkg::FP32       ,
-
-    localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT)  ,
-    localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT)
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = fpnew_pkg::FP32       
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,
@@ -30,6 +27,9 @@ module sfm_ctrl #(
 
     hwpe_ctrl_intf_periph.slave             periph
 );
+
+    localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT);
+    localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT);
 
     typedef enum logic [2:0] {
         IDLE,

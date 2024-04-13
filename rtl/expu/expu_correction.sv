@@ -11,14 +11,15 @@ module expu_correction #(
     parameter real                      GAMMA_1_REAL            = 2.8359375             ,
     parameter real                      GAMMA_2_REAL            = 2.16796875            ,
 
-    localparam int unsigned WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT) ,
-    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT) ,
-    localparam int unsigned SUM_FRACTION    = MANTISSA_BITS > CONSTANT_FRACTION ? MANTISSA_BITS : CONSTANT_FRACTION
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic [WIDTH - 1 : 0]  op_i     ,
     output  logic [WIDTH - 1 : 0]  res_o    
 );
+
+    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT);
+    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT);
+    localparam int unsigned SUM_FRACTION    = MANTISSA_BITS > CONSTANT_FRACTION ? MANTISSA_BITS : CONSTANT_FRACTION;
 
     logic [EXPONENT_BITS - 1 : 0]               exponent;
     //Q<1.MANTISSA_BITS>

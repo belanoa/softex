@@ -7,9 +7,7 @@ module sfm_fp_minmax_rec #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
     parameter int unsigned              N_INP                   = 1                     ,
 
-    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned A_WIDTH = (N_INP + 1) / 2               ,
-    localparam int unsigned B_WIDTH = N_INP - A_WIDTH
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic [N_INP - 1 : 0] [WIDTH - 1 : 0]   op_i    ,
     input   logic [N_INP - 1 : 0]                   strb_i  ,
@@ -17,6 +15,10 @@ module sfm_fp_minmax_rec #(
     output  logic [WIDTH - 1 : 0]                   res_o   ,
     output  logic                                   strb_o
 );
+
+    localparam int unsigned A_WIDTH = (N_INP + 1) / 2;
+    localparam int unsigned B_WIDTH = N_INP - A_WIDTH;
+
     logic [A_WIDTH - 1 : 0] [WIDTH - 1 : 0] a;
     logic [B_WIDTH - 1 : 0] [WIDTH - 1 : 0] b;
 

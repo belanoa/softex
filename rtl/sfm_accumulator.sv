@@ -9,12 +9,11 @@ module sfm_accumulator #(
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                                 ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,
     parameter int unsigned              N_FACT_FIFO         = 1                                 ,  
-    parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,         
+    parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,
 
-    localparam int unsigned             ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT) ,
-    localparam int unsigned             ADD_WIDTH       = fpnew_pkg::fp_width(ADD_FPFORMAT) ,
-    localparam int unsigned             MUL_WIDTH       = fpnew_pkg::fp_width(MUL_FPFORMAT) ,
-    localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = fpnew_pkg::BEFORE
+    localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT),
+    localparam int unsigned ADD_WIDTH   = fpnew_pkg::fp_width(ADD_FPFORMAT),
+    localparam int unsigned MUL_WIDTH   = fpnew_pkg::fp_width(MUL_FPFORMAT)
 ) (
     input   logic                           clk_i       ,
     input   logic                           rst_ni      ,
@@ -29,6 +28,8 @@ module sfm_accumulator #(
     output  sfm_pkg::accumulator_flags_t    flags_o     ,
     output  logic [ACC_WIDTH - 1 : 0]       acc_o
 );
+
+    localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = fpnew_pkg::BEFORE;
 
     typedef enum logic [3:0] { IDLE, COMPUTING, FINISHING, REDUCTION, INVERSION, INV_MUL, INV_FMA, FINISHED } acc_state_t;
     

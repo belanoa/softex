@@ -5,14 +5,15 @@ module expu_schraudolph #(
     parameter int unsigned              A_FRACTION      = 14                    ,
     parameter logic                     ENABLE_ROUNDING = 1                     ,
 
-    localparam int unsigned WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT) ,
-    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT) ,
-    localparam int unsigned BIAS            = fpnew_pkg::bias(FPFORMAT)     
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic [WIDTH - 1 : 0]   op_i    ,
     output  logic [WIDTH - 1 : 0]   res_o                
 );
+
+    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT);
+    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT);
+    localparam int unsigned BIAS            = fpnew_pkg::bias(FPFORMAT);  
 
     localparam real         A_REAL              = 1 / $ln(2);
 

@@ -6,9 +6,7 @@ module sfm_wrap #(
     parameter int unsigned  N_CORES     = 8                     ,
     parameter int unsigned  DW          = 128                   ,
     parameter int unsigned  MP          = DW / 32               ,
-    parameter int unsigned  FPFORMAT    = fpnew_pkg::FP16ALT    , 
-
-    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT) 
+    parameter int unsigned  FPFORMAT    = fpnew_pkg::FP16ALT    
 ) (
     // global signals
     input  logic                      clk_i               ,
@@ -40,6 +38,8 @@ module sfm_wrap #(
     output logic                      periph_r_valid_o    ,
     output logic [ID_WIDTH-1:0]       periph_r_id_o
 );
+
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT);
 
     hci_core_intf #(.DW(DW)) tcdm (.clk(clk_i));
     hwpe_ctrl_intf_periph #(.ID_WIDTH(ID_WIDTH)) periph (.clk(clk_i));

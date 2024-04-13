@@ -4,9 +4,7 @@ import hwpe_stream_package::*;
 module sfm_top #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = fpnew_pkg::FP16ALT    ,
     parameter int unsigned              DATA_WIDTH  = 128                   ,
-    parameter int unsigned              N_CORES     = 8                     ,
-
-    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)          
+    parameter int unsigned              N_CORES     = 8                          
 ) (
     input   logic                           clk_i   ,
     input   logic                           rst_ni  ,
@@ -17,6 +15,8 @@ module sfm_top #(
     hci_core_intf.master                    tcdm    ,
     hwpe_ctrl_intf_periph.slave             periph  
 );
+
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT);
 
     hci_streamer_flags_t        stream_in_flgs;
     hci_streamer_flags_t        stream_out_flgs;

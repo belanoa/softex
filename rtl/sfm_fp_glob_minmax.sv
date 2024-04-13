@@ -6,7 +6,7 @@ module sfm_fp_glob_minmax #(
     parameter int unsigned              NUM_REGS    = 0                     ,
     parameter int unsigned              VECT_WIDTH  = 1                     ,
 
-    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)      
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)   
 ) (
     input   logic                                       clk_i           ,
     input   logic                                       rst_ni          ,

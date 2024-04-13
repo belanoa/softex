@@ -10,10 +10,7 @@ module sfm_fp_add_rec #(
     parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE   ,
     parameter type                      TAG_TYPE    = logic             ,
 
-    localparam int unsigned             WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned             A_WIDTH         = (N_INP + 1) / 2               ,
-    localparam int unsigned             B_WIDTH         = N_INP - A_WIDTH               ,
-    localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = sfm_pkg::sfm_to_cvfpu(REG_POS)
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic                                   clk_i   ,
     input   logic                                   rst_ni  ,
@@ -31,6 +28,11 @@ module sfm_fp_add_rec #(
     output  TAG_TYPE                                tag_o   ,
     output  logic                                   busy_o  
 );
+
+    localparam int unsigned             A_WIDTH         = (N_INP + 1) / 2;
+    localparam int unsigned             B_WIDTH         = N_INP - A_WIDTH;
+    localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = sfm_pkg::sfm_to_cvfpu(REG_POS);
+
     logic [A_WIDTH - 1 : 0] [WIDTH - 1 : 0] a;
     logic [B_WIDTH - 1 : 0] [WIDTH - 1 : 0] b;
 

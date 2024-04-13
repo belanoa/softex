@@ -18,9 +18,7 @@ module expu_row #(
     parameter real                      GAMMA_1_REAL            = 2.8359375             ,
     parameter real                      GAMMA_2_REAL            = 2.16796875            ,
 
-    localparam int unsigned WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT) ,
-    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT)
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic                       clk_i       ,
     input   logic                       rst_ni      ,
@@ -29,6 +27,9 @@ module expu_row #(
     input   logic [WIDTH - 1 : 0]       op_i        ,
     output  logic [WIDTH - 1 : 0]       res_o            
 );
+
+    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT);
+    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT);
 
     logic [WIDTH - 1 : 0]           res_sch,
                                     res_cor;

@@ -21,9 +21,7 @@ module expu_top #(
     parameter real                      GAMMA_2_REAL            = 2.16796875            ,
     parameter type                      TAG_TYPE                = logic                 ,
 
-    localparam int unsigned WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT) ,
-    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT)
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic                                   clk_i       ,
     input   logic                                   rst_ni      ,
@@ -41,6 +39,9 @@ module expu_top #(
     output  TAG_TYPE                                tag_o       ,
     output  logic                                   busy_o      
 );
+
+    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT);
+    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT);
 
     logic [NUM_REGS : 0]    valid_reg;
     logic [NUM_REGS : 0]    reg_en_n;

@@ -6,10 +6,7 @@ module sfm_den_inverter #(
     parameter int unsigned              NUM_REGS    = 2                 ,
     parameter int unsigned              N_MANT_BITS = 7                 ,
 
-    localparam int unsigned WIDTH           = fpnew_pkg::fp_width(FPFORMAT) ,
-    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT) ,
-    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT) ,
-    localparam int unsigned BIAS            = fpnew_pkg::bias(FPFORMAT)     
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic                   clk_i   ,
     input   logic                   rst_ni  ,
@@ -21,6 +18,10 @@ module sfm_den_inverter #(
     output  logic                   valid_o ,
     output  logic [WIDTH - 1 : 0]   inv_o
 );
+
+    localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT);
+    localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT);
+    localparam int unsigned BIAS            = fpnew_pkg::bias(FPFORMAT);
 
     logic [WIDTH - 1 : 0]   den_del,
                             res;

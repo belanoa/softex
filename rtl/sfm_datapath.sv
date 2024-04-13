@@ -13,9 +13,7 @@ module sfm_datapath #(
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 5                             ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = FACTOR_FIFO_DEPTH * FMA_REGS  ,
 
-    localparam int unsigned IN_WIDTH        = fpnew_pkg::fp_width(IN_FPFORMAT)  ,
-    localparam int unsigned ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT) ,
-    localparam int unsigned VECT_SUM_DELAY  = $clog2(VECT_WIDTH) * ADD_REGS
+    localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT)
 ) (
     input   logic                                           clk_i       ,
     input   logic                                           rst_ni      ,
@@ -31,6 +29,9 @@ module sfm_datapath #(
     output  logic [VECT_WIDTH - 1 : 0]                      strb_o      ,
     output  logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   res_o   
 );
+
+    localparam int unsigned ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT);
+    localparam int unsigned VECT_SUM_DELAY  = $clog2(VECT_WIDTH) * ADD_REGS;
 
     logic [IN_WIDTH - 1 : 0]    old_max,
                                 new_max,

@@ -5,8 +5,7 @@ module sfm_fp_vect_addmul #(
     parameter int unsigned              VECT_WIDTH              = 1                     ,
     parameter type                      TAG_TYPE                = logic                 ,
 
-    localparam int unsigned             WIDTH           = fpnew_pkg::fp_width(FPFORMAT)     ,
-    localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = sfm_pkg::sfm_to_cvfpu(REG_POS)
+    localparam int unsigned             WIDTH           = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic                                       clk_i               ,
     input   logic                                       rst_ni              ,
@@ -44,6 +43,8 @@ module sfm_fp_vect_addmul #(
     output  logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  mul_res_o           ,
     output  TAG_TYPE                                    mul_tag_o       
 );
+
+    localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = sfm_pkg::sfm_to_cvfpu(REG_POS);
 
     logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  fma_res;
     logic [VECT_WIDTH - 1 : 0]                  fma_o_strb;
