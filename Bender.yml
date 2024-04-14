@@ -13,7 +13,9 @@ sources:
   files:
     - rtl/sfm_pkg.sv
     - rtl/sfm_fp_red_minmax.sv
+    - rtl/sfm_fp_minmax_rec.sv
     - rtl/sfm_fp_red_sum.sv
+    - rtl/sfm_fp_add_rec.sv
     - rtl/sfm_pipeline.sv
     - rtl/sfm_macros.svh
     - rtl/sfm_delay.sv

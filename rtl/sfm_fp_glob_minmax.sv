@@ -26,6 +26,9 @@ module sfm_fp_glob_minmax #(
     output  logic                                       ready_o
 );
 
+    /* This module keeps track of the maximum value and *
+     * signals the datapath when this value is updated  */
+
     logic [WIDTH - 1 : 0]   minmax_q,
                             vect_minmax;
 
