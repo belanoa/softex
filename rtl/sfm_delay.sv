@@ -1,5 +1,3 @@
-`include "common_cells/registers.svh"
-
 module sfm_delay #(
     parameter int unsigned  NUM_REGS    = 0,
     parameter int unsigned  DATA_WIDTH  = 1,
@@ -38,7 +36,19 @@ module sfm_delay #(
 
     assign valid_reg [0]    = valid_i;
     for (genvar i = 0; i < NUM_REGS; i++) begin : valid_registers
-        `FFLARNC(valid_reg [i + 1], valid_reg [i],  enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+        always_ff @(posedge clk_i or negedge rst_ni) begin
+            if (~rst_ni) begin
+                valid_reg [i + 1] <= '0;
+            end else begin
+                if (clear_i) begin
+                    valid_reg [i + 1] <= '0;
+                end else if (enable_i & ~reg_en_n [i]) begin
+                    valid_reg [i + 1] <= valid_reg [i];
+                end else begin
+                    valid_reg [i + 1] <= valid_reg [i + 1];
+                end
+            end
+        end
     end
     assign valid_o  = valid_reg [NUM_REGS];
 
@@ -54,7 +64,19 @@ module sfm_delay #(
 
     assign strb [0] = strb_i;
     for (genvar i = 0; i < NUM_REGS; i++) begin : strb_registers
-        `FFLARNC(strb [i + 1],  strb [i],   enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+        always_ff @(posedge clk_i or negedge rst_ni) begin
+            if (~rst_ni) begin
+                strb [i + 1] <= '0;
+            end else begin
+                if (clear_i) begin
+                    strb [i + 1] <= '0;
+                end else if (enable_i & ~reg_en_n [i]) begin
+                    strb [i + 1] <= strb [i];
+                end else begin
+                    strb [i + 1] <= strb [i + 1];
+                end
+            end
+        end
     end
     assign strb_o = strb [NUM_REGS];
 
@@ -62,7 +84,19 @@ module sfm_delay #(
     assign data [0] = data_i;
     for (genvar i = 0; i < NUM_ROWS; i++) begin : data_registers
         for (genvar j = 0; j < NUM_REGS; j++) begin
-            `FFLARNC(data [j + 1][i],  data [j][i],   row_enable [i][j],  clear_i,    '0, clk_i,  rst_ni)
+            always_ff @(posedge clk_i or negedge rst_ni) begin
+                if (~rst_ni) begin
+                    data [j + 1][i] <= '0;
+                end else begin
+                    if (clear_i) begin
+                        data [j + 1][i] <= '0;
+                    end else if (row_enable [i][j]) begin
+                        data [j + 1][i] <=  data [j][i];
+                    end else begin
+                        data [j + 1][i] <=  data [j + 1][i];
+                    end
+                end
+            end
         end
     end
     assign data_o = data [NUM_REGS];

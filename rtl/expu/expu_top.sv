@@ -1,5 +1,3 @@
-`include "common_cells/registers.svh"
-
 import fpnew_pkg::*;
 import sfm_pkg::*;
 
@@ -98,19 +96,55 @@ module expu_top #(
 
     generate
         for (genvar i = 0; i < NUM_REGS; i++) begin : valid_registers
-            `FFLARNC(valid_reg [i + 1], valid_reg [i],  enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+            always_ff @(posedge clk_i or negedge rst_ni) begin
+                if (~rst_ni) begin
+                    valid_reg [i + 1] <= '0;
+                end else begin
+                    if (clear_i) begin
+                        valid_reg [i + 1] <= '0;
+                    end else if (enable_i & ~reg_en_n [i]) begin
+                        valid_reg [i + 1] <= valid_reg [i];
+                    end else begin
+                        valid_reg [i + 1] <= valid_reg [i + 1];
+                    end
+                end
+            end
         end
     endgenerate
 
     generate
         for (genvar i = 0; i < NUM_REGS; i++) begin : strobe_registers
-            `FFLARNC(strb_reg [i + 1],  strb_reg [i],   enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+            always_ff @(posedge clk_i or negedge rst_ni) begin
+                if (~rst_ni) begin
+                    strb_reg [i + 1] <= '0;
+                end else begin
+                    if (clear_i) begin
+                        strb_reg [i + 1] <= '0;
+                    end else if (enable_i & ~reg_en_n [i]) begin
+                        strb_reg [i + 1] <= strb_reg [i];
+                    end else begin
+                        strb_reg [i + 1] <= strb_reg [i + 1];
+                    end
+                end
+            end
         end
     endgenerate
 
     generate
         for (genvar i = 0; i < NUM_REGS; i++) begin : tag_registers
-            `FFLARNC(tag_reg [i + 1], tag_reg [i],  enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+            always_ff @(posedge clk_i or negedge rst_ni) begin
+                if (~rst_ni) begin
+                    tag_reg [i + 1] <= '0;
+                end else begin
+                    if (clear_i) begin
+                        tag_reg [i + 1] <= '0;
+                    end else if (enable_i & ~reg_en_n [i]) begin
+                        tag_reg [i + 1] <= tag_reg [i];
+                    end else begin
+                        tag_reg [i + 1] <= tag_reg [i + 1];
+                    end
+                end
+            end
         end
     endgenerate
 

@@ -1,5 +1,3 @@
-`include "common_cells/registers.svh"
-
 module sfm_pipeline #(
     parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS                = 0                     ,
@@ -55,7 +53,19 @@ module sfm_pipeline #(
 
     assign valid_reg [0]    = valid_i;
     for (genvar i = 0; i < NUM_REGS; i++) begin : valid_registers
-        `FFLARNC(valid_reg [i + 1], valid_reg [i],  enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+        always_ff @(posedge clk_i or negedge rst_ni) begin
+            if (~rst_ni) begin
+                valid_reg [i + 1] <= '0;
+            end else begin
+                if (clear_i) begin
+                    valid_reg [i + 1] <= '0;
+                end else if (enable_i & ~reg_en_n [i]) begin
+                    valid_reg [i + 1] <= valid_reg [i];
+                end else begin
+                    valid_reg [i + 1] <= valid_reg [i + 1];
+                end
+            end
+        end
     end
     assign valid_o  = valid_reg [NUM_REGS];
 
@@ -79,13 +89,37 @@ module sfm_pipeline #(
 
     assign i_strb [0] = i_strb_i;
     for (genvar i = 0; i < NUM_REGS_I; i++) begin : i_strb_registers
-        `FFLARNC(i_strb [i + 1],  i_strb [i],   enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+        always_ff @(posedge clk_i or negedge rst_ni) begin
+            if (~rst_ni) begin
+                i_strb [i + 1] <= '0;
+            end else begin
+                if (clear_i) begin
+                    i_strb [i + 1] <= '0;
+                end else if (enable_i & ~reg_en_n [i]) begin
+                    i_strb [i + 1] <= i_strb [i];
+                end else begin
+                    i_strb [i + 1] <= i_strb [i + 1];
+                end
+            end
+        end
     end
     assign i_strb_o = i_strb [NUM_REGS_I];
 
     assign o_strb [0] = o_strb_i;
     for (genvar i = 0; i < NUM_REGS_O; i++) begin : o_strb_registers
-        `FFLARNC(o_strb [i + 1],  o_strb [i],   enable_i & ~reg_en_n [i],   clear_i,    '0, clk_i,  rst_ni)
+        always_ff @(posedge clk_i or negedge rst_ni) begin
+            if (~rst_ni) begin
+                o_strb [i + 1] <= '0;
+            end else begin
+                if (clear_i) begin
+                    o_strb [i + 1] <= '0;
+                end else if (enable_i & ~reg_en_n [i]) begin
+                    o_strb [i + 1] <= o_strb [i];
+                end else begin
+                    o_strb [i + 1] <= o_strb [i + 1];
+                end
+            end
+        end
     end
     assign o_strb_o = o_strb [NUM_REGS_O];
 
@@ -93,7 +127,19 @@ module sfm_pipeline #(
     assign i_data [0] = i_data_i;
     for (genvar i = 0; i < NUM_IN; i++) begin : i_data_registers
         for (genvar j = 0; j < NUM_REGS_I; j++) begin
-            `FFLARNC(i_data [j + 1][i],  i_data [j][i],   i_row_enable [i][j],  clear_i,    '0, clk_i,  rst_ni)
+            always_ff @(posedge clk_i or negedge rst_ni) begin
+                if (~rst_ni) begin
+                    i_data [j + 1][i] <= '0;
+                end else begin
+                    if (clear_i) begin
+                        i_data [j + 1][i] <= '0;
+                    end else if (i_row_enable [i][j]) begin
+                        i_data [j + 1][i] <=  i_data [j][i];
+                    end else begin
+                        i_data [j + 1][i] <=  i_data [j + 1][i];
+                    end
+                end
+            end
         end
     end
     assign i_data_o = i_data [NUM_REGS_I];
@@ -101,7 +147,19 @@ module sfm_pipeline #(
     assign o_data [0] = o_data_i;
     for (genvar i = 0; i < NUM_OUT; i++) begin : o_data_registers
         for (genvar j = 0; j < NUM_REGS_O; j++) begin
-            `FFLARNC(o_data [j + 1][i],  o_data [j][i],   o_row_enable [i][j],    clear_i,    '0, clk_i,  rst_ni)
+            always_ff @(posedge clk_i or negedge rst_ni) begin
+                if (~rst_ni) begin
+                    o_data [j + 1][i] <= '0;
+                end else begin
+                    if (clear_i) begin
+                        o_data [j + 1][i] <= '0;
+                    end else if (o_row_enable [i][j]) begin
+                        o_data [j + 1][i] <=  o_data [j][i];
+                    end else begin
+                        o_data [j + 1][i] <=  o_data [j + 1][i];
+                    end
+                end
+            end
         end
     end
     assign o_data_o = o_data [NUM_REGS_O];

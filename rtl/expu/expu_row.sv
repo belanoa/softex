@@ -1,5 +1,3 @@
-`include "common_cells/registers.svh"
-
 import fpnew_pkg::*;
 
 module expu_row #(
@@ -59,9 +57,33 @@ module expu_row #(
     generate
         for (genvar i = 0; i < NUM_REGS; i ++) begin : gen_regs
             if (i != NUM_REGS / 2 || REG_POS != sfm_pkg::AROUND) begin
-                `FFLARNC(reg_data [i + 1],  reg_data [i],   enable_i [i],   clear_i,    '0, clk_i,  rst_ni)
+                always_ff @(posedge clk_i or negedge rst_ni) begin
+                    if (~rst_ni) begin
+                        reg_data [i + 1] <= '0;
+                    end else begin
+                        if (clear_i) begin
+                            reg_data [i + 1] <= '0;
+                        end else if (enable_i [i]) begin
+                            reg_data [i + 1] <= reg_data [i];
+                        end else begin
+                            reg_data [i + 1] <= reg_data [i + 1];
+                        end
+                    end
+                end
             end else begin
-                `FFLARNC(reg_data [i + 1],        result,   enable_i [i],   clear_i,    '0, clk_i,  rst_ni)
+                always_ff @(posedge clk_i or negedge rst_ni) begin
+                    if (~rst_ni) begin
+                        reg_data [i + 1] <= '0;
+                    end else begin
+                        if (clear_i) begin
+                            reg_data [i + 1] <= '0;
+                        end else if (enable_i [i]) begin
+                            reg_data [i + 1] <= result;
+                        end else begin
+                            reg_data [i + 1] <= reg_data [i + 1];
+                        end
+                    end
+                end
             end
         end
     endgenerate
