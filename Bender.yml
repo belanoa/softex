@@ -33,6 +33,10 @@ sources:
     - rtl/expu/expu_row.sv
     - rtl/expu/expu_schraudolph.sv
     - rtl/expu/expu_top.sv
+    - rtl/accumulator/sfm_acc_ctrl.sv
+    - rtl/accumulator/sfm_acc_datapath.sv
+    - rtl/accumulator/sfm_acc_top.sv
+    - rtl/accumulator/sfm_acc_den_inverter.sv
 
     - target: sfm_sim
       files:

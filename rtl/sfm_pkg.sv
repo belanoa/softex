@@ -24,8 +24,6 @@ package sfm_pkg;
     parameter real          EXPU_GAMMA_1_REAL            = 2.8359375;
     parameter real          EXPU_GAMMA_2_REAL            = 2.16796875;
 
-    parameter int unsigned  STATE_SLOT_OFFS = 16;
-
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
     typedef enum logic          { ADD, MUL }                operation_t;
@@ -67,6 +65,35 @@ package sfm_pkg;
 
         accumulator_ctrl_t  accumulator_ctrl;
     } datapath_ctrl_t;
+
+    typedef struct packed {
+        logic   addend_valid;
+        logic   addend_empty;
+        logic   factor_empty;
+        logic   fma_o_valid;
+        logic   inv_appr_valid;
+        logic   last_op_in_flight;
+
+        logic [31 : 0]  denominator;
+        logic [31 : 0]  reciprocal;
+    } acc_datapath_flags_t;
+
+    typedef struct packed {
+        logic           reducing;
+        logic           inverting;
+        logic           inv_fma;
+        logic           res_valid;
+        logic           push_fma_res;
+        logic           disable_ready;
+        logic           den_enable;
+        logic           inv_enable;
+        logic           new_inv_iter;
+        logic           fma_inv_valid;
+
+        logic           load_reciprocal;
+
+        logic [31 : 0]  reciprocal;
+    } acc_datapath_ctrl_t;
 
     function sfm_to_cvfpu(sfm_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;
