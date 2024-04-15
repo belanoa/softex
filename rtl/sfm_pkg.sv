@@ -11,6 +11,19 @@ package sfm_pkg;
     parameter int unsigned  CMD_DIV_ONLY    = 1;
     parameter int unsigned  CMD_LAST        = 2;
 
+    //Exponential unit constants
+    parameter int unsigned  EXPU_A_FRACTION              = 14;
+    parameter logic         EXPU_ENABLE_ROUNDING         = 1;
+    parameter logic         EXPU_ENABLE_MANT_CORRECTION  = 1;
+    parameter int unsigned  EXPU_COEFFICIENT_FRACTION    = 4;
+    parameter int unsigned  EXPU_CONSTANT_FRACTION       = 7;
+    parameter int unsigned  EXPU_MUL_SURPLUS_BITS        = 1;
+    parameter int unsigned  EXPU_NOT_SURPLUS_BITS        = 0;
+    parameter real          EXPU_ALPHA_REAL              = 0.24609375;
+    parameter real          EXPU_BETA_REAL               = 0.41015625;
+    parameter real          EXPU_GAMMA_1_REAL            = 2.8359375;
+    parameter real          EXPU_GAMMA_2_REAL            = 2.16796875;
+
     parameter int unsigned  STATE_SLOT_OFFS = 16;
 
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;

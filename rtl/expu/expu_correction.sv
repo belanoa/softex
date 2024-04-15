@@ -1,15 +1,16 @@
+import sfm_pkg::*;
 import fpnew_pkg::*;
 
 module expu_correction #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
-    parameter int unsigned              COEFFICIENT_FRACTION    = 4                     ,
-    parameter int unsigned              CONSTANT_FRACTION       = 7                     ,
-    parameter int unsigned              MUL_SURPLUS_BITS        = 1                     ,
-    parameter int unsigned              NOT_SURPLUS_BITS        = 0                     ,
-    parameter real                      ALPHA_REAL              = 0.24609375            ,
-    parameter real                      BETA_REAL               = 0.41015625            ,
-    parameter real                      GAMMA_1_REAL            = 2.8359375             ,
-    parameter real                      GAMMA_2_REAL            = 2.16796875            ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT        ,
+    parameter int unsigned              COEFFICIENT_FRACTION    = EXPU_COEFFICIENT_FRACTION ,
+    parameter int unsigned              CONSTANT_FRACTION       = EXPU_CONSTANT_FRACTION    ,
+    parameter int unsigned              MUL_SURPLUS_BITS        = EXPU_MUL_SURPLUS_BITS     ,
+    parameter int unsigned              NOT_SURPLUS_BITS        = EXPU_NOT_SURPLUS_BITS     ,
+    parameter real                      ALPHA_REAL              = EXPU_ALPHA_REAL           ,
+    parameter real                      BETA_REAL               = EXPU_BETA_REAL            ,
+    parameter real                      GAMMA_1_REAL            = EXPU_GAMMA_1_REAL         ,
+    parameter real                      GAMMA_2_REAL            = EXPU_GAMMA_2_REAL         ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (

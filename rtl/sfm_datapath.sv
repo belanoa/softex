@@ -182,21 +182,10 @@ module sfm_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT               (   IN_FPFORMAT         ),
-        .REG_POS                (   sfm_pkg::BEFORE     ),
-        .NUM_REGS               (   EXP_REGS            ),
-        .N_ROWS                 (   1                   ),
-        .A_FRACTION             (   14                  ),
-        .ENABLE_ROUNDING        (   1                   ),
-        .ENABLE_MANT_CORRECTION (   1                   ),
-        .COEFFICIENT_FRACTION   (   4                   ),
-        .CONSTANT_FRACTION      (   7                   ),
-        .MUL_SURPLUS_BITS       (   1                   ),
-        .NOT_SURPLUS_BITS       (   0                   ),
-        .ALPHA_REAL             (   0.24609375          ),
-        .BETA_REAL              (   0.41015625          ),
-        .GAMMA_1_REAL           (   2.8359375           ),
-        .GAMMA_2_REAL           (   2.16796875          )
+        .FPFORMAT               (   IN_FPFORMAT     ),
+        .REG_POS                (   sfm_pkg::BEFORE ),
+        .NUM_REGS               (   EXP_REGS        ),
+        .N_ROWS                 (   1               )
     ) i_scal_exp (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
@@ -296,22 +285,11 @@ module sfm_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT               (   IN_FPFORMAT         ),
-        .REG_POS                (   sfm_pkg::BEFORE     ),
-        .NUM_REGS               (   EXP_REGS            ),
-        .N_ROWS                 (   VECT_WIDTH          ),
-        .A_FRACTION             (   14                  ),
-        .ENABLE_ROUNDING        (   1                   ),
-        .ENABLE_MANT_CORRECTION (   1                   ),
-        .COEFFICIENT_FRACTION   (   4                   ),
-        .CONSTANT_FRACTION      (   7                   ),
-        .MUL_SURPLUS_BITS       (   1                   ),
-        .NOT_SURPLUS_BITS       (   0                   ),
-        .ALPHA_REAL             (   0.24609375          ),
-        .BETA_REAL              (   0.41015625          ),
-        .GAMMA_1_REAL           (   2.8359375           ),
-        .GAMMA_2_REAL           (   2.16796875          ),
-        .TAG_TYPE               (   logic               )
+        .FPFORMAT               (   IN_FPFORMAT     ),
+        .REG_POS                (   sfm_pkg::BEFORE ),
+        .NUM_REGS               (   EXP_REGS        ),
+        .N_ROWS                 (   VECT_WIDTH      ),
+        .TAG_TYPE               (   logic           )
     ) i_vect_exp (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),

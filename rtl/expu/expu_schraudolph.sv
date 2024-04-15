@@ -1,8 +1,9 @@
+import sfm_pkg::*;
 import fpnew_pkg::*;
 
 module expu_schraudolph #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT        = fpnew_pkg::FP16ALT    ,
-    parameter int unsigned              A_FRACTION      = 14                    ,
+    parameter int unsigned              A_FRACTION      = EXPU_A_FRACTION       ,
     parameter logic                     ENABLE_ROUNDING = 1                     ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
