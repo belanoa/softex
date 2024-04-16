@@ -44,6 +44,30 @@ module sfm_fp_vect_addmul #(
     output  TAG_TYPE                                    mul_tag_o       
 );
 
+    /*  A single FMA is used to compute both "add_vect_i [i] + add_scal_i" and  "mul_vect_i [i] * mul_scal_i".
+     *  The user can select the operation to perform by changing the value of "operation_i".
+     *  Note that the output channel is selected solely on the basis of the output operation ("o_operations [0]").
+     *
+     *      add_vect_i    mul_vect_i        
+     *            ||        ||
+     *        ADD ||        || MUL
+     *          __\/________\/__
+     *          \______________/
+     *                 ||            
+     *                 \/            
+     *            +----------+       /|  ADD
+     *            |          |      | |<====== add_scal_i
+     *            |   FMA    |<=====| |  
+     *            |          |      | |<====== mul_scal_i
+     *            +----------+       \|  MUL
+     *                 ||
+     *          _______\/_______
+     *          \______________/
+     *         ADD ||      || MUL
+     *             \/      \/
+     *        add_res_o  mul_res_o
+     */
+
     localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = sfm_pkg::sfm_to_cvfpu(REG_POS);
 
     logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  fma_res;

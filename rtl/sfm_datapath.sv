@@ -109,6 +109,10 @@ module sfm_datapath #(
 
     assign flags_o.datapath_busy = |{addmul_o_busy, exp_o_busy, sum_o_busy, ~add_fifo_o_flgs.empty};
 
+    // During the normalisation step "i_addmul_time_mux" is used to both
+    // substract the maximum value to the input and to normalise the 
+    // exponentiated score
+
     assign fma_arb_cnt_enable = ctrl_i.dividing & addmul_ready [fma_arb_cnt];
     always_ff @(posedge clk_i or negedge rst_ni) begin : fma_arbitration_counter
         if (~rst_ni) begin
@@ -354,13 +358,12 @@ module sfm_datapath #(
 
     assign acc_i_add = ctrl_i.load_denominator ? ctrl_i.denominator : sum_res;
 
-    sfm_accumulator #(  
+    sfm_acc_top #(  
         .ACC_FPFORMAT       (   ACC_FPFORMAT        ),
         .ADD_FPFORMAT       (   ACC_FPFORMAT        ),
         .MUL_FPFORMAT       (   IN_FPFORMAT         ),
         .FACTOR_FIFO_DEPTH  (   FACTOR_FIFO_DEPTH   ),
         .ADDEND_FIFO_DEPTH  (   ADDEND_FIFO_DEPTH   ),
-        .N_FACT_FIFO        (   1                   ),
         .NUM_REGS_FMA       (   FMA_REGS            ),
         .ROUND_MODE         (   fpnew_pkg::RNE      )
     ) i_denominator_accumulator (

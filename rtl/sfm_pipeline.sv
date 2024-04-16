@@ -29,6 +29,35 @@ module sfm_pipeline #(
     output  logic [NUM_OUT - 1 : 0]                     o_strb_o    
 );
 
+    /*  This module is intended to be used to pipeline 
+     *  a combinatorial block.
+     *
+     *          i_data_i
+     *             ||
+     *             \/       
+     *  +-----------------------+
+     *  |   i_data_registers    |
+     *  +-----------------------+
+     *             ||
+     *             \/
+     *          i_data_o
+     *             ||
+     *             \/
+     *        COMBINATORIAL
+     *           LOGIC
+     *             ||
+     *             \/
+     *          o_data_i
+     *             ||
+     *             \/
+     *  +-----------------------+
+     *  |   o_data_registers    |
+     *  +-----------------------+
+     *             ||
+     *             \/
+     *          o_data_o
+     */
+
     logic [NUM_REGS_I : 0] [NUM_IN - 1 : 0] [WIDTH_IN - 1 : 0]    i_data;
     logic [NUM_REGS_O : 0] [NUM_OUT - 1 : 0] [WIDTH_OUT - 1 : 0]  o_data;
 

@@ -173,7 +173,7 @@ module sfm_accumulator #(
 
     assign flags_o.denominator  = {{(32 - ACC_WIDTH){1'b0}}, den_q};
 
-    assign inv_appr_enable  = inv_appr_valid | (fma_o_valid & iteration_cnt_enable); //| (fma_o_valid & iteration_cnt [0]);
+    assign inv_appr_enable  = inv_appr_valid | (fma_o_valid & iteration_cnt_enable);
     assign inv_appr_d       = inv_appr_valid ? inv_appr : fma_res;
     always_ff @(posedge clk_i or negedge rst_ni) begin : inverse_approximation_register
         if (~rst_ni) begin
@@ -260,7 +260,6 @@ module sfm_accumulator #(
         end
     end
 
-    //assign iteration_cnt_enable = inverting & fma_o_valid;
     always_ff @(posedge clk_i or negedge rst_ni) begin : iteration_counter
         if (~rst_ni) begin
             iteration_cnt <= '0;

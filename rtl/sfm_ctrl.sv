@@ -94,6 +94,8 @@ module sfm_ctrl #(
 
     assign state_slot_d.valid       = '1;
     assign state_slot_d.max         = datapath_flgs_i.max;
+
+    //As we never need both the denominator and its reciprocal, state_slot.denominator is used for both
     assign state_slot_d.denominator = (acc_only & ~last) ? datapath_flgs_i.accumulator_flags.denominator : datapath_flgs_i.accumulator_flags.reciprocal;
 
     for (genvar i = 0; i < N_STATE_SLOTS; i++) begin
@@ -177,6 +179,8 @@ module sfm_ctrl #(
     end
 
     assign length_lftovr    = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH / 8) - 1 : 0];
+
+    // If the total length of the vector is not multiple of the data width we need to increse the number of loads / stores by one
     assign lftovr_inc       = length_lftovr != '0;
 
     assign in_stream_ctrl_o.req_start                       = in_start;
@@ -200,6 +204,7 @@ module sfm_ctrl #(
     assign out_stream_ctrl_o.addressgen_ctrl.dim_enable_1h  = '0;
 
     assign datapath_ctrl_o.accumulator_ctrl.acc_finished    = dp_acc_finished;
+    assign datapath_ctrl_o.accumulator_ctrl.acc_only        = acc_only & ~last;
     assign datapath_ctrl_o.dividing                         = dp_dividing;
     assign datapath_ctrl_o.disable_max                      = dp_disable_max;
     assign datapath_ctrl_o.clear_regs                       = clear_regs;
@@ -215,7 +220,9 @@ module sfm_ctrl #(
 
     assign ctrl_slave.done                                  = slave_done;
     assign ctrl_slave.evt                                   = '0;
-    assign ctrl_slave.ext_flags                             = {slot_free, {(32 - $clog2(N_STATE_SLOTS) - 1){1'b0}}, free_slot_ptr}; //The extension is used to lock a state slot
+
+    //The extension is used to acquire a state slot
+    assign ctrl_slave.ext_flags                             = {slot_free, {(32 - $clog2(N_STATE_SLOTS) - 1){1'b0}}, free_slot_ptr};
 
     always_comb begin : ctrl_sfm
         next_state          = current_state;

@@ -6,8 +6,7 @@ module sfm_acc_datapath #(
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT                ,
     parameter int unsigned              NUM_REGS_FMA        = 3                                 , 
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                                 ,
-    parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,
-    parameter int unsigned              N_FACT_FIFO         = 1                                 ,  
+    parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,  
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,
 
     localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT),
