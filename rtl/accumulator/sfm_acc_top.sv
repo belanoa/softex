@@ -1,3 +1,10 @@
+// Copyright 2023 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Andrea Belano <andrea.belano@studio.unibo.it>
+//
+
 module sfm_acc_top #(
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = fpnew_pkg::FP32                   ,
     parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = fpnew_pkg::FP32                   ,
@@ -5,8 +12,7 @@ module sfm_acc_top #(
     parameter int unsigned              N_INV_ITERS         = 2                                 ,
     parameter int unsigned              NUM_REGS_FMA        = 3                                 , 
     parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                                 ,
-    parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,
-    parameter int unsigned              N_FACT_FIFO         = 1                                 ,  
+    parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,  
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,
 
     localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT),
@@ -49,7 +55,6 @@ module sfm_acc_top #(
         .NUM_REGS_FMA       (   NUM_REGS_FMA        ),
         .FACTOR_FIFO_DEPTH  (   FACTOR_FIFO_DEPTH   ),
         .ADDEND_FIFO_DEPTH  (   ADDEND_FIFO_DEPTH   ),
-        .N_FACT_FIFO        (   N_FACT_FIFO         ),
         .ROUND_MODE         (   ROUND_MODE          )
     ) i_acc_datapath (
         .clk_i          (   clk_i           ),

@@ -1,3 +1,10 @@
+// Copyright 2023 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Andrea Belano <andrea.belano@studio.unibo.it>
+//
+
 `include "../sfm_macros.svh"
 
 module sfm_acc_datapath #(
@@ -53,7 +60,6 @@ module sfm_acc_datapath #(
     logic [ACC_WIDTH - 1 : 0]   inv_appr,
                                 inv_appr_d,
                                 inv_appr_q;
-
 
     //Addend FIFO Signals
     addend_t    addend,
@@ -186,7 +192,7 @@ module sfm_acc_datapath #(
         .DATA_WIDTH     (                       ),
         .DEPTH          (   ADDEND_FIFO_DEPTH   ),
         .dtype          (   addend_t            )    
-    ) addend_fifo (
+    ) i_addend_fifo (
         .clk_i      (   clk_i           ),
         .rst_ni     (   rst_ni          ),
         .flush_i    (   clear_i         ),
@@ -214,7 +220,7 @@ module sfm_acc_datapath #(
         .DATA_WIDTH     (                       ),
         .DEPTH          (   FACTOR_FIFO_DEPTH   ),
         .dtype          (   factor_t            )    
-    ) factor_fifo_i (
+    ) i_factor_fifo (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
         .flush_i    (   clear_i             ),
@@ -232,7 +238,7 @@ module sfm_acc_datapath #(
     assign factor_uses_cnt_enable = factor_match;
 
     assign factor_push = mul_valid_i & ready_o;
-    assign factor_pop = (factor_uses_cnt  == (factor.uses) - 1) & factor_uses_cnt_enable;
+    assign factor_pop = (factor_uses_cnt  == (factor.uses - 1)) & factor_uses_cnt_enable;
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : factor_uses_counter
         if (~rst_ni) begin
@@ -241,7 +247,7 @@ module sfm_acc_datapath #(
             if (clear_i) begin
                 factor_uses_cnt <= '0;
             end else if (factor_uses_cnt_enable) begin
-                if (factor_uses_cnt  == (factor.uses) - 1) begin
+                if (factor_uses_cnt  == (factor.uses - 1)) begin
                     factor_uses_cnt  <= '0;
                 end else begin
                     factor_uses_cnt <= factor_uses_cnt + 1;
@@ -359,7 +365,7 @@ module sfm_acc_datapath #(
         .PipeConfig     (   fpnew_pkg::DISTRIBUTED                  ),
         .TagType        (   logic [$clog2(NUM_REGS_FMA) - 1 : 0]    ),
         .AuxType        (   logic                                   )
-    ) accumulator_fma (
+    ) i_accumulator_fma (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
         .operands_i         (   fma_operands    ),
@@ -389,7 +395,7 @@ module sfm_acc_datapath #(
         .REG_POS        (   sfm_pkg::BEFORE ),
         .NUM_REGS       (   2               ),
         .N_MANT_BITS    (   7               )
-    ) denominator_inverter (
+    ) i_denominator_inverter (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
         .clear_i    (   clear_i             ),

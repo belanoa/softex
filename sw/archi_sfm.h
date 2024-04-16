@@ -1,3 +1,10 @@
+// Copyright 2023 ETH Zurich and University of Bologna.
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Andrea Belano <andrea.belano@studio.unibo.it>
+//
+
 #ifndef __ARCHI_SFM__
 #define __ARCHI_SFM__
 

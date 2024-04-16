@@ -1,3 +1,10 @@
+// Copyright 2023 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Andrea Belano <andrea.belano@studio.unibo.it>
+//
+
 `define SIGN(FPFORMAT)      fpnew_pkg::fp_width(FPFORMAT) - 1
 `define EXPONENT(FPFORMAT)  fpnew_pkg::fp_width(FPFORMAT) - 2 -: fpnew_pkg::exp_bits(FPFORMAT)
 `define MANTISSA(FPFORMAT)  fpnew_pkg::man_bits(FPFORMAT) - 1 : 0

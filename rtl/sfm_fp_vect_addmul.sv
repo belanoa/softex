@@ -1,3 +1,10 @@
+// Copyright 2023 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Andrea Belano <andrea.belano@studio.unibo.it>
+//
+
 module sfm_fp_vect_addmul #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
     parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,

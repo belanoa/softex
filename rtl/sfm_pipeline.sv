@@ -1,3 +1,10 @@
+// Copyright 2023 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Andrea Belano <andrea.belano@studio.unibo.it>
+//
+
 module sfm_pipeline #(
     parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
     parameter int unsigned              NUM_REGS                = 0                     ,

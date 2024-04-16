@@ -1,3 +1,10 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Andrea Belano <andrea.belano@studio.unibo.it>
+#
+
 import numpy as np
 import torch
 import argparse
@@ -20,7 +27,7 @@ match fpformat:
         width = 2
 
 scores = torch.empty(length, dtype = dtype).uniform_(0, range)
-#scores = torch.arange(0, length, 1, dtype = dtype)
+#scores = torch.arange(0, length, 128, dtype = dtype)
 scores_64 = scores.double()
 
 baseline = (scores_64 - scores_64.max()).exp() / (scores_64 - scores_64.max()).exp().sum()
