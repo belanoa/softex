@@ -26,9 +26,6 @@
 #define SFM_OUT_ADDR        SFM_REG_OFFS + 0x04
 #define SFM_TOT_LEN         SFM_REG_OFFS + 0x08
 #define SFM_COMMANDS        SFM_REG_OFFS + 0x0C
-#define SFM_MAX_IN          SFM_REG_OFFS + 0x10
-#define SFM_DENOMINATOR_IN  SFM_REG_OFFS + 0x14
-#define SFM_RECIPROCAL_IN   SFM_REG_OFFS + 0x18
 
 #define SFM_REQ_SLOT    0x118
 

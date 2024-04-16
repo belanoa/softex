@@ -1,0 +1,55 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Andrea Belano <andrea.belano@studio.unibo.it>
+#
+
+sfm_basic_tests:
+  basic_aligned_no_stall:
+    path: .
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.00 TEST=sfm_basic.c
+
+  basic_aligned_stall:
+    path: .
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=sfm_basic.c
+
+  split_aligned_stall:
+    path: .
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=sfm_split.c
+
+  partial_aligned_stall:
+    path: .
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=sfm.c
+
+  basic_misaligned_stall:
+    path: .
+    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=sfm_basic.c
+
+  split_misaligned_stall:
+    path: .
+    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=sfm_split.c
+
+  partial_misaligned_stall:
+    path: .
+    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=sfm.c
+
+  basic_misaligned_monotonic_stall:
+    path: .
+    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=sfm_basic.c
+
+  split_misaligned_monotonic_stall:
+    path: .
+    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=sfm_split.c
+
+  partial_misaligned_monotonic_stall:
+    path: .
+    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=sfm.c
+
+  basic_aligned_stall_long:
+    path: .
+    command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.01 TEST=sfm_basic.c
+
+  basic_aligned_high_stall_long:
+    path: .
+    command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.3 TEST=sfm_basic.c

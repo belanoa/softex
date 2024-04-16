@@ -14,20 +14,27 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--fpformat"    ,   type = str,     default = "BFLOAT16"    )
 parser.add_argument("--length"      ,   type = int,     default = 1024          )
 parser.add_argument("--range"       ,   type = int,     default = 128           )
+parser.add_argument("--monotonic"   ,   type = int,     default = 0             )
+parser.add_argument("--step"        ,   type = int,     default = 1             )
 
 args = parser.parse_args()
 
 fpformat    = args.fpformat
 length      = args.length
 range       = args.range
+monotonic   = args.monotonic
+step        = args.step
 
 match fpformat:
     case "BFLOAT16":
         dtype = torch.bfloat16
         width = 2
 
-scores = torch.empty(length, dtype = dtype).uniform_(0, range)
-#scores = torch.arange(0, length, 128, dtype = dtype)
+if monotonic == 0:
+    scores = torch.empty(length, dtype = dtype).uniform_(0, range)
+else:
+    scores = torch.arange(0, length, step, dtype = dtype)
+
 scores_64 = scores.double()
 
 baseline = (scores_64 - scores_64.max()).exp() / (scores_64 - scores_64.max()).exp().sum()

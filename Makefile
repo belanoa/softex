@@ -18,8 +18,9 @@ XLEN        ?= 32
 XTEN        ?= imc
 
 BENDER		?= $(BENDER_DIR)/$(BENDER_NAME)
+TEST		?= sfm.c
 
-TEST_SRCS 	:= $(SW)/sfm.c
+TEST_SRCS 	:= $(SW)/$(TEST)
 
 compile_script 	?= scripts/compile.tcl
 compile_flag  	?= -suppress 2583 -suppress 13314 -suppress 8386
@@ -66,9 +67,6 @@ DUMP=$(BUILD_DIR)/verif.dump
 STIM_INSTR=$(mkfile_path)/stim_instr.txt
 STIM_DATA=$(mkfile_path)/stim_data.txt
 
-#STIM_INSTR=$(VSIM_DIR)/stim_instr.txt
-#STIM_DATA=$(VSIM_DIR)/stim_data.txt
-
 # Build implicit rules
 $(STIM_INSTR) $(STIM_DATA): $(BIN)
 	objcopy --srec-len 1 --output-target=srec $(BIN) $(BIN).s19
@@ -91,7 +89,7 @@ $(BUILD_DIR):
 sw-build: $(STIM_INSTR) $(STIM_DATA) dis
 
 sw-clean:
-	rm $(BUILD_DIR)/verif.* $(BUILD_DIR)/crt0.*
+	rm $(BUILD_DIR)/*.o
 
 sw-all: sw-clean sw-build 
 
@@ -101,6 +99,8 @@ dis:
 fpformat	?= BFLOAT16
 length		?= 1024
 range 		?= 128
+monotonic	?= 0
+step		?= 1
 
 # Run the simulation
 run:
@@ -154,4 +154,4 @@ golden-clean:
 
 golden: golden-clean
 	mkdir -p sw/golden-model/
-	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range)
+	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range) --monotonic $(monotonic) --step $(step)
