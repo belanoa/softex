@@ -36,7 +36,7 @@ sim_targs += -t sfm_sim
 
 INI_PATH  = $(mkfile_path)/modelsim.ini
 WORK_PATH = $(BUILD_DIR)
-WAVES	  = scripts/wave.do
+WAVES	  = scripts/wave.tcl
 
 tb := sfm_tb
 
