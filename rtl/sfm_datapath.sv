@@ -5,6 +5,8 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+`include "sfm_macros.svh"
+
 import hwpe_stream_package::*;
 
 module sfm_datapath #(
@@ -17,7 +19,7 @@ module sfm_datapath #(
     parameter int unsigned              MAX_REGS            = 1                             ,
     parameter int unsigned              EXP_REGS            = 2                             ,
     parameter int unsigned              FMA_REGS            = 3                             ,
-    parameter int unsigned              FACTOR_FIFO_DEPTH   = 5                             ,
+    parameter int unsigned              FACTOR_FIFO_DEPTH   = 3                             ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = FACTOR_FIFO_DEPTH * FMA_REGS  ,
 
     localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT)
@@ -49,7 +51,8 @@ module sfm_datapath #(
 
     logic [ACC_WIDTH - 1 : 0]   sum_res,
                                 acc_i_add,
-                                inv_pre_cast;
+                                inv_pre_cast,
+                                inv_cast_res;
 
     logic   fma_arb_cnt,
             fma_arb_cnt_enable;
@@ -135,7 +138,7 @@ module sfm_datapath #(
         end
     end
 
-    assign flags_o.max  = {{(32 - IN_WIDTH){1'b0}}, new_max};
+    assign flags_o.max  = new_max;
 
     sfm_fp_glob_minmax #(
         .FPFORMAT   (   IN_FPFORMAT     ),
@@ -286,7 +289,7 @@ module sfm_datapath #(
         .mul_valid_i        (   add_fifo_q.valid                                ),
         .mul_scal_valid_i   (   cast_valid                                      ),
         .mul_ready_i        (   ready_i                                         ),
-        .mul_strb_i         (   add_fifo_q.strb                                 ),
+        .mul_strb_i         (   add_fifo_q.strb [VECT_WIDTH - 1 : 0]            ),
         .mul_vect_i         (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
         .mul_scal_i         (   inv_cast                                        ),
         .mul_valid_o        (   mul_valid                                       ),
@@ -321,7 +324,7 @@ module sfm_datapath #(
 
     assign add_fifo_d.valid = exp_valid;
     assign add_fifo_d.data  = {expu_o_tag, exp_vect};
-    assign add_fifo_d.strb  = {(IN_WIDTH / 8){exp_strb}};
+    assign add_fifo_d.strb  = {{(IN_WIDTH / 8 * VECT_WIDTH - VECT_WIDTH){1'b0}}, exp_strb};
 
     hwpe_stream_fifo #(
         .DATA_WIDTH (   IN_WIDTH * VECT_WIDTH + 1   ),
@@ -352,7 +355,7 @@ module sfm_datapath #(
         .valid_i    (   add_fifo_q.valid & ~ctrl_i.dividing             ),
         .ready_i    (   acc_ready                                       ),
         .mode_i     (   fpnew_pkg::RNE                                  ),
-        .strb_i     (   add_fifo_q.strb                                 ),
+        .strb_i     (   add_fifo_q.strb [VECT_WIDTH - 1 : 0]            ),
         .vect_i     (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
         .tag_i      (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH]         ),
         .res_o      (   sum_res                                         ),
@@ -389,38 +392,40 @@ module sfm_datapath #(
     );
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   '1                  ),
-        .IntFmtConfig   (   '0                  ),
-        .NumPipeRegs    (   0                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE   ),
-        .TagType        (   logic               ),
-        .AuxType        (   logic               )
+        .FpFmtConfig    (   `FMT_TO_CONF(ACC_FPFORMAT, IN_FPFORMAT) ),
+        .IntFmtConfig   (   '0                                      ),
+        .NumPipeRegs    (   0                                       ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                       ),
+        .TagType        (   logic                                   ),
+        .AuxType        (   logic                                   )
     ) i_inv_cast (
-        .clk_i              (   clk_i                   ),
-        .rst_ni             (   rst_ni                  ),
-        .operands_i         (   inv_pre_cast            ),
-        .is_boxed_i         (   '1                      ),
-        .rnd_mode_i         (   fpnew_pkg::RNE          ),
-        .op_i               (   '0                      ),
-        .op_mod_i           (   '0                      ),
-        .src_fmt_i          (   ACC_FPFORMAT            ),
-        .dst_fmt_i          (   IN_FPFORMAT             ),
-        .int_fmt_i          (   '0                      ),
-        .tag_i              (   '0                      ),
-        .mask_i             (   '0                      ),
-        .aux_i              (   '0                      ),
-        .in_valid_i         (   acc_valid               ),
-        .in_ready_o         (                           ),
-        .flush_i            (   '0                      ),
-        .result_o           (   inv_cast                ),
-        .status_o           (                           ),
-        .extension_bit_o    (                           ),
-        .tag_o              (                           ),
-        .mask_o             (                           ),
-        .aux_o              (                           ),
-        .out_valid_o        (   cast_valid              ),
-        .out_ready_i        (   '1                      ),
-        .busy_o             (                           )
+        .clk_i              (   clk_i           ),
+        .rst_ni             (   rst_ni          ),
+        .operands_i         (   inv_pre_cast    ),
+        .is_boxed_i         (   '1              ),
+        .rnd_mode_i         (   fpnew_pkg::RNE  ),
+        .op_i               (   '0              ),
+        .op_mod_i           (   '0              ),
+        .src_fmt_i          (   ACC_FPFORMAT    ),
+        .dst_fmt_i          (   IN_FPFORMAT     ),
+        .int_fmt_i          (   '0              ),
+        .tag_i              (   '0              ),
+        .mask_i             (   '0              ),
+        .aux_i              (   '0              ),
+        .in_valid_i         (   acc_valid       ),
+        .in_ready_o         (                   ),
+        .flush_i            (   '0              ),
+        .result_o           (   inv_cast_res    ),
+        .status_o           (                   ),
+        .extension_bit_o    (                   ),
+        .tag_o              (                   ),
+        .mask_o             (                   ),
+        .aux_o              (                   ),
+        .out_valid_o        (   cast_valid      ),
+        .out_ready_i        (   '1              ),
+        .busy_o             (                   )
     );
+
+    assign inv_cast = inv_cast_res;
 
 endmodule

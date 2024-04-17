@@ -82,7 +82,7 @@ module sfm_fp_glob_minmax #(
         .REG_POS    (   REG_POS     ),
         .NUM_REGS   (   NUM_REGS    ),
         .VECT_WIDTH (   VECT_WIDTH  )                                     
-    ) minmax_reduction (
+    ) i_minmax_reduction (
         .clk_i      (   clk_i           ),
         .rst_ni     (   rst_ni          ),
         .clear_i    (   clear_i         ),

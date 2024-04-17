@@ -5,6 +5,8 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+`include "sfm_macros.svh"
+
 import sfm_pkg::*;
 import fpnew_pkg::*;
 
@@ -37,43 +39,45 @@ module sfm_fp_red_sum #(
     output  logic                                           busy_o      
 );
 
+    localparam int unsigned ZEROPAD = ACC_WIDTH - IN_WIDTH;
+
     logic [VECT_WIDTH - 1 : 0] [ACC_WIDTH - 1 : 0]  cast_vect;
 
 
-    for (genvar i = 0; i < VECT_WIDTH; i++) begin
+    for (genvar i = 0; i < VECT_WIDTH; i++) begin : input_cast
         fpnew_cast_multi #(
-            .FpFmtConfig    (   '1                  ),
-            .IntFmtConfig   (   '0                  ),
-            .NumPipeRegs    (   0                   ),
-            .PipeConfig     (   fpnew_pkg::BEFORE   ),
-            .TagType        (   logic               ),
-            .AuxType        (   logic               )
+            .FpFmtConfig    (   `FMT_TO_CONF(IN_FPFORMAT, ACC_FPFORMAT) ),
+            .IntFmtConfig   (   '0                                      ),
+            .NumPipeRegs    (   0                                       ),
+            .PipeConfig     (   fpnew_pkg::BEFORE                       ),
+            .TagType        (   logic                                   ),
+            .AuxType        (   logic                                   )
         ) i_vect_cast (
-            .clk_i              (   clk_i           ),
-            .rst_ni             (   rst_ni          ),
-            .operands_i         (   vect_i [i]      ),
-            .is_boxed_i         (   '1              ),
-            .rnd_mode_i         (   fpnew_pkg::RNE  ),
-            .op_i               (   '0              ),
-            .op_mod_i           (   '0              ),
-            .src_fmt_i          (   IN_FPFORMAT     ),
-            .dst_fmt_i          (   ACC_FPFORMAT    ),
-            .int_fmt_i          (   '0              ),
-            .tag_i              (   '0              ),
-            .mask_i             (   '0              ),
-            .aux_i              (   '0              ),
-            .in_valid_i         (   '1              ),
-            .in_ready_o         (                   ),
-            .flush_i            (   '0              ),
-            .result_o           (   cast_vect [i]   ),
-            .status_o           (                   ),
-            .extension_bit_o    (                   ),
-            .tag_o              (                   ),
-            .mask_o             (                   ),
-            .aux_o              (                   ),
-            .out_valid_o        (                   ),
-            .out_ready_i        (   '1              ),
-            .busy_o             (                   )
+            .clk_i              (   clk_i                           ),
+            .rst_ni             (   rst_ni                          ),
+            .operands_i         (   {{ZEROPAD{1'b0}}, vect_i [i]}   ),
+            .is_boxed_i         (   '1                              ),
+            .rnd_mode_i         (   fpnew_pkg::RNE                  ),
+            .op_i               (   '0                              ),
+            .op_mod_i           (   '0                              ),
+            .src_fmt_i          (   IN_FPFORMAT                     ),
+            .dst_fmt_i          (   ACC_FPFORMAT                    ),
+            .int_fmt_i          (   '0                              ),
+            .tag_i              (   '0                              ),
+            .mask_i             (   '0                              ),
+            .aux_i              (   '0                              ),
+            .in_valid_i         (   '1                              ),
+            .in_ready_o         (                                   ),
+            .flush_i            (   '0                              ),
+            .result_o           (   cast_vect [i]                   ),
+            .status_o           (                                   ),
+            .extension_bit_o    (                                   ),
+            .tag_o              (                                   ),
+            .mask_o             (                                   ),
+            .aux_o              (                                   ),
+            .out_valid_o        (                                   ),
+            .out_ready_i        (   '1                              ),
+            .busy_o             (                                   )
         );
     end
 

@@ -388,7 +388,7 @@ module sfm_tb;
             if (difference > error_threshold) begin
                 errors += 1;
 
-                $display("[TB] - Misamtch!    Expexted: 0x%h\tWas: 0x%h\tPosition: %d\tDifference: %d", n, data, pos, difference);
+                $error("[TB] - Misamtch!    Expexted: 0x%h\tWas: 0x%h\tPosition: %d\tDifference: %d", n, data, pos, difference);
             end
 
             pos += 1;

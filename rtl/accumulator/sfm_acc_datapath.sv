@@ -34,6 +34,9 @@ module sfm_acc_datapath #(
     output  logic [ACC_WIDTH - 1 : 0]       acc_o    
 );
 
+    localparam int unsigned ZEROPAD_MUL = ACC_WIDTH - MUL_WIDTH;
+    localparam int unsigned ZEROPAD_ADD = ACC_WIDTH - ADD_WIDTH;
+
     typedef struct packed {
         logic [MUL_WIDTH - 1 : 0]               value;
         logic [$clog2(NUM_REGS_FMA) - 1 : 0]    tag;
@@ -259,38 +262,38 @@ module sfm_acc_datapath #(
     end
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   '1                  ),
-        .IntFmtConfig   (   '0                  ),
-        .NumPipeRegs    (   0                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE   ),
-        .TagType        (   logic               ),
-        .AuxType        (   logic               )
+        .FpFmtConfig    (   `FMT_TO_CONF(MUL_FPFORMAT, ACC_FPFORMAT)    ),
+        .IntFmtConfig   (   '0                                          ),
+        .NumPipeRegs    (   0                                           ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                           ),
+        .TagType        (   logic                                       ),
+        .AuxType        (   logic                                       )
     ) i_factor_cast (
-        .clk_i              (   clk_i           ),
-        .rst_ni             (   rst_ni          ),
-        .operands_i         (   factor.value ),
-        .is_boxed_i         (   '1              ),
-        .rnd_mode_i         (   fpnew_pkg::RNE  ),
-        .op_i               (   '0              ),
-        .op_mod_i           (   '0              ),
-        .src_fmt_i          (   MUL_FPFORMAT    ),
-        .dst_fmt_i          (   ACC_FPFORMAT    ),
-        .int_fmt_i          (   '0              ),
-        .tag_i              (   '0              ),
-        .mask_i             (   '0              ),
-        .aux_i              (   '0              ),
-        .in_valid_i         (   '1              ),
-        .in_ready_o         (                   ),
-        .flush_i            (   '0              ),
-        .result_o           (   fma_factor      ),
-        .status_o           (                   ),
-        .extension_bit_o    (                   ),
-        .tag_o              (                   ),
-        .mask_o             (                   ),
-        .aux_o              (                   ),
-        .out_valid_o        (                   ),
-        .out_ready_i        (   '1              ),
-        .busy_o             (                   )
+        .clk_i              (   clk_i                               ),
+        .rst_ni             (   rst_ni                              ),
+        .operands_i         (   {{ZEROPAD_MUL{1'b0}}, factor.value} ),
+        .is_boxed_i         (   '1                                  ),
+        .rnd_mode_i         (   fpnew_pkg::RNE                      ),
+        .op_i               (   '0                                  ),
+        .op_mod_i           (   '0                                  ),
+        .src_fmt_i          (   MUL_FPFORMAT                        ),
+        .dst_fmt_i          (   ACC_FPFORMAT                        ),
+        .int_fmt_i          (   '0                                  ),
+        .tag_i              (   '0                                  ),
+        .mask_i             (   '0                                  ),
+        .aux_i              (   '0                                  ),
+        .in_valid_i         (   '1                                  ),
+        .in_ready_o         (                                       ),
+        .flush_i            (   '0                                  ),
+        .result_o           (   fma_factor                          ),
+        .status_o           (                                       ),
+        .extension_bit_o    (                                       ),
+        .tag_o              (                                       ),
+        .mask_o             (                                       ),
+        .aux_o              (                                       ),
+        .out_valid_o        (                                       ),
+        .out_ready_i        (   '1                                  ),
+        .busy_o             (                                       )
     );
 
     always_comb begin : fma_op_selection
@@ -314,38 +317,38 @@ module sfm_acc_datapath #(
     assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   '1                  ),
-        .IntFmtConfig   (   '0                  ),
-        .NumPipeRegs    (   0                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE   ),
-        .TagType        (   logic               ),
-        .AuxType        (   logic               )
+        .FpFmtConfig    (   `FMT_TO_CONF(ADD_FPFORMAT, ACC_FPFORMAT)    ),
+        .IntFmtConfig   (   '0                                          ),
+        .NumPipeRegs    (   0                                           ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                           ),
+        .TagType        (   logic                                       ),
+        .AuxType        (   logic                                       )
     ) i_addend_cast (
-        .clk_i              (   clk_i               ),
-        .rst_ni             (   rst_ni              ),
-        .operands_i         (   fma_addend_pre_cast ),
-        .is_boxed_i         (   '1                  ),
-        .rnd_mode_i         (   fpnew_pkg::RNE      ),
-        .op_i               (   '0                  ),
-        .op_mod_i           (   '0                  ),
-        .src_fmt_i          (   ADD_FPFORMAT        ),
-        .dst_fmt_i          (   ACC_FPFORMAT        ),
-        .int_fmt_i          (   '0                  ),
-        .tag_i              (   '0                  ),
-        .mask_i             (   '0                  ),
-        .aux_i              (   '0                  ),
-        .in_valid_i         (   '1                  ),
-        .in_ready_o         (                       ),
-        .flush_i            (   '0                  ),
-        .result_o           (   fma_addend          ),
-        .status_o           (                       ),
-        .extension_bit_o    (                       ),
-        .tag_o              (                       ),
-        .mask_o             (                       ),
-        .aux_o              (                       ),
-        .out_valid_o        (                       ),
-        .out_ready_i        (   '1                  ),
-        .busy_o             (                       )
+        .clk_i              (   clk_i                                       ),
+        .rst_ni             (   rst_ni                                      ),
+        .operands_i         (   {{ZEROPAD_ADD{1'b0}}, fma_addend_pre_cast}  ),
+        .is_boxed_i         (   '1                                          ),
+        .rnd_mode_i         (   fpnew_pkg::RNE                              ),
+        .op_i               (   '0                                          ),
+        .op_mod_i           (   '0                                          ),
+        .src_fmt_i          (   ADD_FPFORMAT                                ),
+        .dst_fmt_i          (   ACC_FPFORMAT                                ),
+        .int_fmt_i          (   '0                                          ),
+        .tag_i              (   '0                                          ),
+        .mask_i             (   '0                                          ),
+        .aux_i              (   '0                                          ),
+        .in_valid_i         (   '1                                          ),
+        .in_ready_o         (                                               ),
+        .flush_i            (   '0                                          ),
+        .result_o           (   fma_addend                                  ),
+        .status_o           (                                               ),
+        .extension_bit_o    (                                               ),
+        .tag_o              (                                               ),
+        .mask_o             (                                               ),
+        .aux_o              (                                               ),
+        .out_valid_o        (                                               ),
+        .out_ready_i        (   '1                                          ),
+        .busy_o             (                                               )
     );
 
     always_comb begin
@@ -414,8 +417,8 @@ module sfm_acc_datapath #(
     assign flags_o.inv_appr_valid       = inv_appr_valid;
     assign flags_o.last_op_in_flight    = op_in_flight_cnt == 1;
 
-    assign flags_o.denominator  = {{(32 - ACC_WIDTH){1'b0}}, den_q};
-    assign flags_o.reciprocal   = {{(32 - ACC_WIDTH){1'b0}}, inv_appr_q};
+    assign flags_o.denominator  = den_q;
+    assign flags_o.reciprocal   = inv_appr_q;
 
     assign acc_o    = inv_appr_q;
     assign ready_o  = ~(addend_full | factor_full) & ~ctrl_i.disable_ready;

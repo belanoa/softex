@@ -37,6 +37,8 @@ module sfm_accumulator #(
 );
 
     localparam fpnew_pkg::pipe_config_t REG_POS_CVFPU   = fpnew_pkg::BEFORE;
+    localparam int unsigned             ZEROPAD_MUL     = ACC_WIDTH - MUL_WIDTH;
+    localparam int unsigned             ZEROPAD_ADD     = ACC_WIDTH - ADD_WIDTH;
 
     typedef enum logic [3:0] { IDLE, COMPUTING, FINISHING, REDUCTION, INVERSION, INV_MUL, INV_FMA, FINISHED } acc_state_t;
     
@@ -471,38 +473,38 @@ module sfm_accumulator #(
 
     for (genvar i = 0; i < N_FACT_FIFO; i++) begin
         fpnew_cast_multi #(
-            .FpFmtConfig    (   '1                  ),
-            .IntFmtConfig   (   '0                  ),
-            .NumPipeRegs    (   0                   ),
-            .PipeConfig     (   fpnew_pkg::BEFORE   ),
-            .TagType        (   logic               ),
-            .AuxType        (   logic               )
+            .FpFmtConfig    (   `FMT_TO_CONF(MUL_FPFORMAT, ACC_FPFORMAT)    ),
+            .IntFmtConfig   (   '0                                          ),
+            .NumPipeRegs    (   0                                           ),
+            .PipeConfig     (   fpnew_pkg::BEFORE                           ),
+            .TagType        (   logic                                       ),
+            .AuxType        (   logic                                       )
         ) i_factor_cast (
-            .clk_i              (   clk_i           ),
-            .rst_ni             (   rst_ni          ),
-            .operands_i         (   factor[i].value ),
-            .is_boxed_i         (   '1              ),
-            .rnd_mode_i         (   fpnew_pkg::RNE  ),
-            .op_i               (   '0              ),
-            .op_mod_i           (   '0              ),
-            .src_fmt_i          (   MUL_FPFORMAT    ),
-            .dst_fmt_i          (   ACC_FPFORMAT    ),
-            .int_fmt_i          (   '0              ),
-            .tag_i              (   '0              ),
-            .mask_i             (   '0              ),
-            .aux_i              (   '0              ),
-            .in_valid_i         (   '1              ),
-            .in_ready_o         (                   ),
-            .flush_i            (   '0              ),
-            .result_o           (   factor_cast [i] ),
-            .status_o           (                   ),
-            .extension_bit_o    (                   ),
-            .tag_o              (                   ),
-            .mask_o             (                   ),
-            .aux_o              (                   ),
-            .out_valid_o        (                   ),
-            .out_ready_i        (   '1              ),
-            .busy_o             (                   )
+            .clk_i              (   clk_i                                   ),
+            .rst_ni             (   rst_ni                                  ),
+            .operands_i         (   {{ZEROPAD_MUL{1'b0}}, factor[i].value}  ),
+            .is_boxed_i         (   '1                                      ),
+            .rnd_mode_i         (   fpnew_pkg::RNE                          ),
+            .op_i               (   '0                                      ),
+            .op_mod_i           (   '0                                      ),
+            .src_fmt_i          (   MUL_FPFORMAT                            ),
+            .dst_fmt_i          (   ACC_FPFORMAT                            ),
+            .int_fmt_i          (   '0                                      ),
+            .tag_i              (   '0                                      ),
+            .mask_i             (   '0                                      ),
+            .aux_i              (   '0                                      ),
+            .in_valid_i         (   '1                                      ),
+            .in_ready_o         (                                           ),
+            .flush_i            (   '0                                      ),
+            .result_o           (   factor_cast [i]                         ),
+            .status_o           (                                           ),
+            .extension_bit_o    (                                           ),
+            .tag_o              (                                           ),
+            .mask_o             (                                           ),
+            .aux_o              (                                           ),
+            .out_valid_o        (                                           ),
+            .out_ready_i        (   '1                                      ),
+            .busy_o             (                                           )
         );
     end
 
@@ -539,38 +541,38 @@ module sfm_accumulator #(
     assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   '1                  ),
-        .IntFmtConfig   (   '0                  ),
-        .NumPipeRegs    (   0                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE   ),
-        .TagType        (   logic               ),
-        .AuxType        (   logic               )
+        .FpFmtConfig    (   `FMT_TO_CONF(ADD_FPFORMAT, ACC_FPFORMAT)    ),
+        .IntFmtConfig   (   '0                                          ),
+        .NumPipeRegs    (   0                                           ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                           ),
+        .TagType        (   logic                                       ),
+        .AuxType        (   logic                                       )
     ) i_addend_cast (
-        .clk_i              (   clk_i               ),
-        .rst_ni             (   rst_ni              ),
-        .operands_i         (   fma_addend_pre_cast ),
-        .is_boxed_i         (   '1                  ),
-        .rnd_mode_i         (   fpnew_pkg::RNE      ),
-        .op_i               (   '0                  ),
-        .op_mod_i           (   '0                  ),
-        .src_fmt_i          (   ADD_FPFORMAT        ),
-        .dst_fmt_i          (   ACC_FPFORMAT        ),
-        .int_fmt_i          (   '0                  ),
-        .tag_i              (   '0                  ),
-        .mask_i             (   '0                  ),
-        .aux_i              (   '0                  ),
-        .in_valid_i         (   '1                  ),
-        .in_ready_o         (                       ),
-        .flush_i            (   '0                  ),
-        .result_o           (   fma_addend          ),
-        .status_o           (                       ),
-        .extension_bit_o    (                       ),
-        .tag_o              (                       ),
-        .mask_o             (                       ),
-        .aux_o              (                       ),
-        .out_valid_o        (                       ),
-        .out_ready_i        (   '1                  ),
-        .busy_o             (                       )
+        .clk_i              (   clk_i                                       ),
+        .rst_ni             (   rst_ni                                      ),
+        .operands_i         (   {{ZEROPAD_ADD{1'b0}}, fma_addend_pre_cast}  ),
+        .is_boxed_i         (   '1                                          ),
+        .rnd_mode_i         (   fpnew_pkg::RNE                              ),
+        .op_i               (   '0                                          ),
+        .op_mod_i           (   '0                                          ),
+        .src_fmt_i          (   ADD_FPFORMAT                                ),
+        .dst_fmt_i          (   ACC_FPFORMAT                                ),
+        .int_fmt_i          (   '0                                          ),
+        .tag_i              (   '0                                          ),
+        .mask_i             (   '0                                          ),
+        .aux_i              (   '0                                          ),
+        .in_valid_i         (   '1                                          ),
+        .in_ready_o         (                                               ),
+        .flush_i            (   '0                                          ),
+        .result_o           (   fma_addend                                  ),
+        .status_o           (                                               ),
+        .extension_bit_o    (                                               ),
+        .tag_o              (                                               ),
+        .mask_o             (                                               ),
+        .aux_o              (                                               ),
+        .out_valid_o        (                                               ),
+        .out_ready_i        (   '1                                          ),
+        .busy_o             (                                               )
     );
     
     //assign fma_operands = fma_o_valid ? {fma_addend, fma_res, fma_factor} : {fma_addend, addend.value, fma_factor};

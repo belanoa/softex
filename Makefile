@@ -89,7 +89,7 @@ $(BUILD_DIR):
 sw-build: $(STIM_INSTR) $(STIM_DATA) dis
 
 sw-clean:
-	rm $(BUILD_DIR)/*.o
+	rm -f $(BUILD_DIR)/*.o
 
 sw-all: sw-clean sw-build 
 

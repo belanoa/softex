@@ -23,7 +23,8 @@ module sfm_top #(
     hwpe_ctrl_intf_periph.slave             periph  
 );
 
-    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT);
+    localparam int unsigned WIDTH       = fpnew_pkg::fp_width(FPFORMAT);
+    localparam int unsigned ACTUAL_DW   = DATA_WIDTH - 32;
 
     hci_streamer_flags_t        stream_in_flgs;
     hci_streamer_flags_t        stream_out_flgs;
@@ -36,14 +37,14 @@ module sfm_top #(
     hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) in_stream (.clk(clk_i));
     hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) out_stream (.clk(clk_i));
 
-    logic [DATA_WIDTH / WIDTH - 1 : 0]  in_strb,
+    logic [ACTUAL_DW / WIDTH - 1 : 0]   in_strb,
                                         out_strb;
 
     logic   clear;
 
     sfm_ctrl #(
-        .N_CORES    (   N_CORES         ),
-        .DATA_WIDTH (   DATA_WIDTH - 32 )
+        .N_CORES    (   N_CORES     ),
+        .DATA_WIDTH (   ACTUAL_DW   )
     ) i_ctrl (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
@@ -63,7 +64,7 @@ module sfm_top #(
     sfm_datapath #(
         .IN_FPFORMAT        (   FPFORMAT            ),
         .ACC_FPFORMAT       (   fpnew_pkg::FP32     ),
-        .VECT_WIDTH         (   (DATA_WIDTH - 32) / WIDTH  ),
+        .VECT_WIDTH         (   ACTUAL_DW / WIDTH   ),
         .REG_POS            (   ),
         .ADD_REGS           (   ),
         .MUL_REGS           (   ),
@@ -80,7 +81,7 @@ module sfm_top #(
         .ready_i    (   out_stream.ready                        ),
         .ctrl_i     (   datapath_ctrl                           ),
         .strb_i     (   in_strb                                 ),
-        .data_i     (   in_stream.data                          ),
+        .data_i     (   in_stream.data [DATA_WIDTH - 33 : 0]    ),
         .valid_o    (   out_stream.valid                        ),
         .ready_o    (   in_stream.ready                         ),
         .flags_o    (   datapath_flgs                           ),
@@ -93,7 +94,7 @@ module sfm_top #(
     always_comb begin : strb_assignment
         out_stream.strb = '0;
 
-        for (int i = 0; i < DATA_WIDTH / WIDTH; i++) begin
+        for (int i = 0; i < ACTUAL_DW / WIDTH; i++) begin
             in_strb [i]                                         = &in_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)];
             out_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)] = {(WIDTH / 8){out_strb[i]}};
         end

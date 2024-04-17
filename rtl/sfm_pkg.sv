@@ -8,15 +8,11 @@
 import fpnew_pkg::*;
 
 package sfm_pkg;
-    //Register file indexes
-    parameter int unsigned  IN_ADDR     = 0;
-    parameter int unsigned  OUT_ADDR    = 1;
-    parameter int unsigned  TOT_LEN     = 2;
-    parameter int unsigned  COMMANDS    = 3;
+    parameter fpnew_pkg::fp_format_e  FPFORMAT_IN   = fpnew_pkg::FP16ALT;
+    parameter fpnew_pkg::fp_format_e  FPFORMAT_ACC  = fpnew_pkg::FP32;
 
-    parameter int unsigned  CMD_ACC_ONLY    = 0;
-    parameter int unsigned  CMD_DIV_ONLY    = 1;
-    parameter int unsigned  CMD_LAST        = 2;
+    localparam int unsigned WIDTH_IN    = fpnew_pkg::fp_width(FPFORMAT_IN);
+    localparam int unsigned WIDTH_ACC   = fpnew_pkg::fp_width(FPFORMAT_ACC);
 
     //Exponential unit constants
     parameter int unsigned  EXPU_A_FRACTION              = 14;
@@ -31,75 +27,85 @@ package sfm_pkg;
     parameter real          EXPU_GAMMA_1_REAL            = 2.8359375;
     parameter real          EXPU_GAMMA_2_REAL            = 2.16796875;
 
+    //Register file indexes
+    parameter int unsigned  IN_ADDR     = 0;
+    parameter int unsigned  OUT_ADDR    = 1;
+    parameter int unsigned  TOT_LEN     = 2;
+    parameter int unsigned  COMMANDS    = 3;
+
+    parameter int unsigned  CMD_ACC_ONLY    = 0;
+    parameter int unsigned  CMD_DIV_ONLY    = 1;
+    parameter int unsigned  CMD_LAST        = 2;
+
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
     typedef enum logic          { ADD, MUL }                operation_t;
 
     typedef struct packed {
-        logic           reducing;
-        logic           acc_done;
-        logic           inv_done;
+        logic                       reducing;
+        logic                       acc_done;
+        logic                       inv_done;
 
-        logic [31 : 0]  denominator;
-        logic [31 : 0]  reciprocal;
+        logic [WIDTH_ACC - 1 : 0]   denominator;
+        logic [WIDTH_ACC - 1 : 0]   reciprocal;
     } accumulator_flags_t;
 
     typedef struct packed {
-        logic           acc_finished;
-        logic           acc_only;
-        logic           load_reciprocal;
+        logic                       acc_finished;
+        logic                       acc_only;
+        logic                       load_reciprocal;
 
-        logic [31 : 0]  reciprocal;
+        logic [WIDTH_ACC - 1 : 0]   reciprocal;
     } accumulator_ctrl_t;
 
     typedef struct packed {
-        logic               datapath_busy;
+        logic                       datapath_busy;
 
-        logic [31 : 0]      max;
+        logic [WIDTH_IN - 1 : 0]    max;
 
         accumulator_flags_t accumulator_flags;
     } datapath_flags_t;
 
     typedef struct packed {
-        logic               disable_max;
-        logic               dividing;
-        logic               clear_regs;
-        logic               load_max;
-        logic               load_denominator;
+        logic                       disable_max;
+        logic                       dividing;
+        logic                       clear_regs;
+        logic                       load_max;
+        logic                       load_denominator;
 
-        logic [31 : 0]      max;
-        logic [31 : 0]      denominator;
+        logic [WIDTH_IN - 1 : 0]    max;
+        logic [WIDTH_ACC - 1 : 0]   denominator;
 
-        accumulator_ctrl_t  accumulator_ctrl;
+        accumulator_ctrl_t          accumulator_ctrl;
     } datapath_ctrl_t;
 
     typedef struct packed {
-        logic   addend_valid;
-        logic   addend_empty;
-        logic   factor_empty;
-        logic   fma_o_valid;
-        logic   inv_appr_valid;
-        logic   last_op_in_flight;
+        logic                       addend_valid;
+        logic                       addend_empty;
+        logic                       factor_empty;
+        logic                       fma_o_valid;
+        logic                       inv_appr_valid;
+        logic                       last_op_in_flight;
 
-        logic [31 : 0]  denominator;
-        logic [31 : 0]  reciprocal;
+        logic [WIDTH_ACC - 1: 0]    denominator;
+        logic [WIDTH_ACC - 1: 0]    reciprocal;
     } acc_datapath_flags_t;
 
     typedef struct packed {
-        logic           reducing;
-        logic           inverting;
-        logic           inv_fma;
-        logic           res_valid;
-        logic           push_fma_res;
-        logic           disable_ready;
-        logic           den_enable;
-        logic           inv_enable;
-        logic           new_inv_iter;
-        logic           fma_inv_valid;
+        logic                       reducing;
+        logic                       inverting;
+        logic                       inv_fma;
+        logic                       res_valid;
+        logic                       push_fma_res;
+        logic                       disable_ready;
+        logic                       den_enable;
+        logic                       inv_enable;
+        logic                       new_inv_iter;
+        logic                       fma_inv_valid;
 
-        logic           load_reciprocal;
+        logic                       load_reciprocal;
 
-        logic [31 : 0]  reciprocal;
+        logic [WIDTH_ACC - 1: 0]    reciprocal;
     } acc_datapath_ctrl_t;
 
     function sfm_to_cvfpu(sfm_pkg::regs_config_t arg);

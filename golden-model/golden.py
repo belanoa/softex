@@ -33,7 +33,7 @@ match fpformat:
 if monotonic == 0:
     scores = torch.empty(length, dtype = dtype).uniform_(0, range)
 else:
-    scores = torch.arange(0, length, step, dtype = dtype)
+    scores = torch.arange(0, length * step, step, dtype = dtype)
 
 scores_64 = scores.double()
 
