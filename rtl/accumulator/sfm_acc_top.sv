@@ -5,13 +5,15 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+import sfm_pkg::*;
+
 module sfm_acc_top #(
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = fpnew_pkg::FP32                   ,
-    parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = fpnew_pkg::FP32                   ,
-    parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT                ,
-    parameter int unsigned              N_INV_ITERS         = 2                                 ,
-    parameter int unsigned              NUM_REGS_FMA        = 3                                 , 
-    parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                                 ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC                      ,
+    parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = FPFORMAT_ACC                      ,
+    parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = FPFORMAT_IN                       ,
+    parameter int unsigned              N_INV_ITERS         = N_NEWTON_ITERS                    ,
+    parameter int unsigned              NUM_REGS_FMA        = NUM_REGS_FMA_ACC                  , 
+    parameter int unsigned              FACTOR_FIFO_DEPTH   = ACC_FACT_FIFO_D                   ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,  
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,
 

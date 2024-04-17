@@ -7,12 +7,16 @@
 
 `include "../sfm_macros.svh"
 
+import sfm_pkg::*;
+
 module sfm_acc_datapath #(
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = fpnew_pkg::FP32                   ,
-    parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = fpnew_pkg::FP32                   ,
-    parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = fpnew_pkg::FP16ALT                ,
-    parameter int unsigned              NUM_REGS_FMA        = 3                                 , 
-    parameter int unsigned              FACTOR_FIFO_DEPTH   = 4                                 ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC                      ,
+    parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = FPFORMAT_ACC                      ,
+    parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = FPFORMAT_IN                       ,
+    parameter int unsigned              NUM_REGS_FMA        = NUM_REGS_FMA_ACC                  ,
+    parameter int unsigned              NUM_REGS_INV        = NUM_REGS_INV_APPR                 ,
+    parameter int unsigned              NUM_BITS_INV        = N_BITS_INV                        ,
+    parameter int unsigned              FACTOR_FIFO_DEPTH   = ACC_FACT_FIFO_D                   ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,  
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,
 
@@ -396,8 +400,8 @@ module sfm_acc_datapath #(
     sfm_acc_den_inverter #(
         .FPFORMAT       (   ACC_FPFORMAT    ),
         .REG_POS        (   sfm_pkg::BEFORE ),
-        .NUM_REGS       (   2               ),
-        .N_MANT_BITS    (   7               )
+        .NUM_REGS       (   NUM_REGS_INV    ),
+        .N_MANT_BITS    (   NUM_BITS_INV    )
     ) i_denominator_inverter (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),

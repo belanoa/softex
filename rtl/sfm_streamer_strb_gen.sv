@@ -7,9 +7,10 @@
 
 import hwpe_stream_package::*;
 import hci_package::*;
+import sfm_pkg::*;
 
 module sfm_streamer_strb_gen #(
-    parameter int unsigned  DW  = 128   
+    parameter int unsigned  DW  = DATA_W   
 ) (
     input   logic                   clk_i           ,
     input   logic                   rst_ni          ,

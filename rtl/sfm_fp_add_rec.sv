@@ -7,8 +7,10 @@
 
 `include "sfm_macros.svh"
 
+import sfm_pkg::*;
+
 module sfm_fp_add_rec #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT    = fpnew_pkg::FP32   ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_ACC      ,
     parameter int unsigned              N_INP       = 1                 ,
     parameter int unsigned              NUM_REGS    = 0                 ,
     parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE   ,
@@ -130,7 +132,7 @@ module sfm_fp_add_rec #(
             .busy_o             (   busy_o          )
         );
     end else begin : gen_recursion
-        //Here we just instantiate 2 recursive blocks and sum their results
+        //Here we instantiate 2 recursive blocks and sum their results
 
          sfm_fp_add_rec #(
             .FPFORMAT   (   FPFORMAT    ),

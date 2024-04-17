@@ -11,13 +11,13 @@ import sfm_pkg::*;
 
 module sfm_ctrl #(
     parameter int unsigned              N_CORES         = 1                     ,
-    parameter int unsigned              N_CONTEXT       = 2                     ,
-    parameter int unsigned              IO_REGS         = 4                     ,
+    parameter int unsigned              N_CONTEXT       = N_CTRL_CNTX           ,
+    parameter int unsigned              IO_REGS         = N_CTRL_REGS           ,
     parameter int unsigned              ID_WIDTH        = 8                     ,
-    parameter int unsigned              N_STATE_SLOTS   = 2                     ,
-    parameter int unsigned              DATA_WIDTH      = 128                   ,
-    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = fpnew_pkg::FP16ALT    ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = fpnew_pkg::FP32       
+    parameter int unsigned              N_STATE_SLOTS   = N_CTRL_STATE_SLOTS    ,
+    parameter int unsigned              DATA_WIDTH      = DATA_W - 32           ,
+    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN           ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC         
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,

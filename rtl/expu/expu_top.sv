@@ -9,7 +9,7 @@ import sfm_pkg::*;
 import fpnew_pkg::*;
 
 module expu_top #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT            ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN                   ,
     parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE               ,
     parameter int unsigned              NUM_REGS                = 0                             ,
     parameter int unsigned              N_ROWS                  = 1                             ,

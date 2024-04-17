@@ -7,13 +7,14 @@
 
 import hci_package::*;
 import hwpe_ctrl_package::*;
+import sfm_pkg::*;
 
 module sfm_wrap #(
-    parameter int unsigned  ID_WIDTH    = 8                     ,
-    parameter int unsigned  N_CORES     = 8                     ,
-    parameter int unsigned  DW          = 128                   ,
-    parameter int unsigned  MP          = DW / 32               ,
-    parameter int unsigned  FPFORMAT    = fpnew_pkg::FP16ALT    
+    parameter int unsigned  ID_WIDTH    = 8             ,
+    parameter int unsigned  N_CORES     = 8             ,
+    parameter int unsigned  DW          = DATA_W        ,
+    parameter int unsigned  MP          = DW / 32       ,
+    parameter int unsigned  FPFORMAT    = FPFORMAT_IN   
 ) (
     // global signals
     input  logic                      clk_i               ,

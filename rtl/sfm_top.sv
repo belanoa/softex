@@ -7,10 +7,11 @@
 
 import hci_package::*;
 import hwpe_stream_package::*;
+import sfm_pkg::*;
 
 module sfm_top #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT    = fpnew_pkg::FP16ALT    ,
-    parameter int unsigned              DATA_WIDTH  = 128                   ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
+    parameter int unsigned              DATA_WIDTH  = DATA_W        ,
     parameter int unsigned              N_CORES     = 8                          
 ) (
     input   logic                           clk_i   ,
@@ -63,16 +64,7 @@ module sfm_top #(
 
     sfm_datapath #(
         .IN_FPFORMAT        (   FPFORMAT            ),
-        .ACC_FPFORMAT       (   fpnew_pkg::FP32     ),
-        .VECT_WIDTH         (   ACTUAL_DW / WIDTH   ),
-        .REG_POS            (   ),
-        .ADD_REGS           (   ),
-        .MUL_REGS           (   ),
-        .MAX_REGS           (   ),
-        .EXP_REGS           (   ),
-        .FMA_REGS           (   ),
-        .FACTOR_FIFO_DEPTH  (   ),
-        .ADDEND_FIFO_DEPTH  (   )
+        .VECT_WIDTH         (   ACTUAL_DW / WIDTH   )
     ) i_datapath (
         .clk_i      (   clk_i                                   ),
         .rst_ni     (   rst_ni                                  ),
@@ -101,8 +93,7 @@ module sfm_top #(
     end
     
     sfm_streamer #(
-        .DATA_WIDTH (   DATA_WIDTH  ),
-        .ADDR_WIDTH ()
+        .DATA_WIDTH (   DATA_WIDTH  )
     ) i_streamer (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),

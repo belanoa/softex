@@ -5,14 +5,16 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-module sfm_fp_vect_addmul #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
-    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
-    parameter int unsigned              NUM_REGS                = 0                     ,
-    parameter int unsigned              VECT_WIDTH              = 1                     ,
-    parameter type                      TAG_TYPE                = logic                 ,
+import sfm_pkg::*;
 
-    localparam int unsigned             WIDTH           = fpnew_pkg::fp_width(FPFORMAT)
+module sfm_fp_vect_addmul #(
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN       ,
+    parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE   ,
+    parameter int unsigned              NUM_REGS    = 0                 ,
+    parameter int unsigned              VECT_WIDTH  = 1                 ,
+    parameter type                      TAG_TYPE    = logic             ,
+
+    localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic                                       clk_i               ,
     input   logic                                       rst_ni              ,

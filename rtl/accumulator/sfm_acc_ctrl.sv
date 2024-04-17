@@ -5,8 +5,10 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+import sfm_pkg::*;
+
 module sfm_acc_ctrl #(
-    parameter int unsigned  N_INV_ITERS     = 2
+    parameter int unsigned  N_INV_ITERS = N_NEWTON_ITERS
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,

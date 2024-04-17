@@ -8,11 +8,30 @@
 import fpnew_pkg::*;
 
 package sfm_pkg;
-    parameter fpnew_pkg::fp_format_e  FPFORMAT_IN   = fpnew_pkg::FP16ALT;
-    parameter fpnew_pkg::fp_format_e  FPFORMAT_ACC  = fpnew_pkg::FP32;
+    parameter int unsigned  DATA_W  = 128 + 32;
+
+    parameter int unsigned  N_CTRL_CNTX         = 2;
+    parameter int unsigned  N_CTRL_REGS         = 4;
+    parameter int unsigned  N_CTRL_STATE_SLOTS  = 2;
+
+    parameter fpnew_pkg::fp_format_e    FPFORMAT_IN     = fpnew_pkg::FP16ALT;
+    parameter fpnew_pkg::fp_format_e    FPFORMAT_ACC    = fpnew_pkg::FP32;
+    parameter int unsigned              N_NEWTON_ITERS  = 2;
+    parameter int unsigned              ACC_FACT_FIFO_D = 3;
+    parameter int unsigned              N_BITS_INV      = 7;
+
+    parameter int unsigned  NUM_REGS_EXPU       = 1;
+    parameter int unsigned  NUM_REGS_FMA_IN     = 1;
+    parameter int unsigned  NUM_REGS_FMA_ACC    = 3;
+    parameter int unsigned  NUM_REGS_SUM_IN     = 1;
+    parameter int unsigned  NUM_REGS_SUM_ACC    = 2;
+    parameter int unsigned  NUM_REGS_MAX        = 0;
+    parameter int unsigned  NUM_REGS_INV_APPR   = 1;
 
     localparam int unsigned WIDTH_IN    = fpnew_pkg::fp_width(FPFORMAT_IN);
     localparam int unsigned WIDTH_ACC   = fpnew_pkg::fp_width(FPFORMAT_ACC);
+
+    parameter int unsigned  N_ROWS  = (DATA_W - 32) / WIDTH_IN;
 
     //Exponential unit constants
     parameter int unsigned  EXPU_A_FRACTION              = 14;

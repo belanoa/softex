@@ -7,9 +7,11 @@
 
 `include "sfm_macros.svh"
 
+import sfm_pkg::*;
+
 module sfm_fp_minmax_rec #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
-    parameter int unsigned              N_INP                   = 1                     ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN   ,
+    parameter int unsigned              N_INP                   = 1             ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (

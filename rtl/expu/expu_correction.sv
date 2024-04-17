@@ -9,7 +9,7 @@ import sfm_pkg::*;
 import fpnew_pkg::*;
 
 module expu_correction #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT        ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN               ,
     parameter int unsigned              COEFFICIENT_FRACTION    = EXPU_COEFFICIENT_FRACTION ,
     parameter int unsigned              CONSTANT_FRACTION       = EXPU_CONSTANT_FRACTION    ,
     parameter int unsigned              MUL_SURPLUS_BITS        = EXPU_MUL_SURPLUS_BITS     ,

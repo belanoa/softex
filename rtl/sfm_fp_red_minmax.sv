@@ -9,10 +9,10 @@ import sfm_pkg::*;
 import fpnew_pkg::*;
 
 module sfm_fp_red_minmax #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = fpnew_pkg::FP16ALT    ,
-    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
-    parameter int unsigned              NUM_REGS                = 0                     ,
-    parameter int unsigned              VECT_WIDTH              = 1                     ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN       ,
+    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE   ,
+    parameter int unsigned              NUM_REGS                = 0                 ,
+    parameter int unsigned              VECT_WIDTH              = 1                 ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)              
 ) (

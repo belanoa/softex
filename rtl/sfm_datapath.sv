@@ -8,19 +8,19 @@
 `include "sfm_macros.svh"
 
 import hwpe_stream_package::*;
+import sfm_pkg::*;
 
 module sfm_datapath #(
-    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = fpnew_pkg::FP16ALT            ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = fpnew_pkg::FP32               ,
-    parameter sfm_pkg::regs_config_t    REG_POS             = sfm_pkg::BEFORE               ,
-    parameter int unsigned              VECT_WIDTH          = 1                             ,
-    parameter int unsigned              ADD_REGS            = 3                             ,
-    parameter int unsigned              MUL_REGS            = 3                             ,
-    parameter int unsigned              MAX_REGS            = 1                             ,
-    parameter int unsigned              EXP_REGS            = 2                             ,
-    parameter int unsigned              FMA_REGS            = 3                             ,
-    parameter int unsigned              FACTOR_FIFO_DEPTH   = 3                             ,
-    parameter int unsigned              ADDEND_FIFO_DEPTH   = FACTOR_FIFO_DEPTH * FMA_REGS  ,
+    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = FPFORMAT_IN       ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC      ,
+    parameter sfm_pkg::regs_config_t    REG_POS             = sfm_pkg::BEFORE   ,
+    parameter int unsigned              VECT_WIDTH          = N_ROWS            ,
+    parameter int unsigned              SUM_REGS_IN         = NUM_REGS_SUM_IN   ,
+    parameter int unsigned              SUM_REGS_ACC        = NUM_REGS_SUM_ACC  ,
+    parameter int unsigned              MAX_REGS            = NUM_REGS_MAX      ,
+    parameter int unsigned              EXP_REGS            = NUM_REGS_EXPU     ,
+    parameter int unsigned              FMA_REGS_IN         = NUM_REGS_FMA_IN   ,
+    parameter int unsigned              FMA_REGS_ACC        = NUM_REGS_FMA_ACC  ,
 
     localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT)
 ) (
@@ -40,7 +40,7 @@ module sfm_datapath #(
 );
 
     localparam int unsigned ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT);
-    localparam int unsigned VECT_SUM_DELAY  = $clog2(VECT_WIDTH) * ADD_REGS;
+    localparam int unsigned VECT_SUM_DELAY  = $clog2(VECT_WIDTH) * SUM_REGS_ACC;
 
     logic [IN_WIDTH - 1 : 0]    old_max,
                                 new_max,
@@ -166,7 +166,7 @@ module sfm_datapath #(
 
     fpnew_fma #(
         .FpFormat       (   IN_FPFORMAT             ),
-        .NumPipeRegs    (   ADD_REGS                ),
+        .NumPipeRegs    (   SUM_REGS_IN             ),
         .PipeConfig     (   fpnew_pkg::DISTRIBUTED  ),
         .TagType        (   logic                   ),
         .AuxType        (   logic                   )
@@ -261,7 +261,7 @@ module sfm_datapath #(
     sfm_fp_vect_addmul #(
         .FPFORMAT           (   IN_FPFORMAT ),
         .REG_POS            (   REG_POS     ),
-        .NUM_REGS           (   ADD_REGS    ),
+        .NUM_REGS           (   FMA_REGS_IN ),
         .VECT_WIDTH         (   VECT_WIDTH  ),
         .TAG_TYPE           (   logic       )    
     ) i_addmul_time_mux (
@@ -344,7 +344,7 @@ module sfm_datapath #(
         .IN_FPFORMAT    (   IN_FPFORMAT     ),
         .ACC_FPFORMAT   (   ACC_FPFORMAT    ),
         .REG_POS        (   REG_POS         ),
-        .NUM_REGS       (   ADD_REGS        ),
+        .NUM_REGS       (   SUM_REGS_ACC    ),
         .VECT_WIDTH     (   VECT_WIDTH      ),
         .TAG_TYPE       (   logic           )
     ) i_vect_sum (
@@ -372,9 +372,7 @@ module sfm_datapath #(
         .ACC_FPFORMAT       (   ACC_FPFORMAT        ),
         .ADD_FPFORMAT       (   ACC_FPFORMAT        ),
         .MUL_FPFORMAT       (   IN_FPFORMAT         ),
-        .FACTOR_FIFO_DEPTH  (   FACTOR_FIFO_DEPTH   ),
-        .ADDEND_FIFO_DEPTH  (   ADDEND_FIFO_DEPTH   ),
-        .NUM_REGS_FMA       (   FMA_REGS            ),
+        .NUM_REGS_FMA       (   FMA_REGS_ACC        ),
         .ROUND_MODE         (   fpnew_pkg::RNE      )
     ) i_denominator_accumulator (
         .clk_i          (   clk_i                               ),     

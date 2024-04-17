@@ -7,9 +7,10 @@
 
 import hwpe_stream_package::*;
 import hci_package::*;
+import sfm_pkg::*;
 
 module sfm_streamer #(
-    parameter int unsigned  DATA_WIDTH  = 128   ,
+    parameter int unsigned  DATA_WIDTH  = DATA_W    ,
     parameter int unsigned  ADDR_WIDTH  = 32    
 ) (
     input   logic                   clk_i               ,

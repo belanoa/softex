@@ -7,11 +7,13 @@
 
 `include "../sfm_macros.svh"
 
+import sfm_pkg::*;
+
 module sfm_acc_den_inverter #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT    = fpnew_pkg::FP32   ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_ACC      ,
     parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE   ,
-    parameter int unsigned              NUM_REGS    = 2                 ,
-    parameter int unsigned              N_MANT_BITS = 7                 ,
+    parameter int unsigned              NUM_REGS    = NUM_REGS_INV_APPR ,
+    parameter int unsigned              N_MANT_BITS = N_BITS_INV        ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
