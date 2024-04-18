@@ -121,6 +121,7 @@ package sfm_pkg;
         logic                       inv_enable;
         logic                       new_inv_iter;
         logic                       fma_inv_valid;
+        logic                       first_inv_iter;
 
         logic                       load_reciprocal;
 

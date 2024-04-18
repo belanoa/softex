@@ -19,6 +19,7 @@ module sfm_acc_datapath #(
     parameter int unsigned              FACTOR_FIFO_DEPTH   = ACC_FACT_FIFO_D                   ,
     parameter int unsigned              ADDEND_FIFO_DEPTH   = NUM_REGS_FMA * FACTOR_FIFO_DEPTH  ,  
     parameter fpnew_pkg::roundmode_e    ROUND_MODE          = fpnew_pkg::RNE                    ,
+    parameter logic                     COMB_INV            = NUM_REGS_INV_APPR == 0            ,
 
     localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT),
     localparam int unsigned ADD_WIDTH   = fpnew_pkg::fp_width(ADD_FPFORMAT),
@@ -41,10 +42,12 @@ module sfm_acc_datapath #(
     localparam int unsigned ZEROPAD_MUL = ACC_WIDTH - MUL_WIDTH;
     localparam int unsigned ZEROPAD_ADD = ACC_WIDTH - ADD_WIDTH;
 
+    localparam int unsigned USES_CNT_W  = $clog2(NUM_REGS_FMA) + $onehot(NUM_REGS_FMA);
+
     typedef struct packed {
         logic [MUL_WIDTH - 1 : 0]               value;
         logic [$clog2(NUM_REGS_FMA) - 1 : 0]    tag;
-        logic [$clog2(NUM_REGS_FMA) - 1 : 0]    uses;
+        logic [USES_CNT_W - 1 : 0]              uses;
     } factor_t;
 
     typedef struct packed {
@@ -52,7 +55,7 @@ module sfm_acc_datapath #(
         logic [$clog2(NUM_REGS_FMA) - 1: 0] tag;
     } addend_t;
 
-    logic [$clog2(NUM_REGS_FMA) - 1 : 0] op_in_flight_cnt;
+    logic [USES_CNT_W - 1 : 0]  op_in_flight_cnt;
     logic   op_cnt_enable_inc,
             op_cnt_enable_dec;
 
@@ -79,18 +82,18 @@ module sfm_acc_datapath #(
                 addend_empty;
 
     //Factor FIFO Signals
-    factor_t                                factor;
-    factor_t                                i_factor;
+    factor_t                    factor;
+    factor_t                    i_factor;
 
-    logic                                   factor_pop,
-                                            factor_push;
+    logic                       factor_pop,
+                                factor_push;
 
-    logic                                   factor_full,
-                                            factor_empty,
-                                            factor_match;
+    logic                       factor_full,
+                                factor_empty,
+                                factor_match;
 
-    logic [$clog2(NUM_REGS_FMA) - 1 : 0]    factor_uses_cnt;
-    logic                                   factor_uses_cnt_enable;
+    logic [USES_CNT_W - 1 : 0]  factor_uses_cnt;
+    logic                       factor_uses_cnt_enable;
 
     
     //FMA Signals
@@ -232,13 +235,13 @@ module sfm_acc_datapath #(
         .rst_ni     (   rst_ni              ),
         .flush_i    (   clear_i             ),
         .testmode_i (   '0                  ),
-        .full_o     (   factor_full      ),
-        .empty_o    (   factor_empty     ),
-        .usage_o    (   ),
+        .full_o     (   factor_full         ),
+        .empty_o    (   factor_empty        ),
+        .usage_o    (                       ),
         .data_i     (   i_factor            ),
-        .push_i     (   factor_push      ),          
-        .data_o     (   factor           ),
-        .pop_i      (   factor_pop       )
+        .push_i     (   factor_push         ),          
+        .data_o     (   factor              ),
+        .pop_i      (   factor_pop          )
     );
 
     assign factor_match = (factor.tag == fma_o_tag) & fma_o_valid & ~factor_empty & ((factor.tag != addend.tag) | addend_empty);
@@ -359,7 +362,19 @@ module sfm_acc_datapath #(
         unique casex ({ctrl_i.inv_fma, ctrl_i.inverting, fma_o_valid})
             3'b?00:     fma_operands = {fma_addend, addend.value, fma_factor};
             3'b?01:     fma_operands = {fma_addend, fma_res, fma_factor};
-            3'b11?:     fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, `FP_INV_SIGN(den_q, ACC_FPFORMAT)};  //First half of the Newton-Raphson iteration
+
+            3'b11?: begin   //First half of the Newton-Raphson iteration
+                if (COMB_INV) begin //If the first approximation of the reciprocal is computed combinatorially, we have to differentiate between the first and the subsequent iterations
+                    if (ctrl_i.first_inv_iter) begin
+                        fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, `FP_INV_SIGN(fma_res, ACC_FPFORMAT)};
+                    end else begin
+                        fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, `FP_INV_SIGN(den_q, ACC_FPFORMAT)};
+                    end
+                end else begin
+                    fma_operands = {`FP_TWO(ACC_FPFORMAT), inv_appr_d, `FP_INV_SIGN(den_q, ACC_FPFORMAT)};
+                end
+            end
+
             3'b01?:     fma_operands = {{ACC_WIDTH{1'b0}}, fma_res, inv_appr_q};    //Second half of the Newton-Raphson iteration
 
             default:    fma_operands = {fma_addend, addend.value, fma_factor};
@@ -387,14 +402,14 @@ module sfm_acc_datapath #(
         .in_ready_o         (   fma_o_ready     ),
         .flush_i            (   clear_i         ),
         .result_o           (   fma_res         ),
-        .status_o           (   ),
-        .extension_bit_o    (   ),
+        .status_o           (                   ),
+        .extension_bit_o    (                   ),
         .tag_o              (   fma_o_tag       ),
-        .mask_o             (   ),
-        .aux_o              (   ),
+        .mask_o             (                   ),
+        .aux_o              (                   ),
         .out_valid_o        (   fma_o_valid     ),
         .out_ready_i        (   fma_i_ready     ),
-        .busy_o             (   )
+        .busy_o             (                   )
     );
 
     sfm_acc_den_inverter #(

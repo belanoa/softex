@@ -8,7 +8,8 @@
 import sfm_pkg::*;
 
 module sfm_acc_ctrl #(
-    parameter int unsigned  N_INV_ITERS = N_NEWTON_ITERS
+    parameter int unsigned  N_INV_ITERS = N_NEWTON_ITERS            ,
+    parameter logic         COMB_INV    = NUM_REGS_INV_APPR == 0    
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,
@@ -45,7 +46,8 @@ module sfm_acc_ctrl #(
             inverting,
             inv_fma,
             res_valid,
-            fma_inv_valid;
+            fma_inv_valid,
+            first_inv_iter;
 
     logic   den_enable;
 
@@ -105,6 +107,7 @@ module sfm_acc_ctrl #(
     assign ctrl_datapath_o.inv_enable       = inv_enable;
     assign ctrl_datapath_o.new_inv_iter     = iteration_cnt_enable;
     assign ctrl_datapath_o.fma_inv_valid    = fma_inv_valid;
+    assign ctrl_datapath_o.first_inv_iter   = first_inv_iter;
 
     assign ctrl_datapath_o.load_reciprocal  = ctrl_i.load_reciprocal;
     assign ctrl_datapath_o.reciprocal       = ctrl_i.reciprocal;
@@ -122,6 +125,7 @@ module sfm_acc_ctrl #(
         inverting               = '0;
         fma_inv_valid           = '0;
         inv_fma                 = '0;
+        first_inv_iter          = '0;
         flags_o.acc_done        = '0;
         flags_o.inv_done        = '0;
 
@@ -166,11 +170,20 @@ module sfm_acc_ctrl #(
                     if (ctrl_i.acc_only) begin
                         next_state = IDLE;
                     end else begin
-                        next_state = INVERSION;
-
                         inverting       = '1;
                         push_fma_res    = '0;
                         inv_enable      = '1;
+
+
+                        //FIXME
+                        if (COMB_INV) begin
+                            next_state      = INV_FMA;
+                            fma_inv_valid   = '1;
+                            inv_fma         = '1;
+                            first_inv_iter  = '1;
+                        end else begin
+                            next_state = INVERSION;
+                        end
                     end
                 end
             end
