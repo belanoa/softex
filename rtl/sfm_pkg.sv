@@ -60,6 +60,8 @@ package sfm_pkg;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
     typedef enum logic          { ADD, MUL }                operation_t;
 
+    parameter regs_config_t DEFAULT_REG_POS = AROUND;
+
     typedef struct packed {
         logic                       reducing;
         logic                       acc_done;

@@ -10,7 +10,7 @@ import fpnew_pkg::*;
 
 module expu_row #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN                   ,
-    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE               ,
+    parameter sfm_pkg::regs_config_t    REG_POS                 = DEFAULT_REG_POS               ,
     parameter int unsigned              NUM_REGS                = 0                             ,
     parameter int unsigned              A_FRACTION              = EXPU_A_FRACTION               ,
     parameter int unsigned              ENABLE_ROUNDING         = EXPU_ENABLE_ROUNDING          ,

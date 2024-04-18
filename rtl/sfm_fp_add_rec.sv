@@ -13,7 +13,7 @@ module sfm_fp_add_rec #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_ACC      ,
     parameter int unsigned              N_INP       = 1                 ,
     parameter int unsigned              NUM_REGS    = 0                 ,
-    parameter sfm_pkg::regs_config_t    REG_POS     = sfm_pkg::BEFORE   ,
+    parameter sfm_pkg::regs_config_t    REG_POS     = DEFAULT_REG_POS   ,
     parameter type                      TAG_TYPE    = logic             ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)

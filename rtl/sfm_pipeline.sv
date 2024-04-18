@@ -5,16 +5,15 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-module sfm_pipeline #(
-    parameter sfm_pkg::regs_config_t    REG_POS                 = sfm_pkg::BEFORE       ,
-    parameter int unsigned              NUM_REGS                = 0                     ,
-    parameter int unsigned              WIDTH_IN                = 1                     ,
-    parameter int unsigned              NUM_IN                  = 1                     ,
-    parameter int unsigned              WIDTH_OUT               = WIDTH_IN              ,
-    parameter int unsigned              NUM_OUT                 = NUM_IN                ,
+import sfm_pkg::*;
 
-    localparam int unsigned NUM_REGS_I  = (REG_POS == sfm_pkg::AROUND) ? (NUM_REGS / 2) : ((REG_POS == sfm_pkg::BEFORE) ? NUM_REGS : 0)             ,
-    localparam int unsigned NUM_REGS_O  = (REG_POS == sfm_pkg::AROUND) ? (NUM_REGS - NUM_REGS / 2) : ((REG_POS == sfm_pkg::BEFORE) ? 0 : NUM_REGS)    
+module sfm_pipeline #(
+    parameter sfm_pkg::regs_config_t    REG_POS                 = DEFAULT_REG_POS   ,
+    parameter int unsigned              NUM_REGS                = 0                 ,
+    parameter int unsigned              WIDTH_IN                = 1                 ,
+    parameter int unsigned              NUM_IN                  = 1                 ,
+    parameter int unsigned              WIDTH_OUT               = WIDTH_IN          ,
+    parameter int unsigned              NUM_OUT                 = NUM_IN            
 ) (
     input   logic                                       clk_i       ,
     input   logic                                       rst_ni      ,
@@ -64,6 +63,9 @@ module sfm_pipeline #(
      *             \/
      *          o_data_o
      */
+
+    localparam int unsigned NUM_REGS_I  = (REG_POS == sfm_pkg::AROUND) ? (NUM_REGS / 2) : ((REG_POS == sfm_pkg::BEFORE) ? NUM_REGS : 0);
+    localparam int unsigned NUM_REGS_O  = (REG_POS == sfm_pkg::AROUND) ? (NUM_REGS - NUM_REGS / 2) : ((REG_POS == sfm_pkg::BEFORE) ? 0 : NUM_REGS);
 
     logic [NUM_REGS_I : 0] [NUM_IN - 1 : 0] [WIDTH_IN - 1 : 0]    i_data;
     logic [NUM_REGS_O : 0] [NUM_OUT - 1 : 0] [WIDTH_OUT - 1 : 0]  o_data;

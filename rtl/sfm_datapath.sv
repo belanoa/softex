@@ -13,7 +13,7 @@ import sfm_pkg::*;
 module sfm_datapath #(
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = FPFORMAT_IN       ,
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC      ,
-    parameter sfm_pkg::regs_config_t    REG_POS             = sfm_pkg::BEFORE   ,
+    parameter sfm_pkg::regs_config_t    REG_POS             = DEFAULT_REG_POS   ,
     parameter int unsigned              VECT_WIDTH          = N_ROWS            ,
     parameter int unsigned              SUM_REGS_IN         = NUM_REGS_SUM_IN   ,
     parameter int unsigned              SUM_REGS_ACC        = NUM_REGS_SUM_ACC  ,
@@ -196,10 +196,10 @@ module sfm_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT               (   IN_FPFORMAT     ),
-        .REG_POS                (   sfm_pkg::BEFORE ),
-        .NUM_REGS               (   EXP_REGS        ),
-        .N_ROWS                 (   1               )
+        .FPFORMAT               (   IN_FPFORMAT ),
+        .REG_POS                (   REG_POS     ),
+        .NUM_REGS               (   EXP_REGS    ),
+        .N_ROWS                 (   1           )
     ) i_scal_exp (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
@@ -299,11 +299,11 @@ module sfm_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT               (   IN_FPFORMAT     ),
-        .REG_POS                (   sfm_pkg::BEFORE ),
-        .NUM_REGS               (   EXP_REGS        ),
-        .N_ROWS                 (   VECT_WIDTH      ),
-        .TAG_TYPE               (   logic           )
+        .FPFORMAT               (   IN_FPFORMAT ),
+        .REG_POS                (   REG_POS     ),
+        .NUM_REGS               (   EXP_REGS    ),
+        .N_ROWS                 (   VECT_WIDTH  ),
+        .TAG_TYPE               (   logic       )
     ) i_vect_exp (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),

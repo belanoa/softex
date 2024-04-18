@@ -414,7 +414,6 @@ module sfm_acc_datapath #(
 
     sfm_acc_den_inverter #(
         .FPFORMAT       (   ACC_FPFORMAT    ),
-        .REG_POS        (   sfm_pkg::BEFORE ),
         .NUM_REGS       (   NUM_REGS_INV    ),
         .N_MANT_BITS    (   NUM_BITS_INV    )
     ) i_denominator_inverter (
