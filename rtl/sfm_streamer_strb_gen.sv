@@ -65,8 +65,6 @@ module sfm_streamer_strb_gen #(
                 handshake_cnt_q <= '0;
             end else if (handshake_cnt_enable) begin
                 handshake_cnt_q <= handshake_cnt_d;
-            end else begin
-                handshake_cnt_q <= handshake_cnt_q;
             end
         end
     end

@@ -128,8 +128,6 @@ module sfm_acc_datapath #(
                 op_in_flight_cnt <= op_in_flight_cnt - 1;
             end else if (op_cnt_enable_inc) begin
                 op_in_flight_cnt <= op_in_flight_cnt + 1;
-            end else begin
-                op_in_flight_cnt <= op_in_flight_cnt;
             end
         end
     end
@@ -143,8 +141,6 @@ module sfm_acc_datapath #(
                 tag_cnt <= '0;
             end else if (tag_cnt_enable) begin
                 tag_cnt <= tag_cnt + 1;
-            end else begin
-                tag_cnt <= tag_cnt;
             end
         end
     end
@@ -157,8 +153,6 @@ module sfm_acc_datapath #(
                 den_q <= '0;
             end else if (ctrl_i.den_enable) begin
                 den_q <= fma_res;
-            end else begin
-                den_q <= den_q;
             end
         end
     end
@@ -175,8 +169,6 @@ module sfm_acc_datapath #(
                 inv_appr_q <= ctrl_i.reciprocal;
             end else if (inv_appr_enable) begin
                 inv_appr_q <= inv_appr_d;
-            end else begin
-                inv_appr_q <= inv_appr_q;
             end
         end
     end
@@ -262,8 +254,6 @@ module sfm_acc_datapath #(
                 end else begin
                     factor_uses_cnt <= factor_uses_cnt + 1;
                 end
-            end else begin
-                factor_uses_cnt <= factor_uses_cnt;
             end
         end
     end

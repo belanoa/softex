@@ -99,8 +99,6 @@ module sfm_pipeline #(
                     valid_reg [i + 1] <= '0;
                 end else if (enable_i & ~reg_en_n [i]) begin
                     valid_reg [i + 1] <= valid_reg [i];
-                end else begin
-                    valid_reg [i + 1] <= valid_reg [i + 1];
                 end
             end
         end
@@ -135,8 +133,6 @@ module sfm_pipeline #(
                     i_strb [i + 1] <= '0;
                 end else if (enable_i & ~reg_en_n [i]) begin
                     i_strb [i + 1] <= i_strb [i];
-                end else begin
-                    i_strb [i + 1] <= i_strb [i + 1];
                 end
             end
         end
@@ -153,8 +149,6 @@ module sfm_pipeline #(
                     o_strb [i + 1] <= '0;
                 end else if (enable_i & ~reg_en_n [i]) begin
                     o_strb [i + 1] <= o_strb [i];
-                end else begin
-                    o_strb [i + 1] <= o_strb [i + 1];
                 end
             end
         end
@@ -173,8 +167,6 @@ module sfm_pipeline #(
                         i_data [j + 1][i] <= '0;
                     end else if (i_row_enable [i][j]) begin
                         i_data [j + 1][i] <=  i_data [j][i];
-                    end else begin
-                        i_data [j + 1][i] <=  i_data [j + 1][i];
                     end
                 end
             end
@@ -193,8 +185,6 @@ module sfm_pipeline #(
                         o_data [j + 1][i] <= '0;
                     end else if (o_row_enable [i][j]) begin
                         o_data [j + 1][i] <=  o_data [j][i];
-                    end else begin
-                        o_data [j + 1][i] <=  o_data [j + 1][i];
                     end
                 end
             end

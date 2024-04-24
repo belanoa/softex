@@ -74,8 +74,6 @@ module sfm_acc_ctrl #(
                 red_out_cnt <= '0;
             end else if (red_out_cnt_enable & flags_datapath_i.fma_o_valid) begin
                 red_out_cnt <= ~red_out_cnt;
-            end else begin
-                red_out_cnt <= red_out_cnt;
             end
         end
     end
@@ -88,8 +86,6 @@ module sfm_acc_ctrl #(
                 iteration_cnt <= '0;
             end else if (iteration_cnt_enable) begin
                 iteration_cnt <= iteration_cnt + 1;
-            end else begin
-                iteration_cnt <= iteration_cnt;
             end
         end
     end

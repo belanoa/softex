@@ -148,8 +148,6 @@ module sfm_accumulator #(
                 active_q <= '0;
             end else if (add_valid_i) begin
                 active_q <= '1;
-            end else begin
-                active_q <= active_q;
             end
         end
     end
@@ -174,8 +172,6 @@ module sfm_accumulator #(
                 den_q <= '0;
             end else if (den_enable) begin
                 den_q <= fma_res;
-            end else begin
-                den_q <= den_q;
             end
         end
     end
@@ -194,8 +190,6 @@ module sfm_accumulator #(
                 inv_appr_q <= ctrl_i.reciprocal;
             end else if (inv_appr_enable) begin
                 inv_appr_q <= inv_appr_d;
-            end else begin
-                inv_appr_q <= inv_appr_q;
             end
         end
     end
@@ -214,8 +208,6 @@ module sfm_accumulator #(
                 op_in_flight_cnt <= op_in_flight_cnt - 1;
             end else if (op_cnt_enable_inc) begin
                 op_in_flight_cnt <= op_in_flight_cnt + 1;
-            end else begin
-                op_in_flight_cnt <= op_in_flight_cnt;
             end
         end
     end
@@ -233,8 +225,6 @@ module sfm_accumulator #(
                 end else begin
                     factor_cnt <= factor_cnt + 1;
                 end
-            end else begin
-                factor_cnt <= factor_cnt;
             end
         end
     end
@@ -249,8 +239,6 @@ module sfm_accumulator #(
                 tag_cnt <= '0;
             end else if (tag_cnt_enable) begin
                 tag_cnt <= tag_cnt + 1;
-            end else begin
-                tag_cnt <= tag_cnt;
             end
         end
     end
@@ -263,8 +251,6 @@ module sfm_accumulator #(
                 red_out_cnt <= '0;
             end else if (red_out_cnt_enable & fma_o_valid) begin
                 red_out_cnt <= ~red_out_cnt;
-            end else begin
-                red_out_cnt <= red_out_cnt;
             end
         end
     end
@@ -278,8 +264,6 @@ module sfm_accumulator #(
                 iteration_cnt <= '0;
             end else if (iteration_cnt_enable) begin
                 iteration_cnt <= iteration_cnt + 1;
-            end else begin
-                iteration_cnt <= iteration_cnt;
             end
         end
     end
@@ -464,8 +448,6 @@ module sfm_accumulator #(
                     end else begin
                         factor_uses_cnt [i] <= factor_uses_cnt [i] + 1;
                     end
-                end else begin
-                    factor_uses_cnt [i] <= factor_uses_cnt [i];
                 end
             end
         end

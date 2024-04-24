@@ -57,8 +57,6 @@ module sfm_fp_glob_minmax #(
                 o_valid_q <= '0;
             end else if (minmax_valid) begin
                 o_valid_q <= '1;
-            end else begin
-                o_valid_q <= o_valid_q;
             end
         end
     end
@@ -73,8 +71,6 @@ module sfm_fp_glob_minmax #(
                 minmax_q <= load_i;
             end else if (minmax_valid & new_flg & ready_i) begin
                 minmax_q <= vect_minmax;
-            end else begin
-                minmax_q <= minmax_q;
             end
         end
     end

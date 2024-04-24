@@ -51,8 +51,6 @@ module sfm_delay #(
                     valid_reg [i + 1] <= '0;
                 end else if (enable_i & ~reg_en_n [i]) begin
                     valid_reg [i + 1] <= valid_reg [i];
-                end else begin
-                    valid_reg [i + 1] <= valid_reg [i + 1];
                 end
             end
         end
@@ -79,8 +77,6 @@ module sfm_delay #(
                     strb [i + 1] <= '0;
                 end else if (enable_i & ~reg_en_n [i]) begin
                     strb [i + 1] <= strb [i];
-                end else begin
-                    strb [i + 1] <= strb [i + 1];
                 end
             end
         end
@@ -99,8 +95,6 @@ module sfm_delay #(
                         data [j + 1][i] <= '0;
                     end else if (row_enable [i][j]) begin
                         data [j + 1][i] <=  data [j][i];
-                    end else begin
-                        data [j + 1][i] <=  data [j + 1][i];
                     end
                 end
             end

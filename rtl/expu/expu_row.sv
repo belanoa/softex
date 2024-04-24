@@ -73,8 +73,6 @@ module expu_row #(
                             reg_data [i + 1] <= '0;
                         end else if (enable_i [i]) begin
                             reg_data [i + 1] <= reg_data [i];
-                        end else begin
-                            reg_data [i + 1] <= reg_data [i + 1];
                         end
                     end
                 end
@@ -87,8 +85,6 @@ module expu_row #(
                             reg_data [i + 1] <= '0;
                         end else if (enable_i [i]) begin
                             reg_data [i + 1] <= result;
-                        end else begin
-                            reg_data [i + 1] <= reg_data [i + 1];
                         end
                     end
                 end

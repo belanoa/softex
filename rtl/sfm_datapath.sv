@@ -132,8 +132,6 @@ module sfm_datapath #(
                 fma_arb_cnt <= '0;
             end else if (fma_arb_cnt_enable) begin
                 fma_arb_cnt <= fma_arb_cnt + 1;
-            end else begin
-                fma_arb_cnt <= fma_arb_cnt;
             end
         end
     end

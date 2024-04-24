@@ -111,8 +111,6 @@ module expu_top #(
                         valid_reg [i + 1] <= '0;
                     end else if (enable_i & ~reg_en_n [i]) begin
                         valid_reg [i + 1] <= valid_reg [i];
-                    end else begin
-                        valid_reg [i + 1] <= valid_reg [i + 1];
                     end
                 end
             end
@@ -129,8 +127,6 @@ module expu_top #(
                         strb_reg [i + 1] <= '0;
                     end else if (enable_i & ~reg_en_n [i]) begin
                         strb_reg [i + 1] <= strb_reg [i];
-                    end else begin
-                        strb_reg [i + 1] <= strb_reg [i + 1];
                     end
                 end
             end
@@ -147,8 +143,6 @@ module expu_top #(
                         tag_reg [i + 1] <= '0;
                     end else if (enable_i & ~reg_en_n [i]) begin
                         tag_reg [i + 1] <= tag_reg [i];
-                    end else begin
-                        tag_reg [i + 1] <= tag_reg [i + 1];
                     end
                 end
             end
