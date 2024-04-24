@@ -19,11 +19,17 @@ module sfm_streamer #(
     input   logic                   enable_i            ,
     input   hci_streamer_ctrl_t     in_stream_ctrl_i    ,
     input   hci_streamer_ctrl_t     out_stream_ctrl_i   ,
+    input   hci_streamer_ctrl_t     slot_in_ctrl_i      ,
+    input   hci_streamer_ctrl_t     slot_out_ctrl_i     ,
     output  hci_streamer_flags_t    in_stream_flags_o   ,
     output  hci_streamer_flags_t    out_stream_flags_o  ,
+    output  hci_streamer_flags_t    slot_in_flags_o     ,
+    output  hci_streamer_flags_t    slot_out_flags_o    ,
 
     hwpe_stream_intf_stream.source  in_stream_o         ,
     hwpe_stream_intf_stream.sink    out_stream_i        ,
+    hwpe_stream_intf_stream.source  slot_in_stream_o    ,
+    hwpe_stream_intf_stream.sink    slot_out_stream_i   ,
 
     hci_core_intf.master            tcdm                
 );
@@ -46,6 +52,13 @@ module sfm_streamer #(
         .DW (   DATA_WIDTH  ),
         .UW (   1           )
     ) ldst_tcdm ( 
+        .clk    (   clk_i   ) 
+    );
+
+    hci_core_intf #(
+        .DW (   DATA_WIDTH  ),
+        .UW (   1           )
+    ) load_tcdm ( 
         .clk    (   clk_i   ) 
     );
 
@@ -95,7 +108,7 @@ module sfm_streamer #(
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
         .UW (   1           )
-    ) load_fifo (
+    ) load_mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
 
@@ -108,22 +121,70 @@ module sfm_streamer #(
         .test_mode_i    (   '0                  ),
         .clear_i        (   clear_i             ),
         .enable_i       (   enable_i            ),
-        .tcdm           (   load_fifo           ),
+        .tcdm           (   load_mux_i_tcdm [0] ),
         .stream         (   in_stream           ),
         .ctrl_i         (   in_stream_ctrl_i    ),
         .flags_o        (   in_stream_flags_o   )
     );
 
+    hci_core_source #(
+        .DATA_WIDTH             (   DATA_WIDTH  ),
+        .MISALIGNED_ACCESSES    (   1           )
+    ) i_slot_in (
+        .clk_i          (   clk_i               ),
+        .rst_ni         (   rst_ni              ),
+        .test_mode_i    (   '0                  ),
+        .clear_i        (   clear_i             ),
+        .enable_i       (   enable_i            ),
+        .tcdm           (   load_mux_i_tcdm [1] ),
+        .stream         (   slot_in_stream_o    ),
+        .ctrl_i         (   slot_in_ctrl_i      ),
+        .flags_o        (   slot_in_flags_o     )
+    );
+
+    hci_core_intf #(
+        .DW (   DATA_WIDTH  ),
+        .UW (   1           )
+    ) load_fifo (
+        .clk    (   clk_i   )
+    );
+
+    hci_core_mux_ooo #(
+        .NB_CHAN    (   2           ),
+        .DW         (   DATA_WIDTH  ),
+        .UW         (   1           )
+    ) i_load_mux (
+        .clk_i              (   clk_i           ),
+        .rst_ni             (   rst_ni          ),
+        .clear_i            (   clear_i         ),
+        .priority_force_i   (   '0              ),
+        .priority_i         (   '0              ),
+        .in                 (   load_mux_i_tcdm ),
+        .out                (   load_fifo       )
+    );
+
     hci_core_fifo #(
         .FIFO_DEPTH (   2           ),
-        .DW         (   DATA_WIDTH  )
+        .DW         (   DATA_WIDTH  ),
+        .UW         (   1           )
     ) i_load_fifo (
-        .clk_i       (  clk_i           ),
-        .rst_ni      (  rst_ni          ),
-        .clear_i     (  clear_i         ),
-        .flags_o     (                  ),
-        .tcdm_slave  (  load_fifo       ),
-        .tcdm_master (  mux_i_tcdm [0]  )
+        .clk_i       (  clk_i       ),
+        .rst_ni      (  rst_ni      ),
+        .clear_i     (  clear_i     ),
+        .flags_o     (              ),
+        .tcdm_slave  (  load_fifo   ),
+        .tcdm_master (  load_tcdm   )
+    );
+
+    hci_core_r_user_filter #(
+        .UW (   1   )
+    ) i_load_r_user_filter (
+        .clk_i          (   clk_i           ),
+        .rst_ni         (   rst_ni          ),
+        .clear_i        (   clear_i         ),
+        .enable_i       (   enable_i        ),
+        .tcdm_slave     (   load_tcdm       ),
+        .tcdm_master    (   mux_i_tcdm [0]  )
     );
 
     /*      STORE CHANNEL      */
@@ -142,7 +203,7 @@ module sfm_streamer #(
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
         .UW (   1           )
-    ) store_fifo (
+    ) store_mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
 
@@ -150,15 +211,51 @@ module sfm_streamer #(
         .DATA_WIDTH             (   DATA_WIDTH  ),
         .MISALIGNED_ACCESSES    (   1           )
     ) i_stream_out (
-        .clk_i          (   clk_i               ),
-        .rst_ni         (   rst_ni              ),
-        .test_mode_i    (   '0                  ),
-        .clear_i        (   clear_i             ),
-        .enable_i       (   enable_i            ),
-        .tcdm           (   store_fifo          ),
-        .stream         (   out_stream          ),
-        .ctrl_i         (   out_stream_ctrl_i   ),
-        .flags_o        (   out_stream_flags_o  )
+        .clk_i          (   clk_i                   ),
+        .rst_ni         (   rst_ni                  ),
+        .test_mode_i    (   '0                      ),
+        .clear_i        (   clear_i                 ),
+        .enable_i       (   enable_i                ),
+        .tcdm           (   store_mux_i_tcdm [0]    ),
+        .stream         (   out_stream              ),
+        .ctrl_i         (   out_stream_ctrl_i       ),
+        .flags_o        (   out_stream_flags_o      )
+    );
+
+    hci_core_sink #(
+        .DATA_WIDTH             (   DATA_WIDTH  ),
+        .MISALIGNED_ACCESSES    (   1           )
+    ) i_slot_out (
+        .clk_i          (   clk_i                   ),
+        .rst_ni         (   rst_ni                  ),
+        .test_mode_i    (   '0                      ),
+        .clear_i        (   clear_i                 ),
+        .enable_i       (   enable_i                ),
+        .tcdm           (   store_mux_i_tcdm [1]    ),
+        .stream         (   slot_out_stream_i       ),
+        .ctrl_i         (   slot_out_ctrl_i         ),
+        .flags_o        (   slot_out_flags_o        )
+    );
+
+    hci_core_intf #(
+        .DW (   DATA_WIDTH  ),
+        .UW (   1           )
+    ) store_fifo (
+        .clk    (   clk_i   )
+    );
+
+    hci_core_mux_ooo #(
+        .NB_CHAN (   2           ),
+        .DW         (   DATA_WIDTH  ),
+        .UW         (   1           )
+    ) i_store_mux (
+        .clk_i              (   clk_i               ),
+        .rst_ni             (   rst_ni              ),
+        .clear_i            (   clear_i             ),
+        .priority_force_i   (   '0                  ),
+        .priority_i         (   '0                  ),
+        .in                 (   store_mux_i_tcdm    ),
+        .out                (   store_fifo          )
     );
 
     hci_core_fifo #(

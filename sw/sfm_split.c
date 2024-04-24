@@ -23,9 +23,7 @@ int main () {
 
     hwpe_soft_clear();
 
-    while ((slot_id = HWPE_READ(SFM_REQ_SLOT)) > 0) {
-
-    }
+    slot_id = 0;
 
     /**********ACCUMULATION**********/
 

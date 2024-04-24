@@ -53,3 +53,19 @@ sfm_basic_tests:
   basic_aligned_high_stall_long:
     path: .
     command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.3 TEST=sfm_basic.c
+
+  multi_aligned_stall:
+    path: .
+    command: make golden sw-all run length=4096 range=32 vectors=16 PROB_STALL=0.01 TEST=sfm_multi.c
+
+  multi_unroll_aligned_stall:
+    path: .
+    command: make golden sw-all run length=4096 range=32 vectors=16 PROB_STALL=0.01 TEST=sfm_multi_unroll.c
+
+  multi_unroll_misaligned_stall:
+    path: .
+    command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.01 TEST=sfm_multi_unroll.c
+
+  multi_unroll_misaligned_high_stall:
+    path: .
+    command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.3 TEST=sfm_multi_unroll.c

@@ -220,8 +220,8 @@ module sfm_datapath #(
     assign fact_fifo_d.strb     = '1;
 
     hwpe_stream_fifo #(
-        .DATA_WIDTH (   IN_WIDTH            ),
-        .FIFO_DEPTH (   VECT_SUM_DELAY + 2  )
+        .DATA_WIDTH (   IN_WIDTH                                                            ),
+        .FIFO_DEPTH (   VECT_SUM_DELAY % 2 == 0 ? VECT_SUM_DELAY + 2 : VECT_SUM_DELAY + 3   )   //FIFO_DEPTH must be a multiple of 2
     ) i_fact_fifo (
         .clk_i      (   clk_i       ),
         .rst_ni     (   rst_ni      ),

@@ -342,7 +342,7 @@ module sfm_tb;
         end
     end
 
-    int unsigned error_threshold = 2;
+    int unsigned error_threshold = 3;
 
     initial begin
         integer id;

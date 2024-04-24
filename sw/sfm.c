@@ -23,11 +23,9 @@ int main () {
 
     hwpe_soft_clear();
 
-    while ((slot_id = HWPE_READ(SFM_REQ_SLOT)) > 0) {
-
-    }
-
     /**********ACCUMULATION**********/
+
+    slot_id = 1;
 
     while ((acq_res = hwpe_acquire_job()) < 0) {
 
@@ -35,7 +33,8 @@ int main () {
 
     HWPE_WRITE(scores, SFM_IN_ADDR);
     HWPE_WRITE(LENGTH * FMT_WIDTH / (2 * FMT_WIDTH) * FMT_WIDTH, SFM_TOT_LEN);
-    HWPE_WRITE(SFM_CMD_ACC_ONLY | (slot_id << 16), SFM_COMMANDS);
+    HWPE_WRITE(((int) scores) + LENGTH * FMT_WIDTH, SFM_CACHE_BASE_ADDR);
+    HWPE_WRITE(SFM_CMD_ACC_ONLY | SFM_CMD_ACQUIRE_SLOT | SFM_CMD_SET_CACHE_ADDR | (slot_id << 16), SFM_COMMANDS);
     
     hwpe_trigger_job();
 

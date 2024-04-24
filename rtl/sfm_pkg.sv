@@ -11,7 +11,7 @@ package sfm_pkg;
     parameter int unsigned  DATA_W  = 128 + 32;
 
     parameter int unsigned  N_CTRL_CNTX         = 2;
-    parameter int unsigned  N_CTRL_REGS         = 4;
+    parameter int unsigned  N_CTRL_REGS         = 5;
     parameter int unsigned  N_CTRL_STATE_SLOTS  = 2;
 
     parameter fpnew_pkg::fp_format_e    FPFORMAT_IN     = fpnew_pkg::FP16ALT;
@@ -19,6 +19,7 @@ package sfm_pkg;
     parameter int unsigned              N_NEWTON_ITERS  = 2;
     parameter int unsigned              ACC_FACT_FIFO_D = 3;
     parameter int unsigned              N_BITS_INV      = 7;
+    parameter int unsigned              SLOT_ADDR_BITS  = 8;
 
     parameter int unsigned  NUM_REGS_EXPU       = 1;
     parameter int unsigned  NUM_REGS_FMA_IN     = 1;
@@ -47,14 +48,18 @@ package sfm_pkg;
     parameter real          EXPU_GAMMA_2_REAL            = 2.16796875;
 
     //Register file indexes
-    parameter int unsigned  IN_ADDR     = 0;
-    parameter int unsigned  OUT_ADDR    = 1;
-    parameter int unsigned  TOT_LEN     = 2;
-    parameter int unsigned  COMMANDS    = 3;
+    parameter int unsigned  IN_ADDR         = 0;
+    parameter int unsigned  OUT_ADDR        = 1;
+    parameter int unsigned  TOT_LEN         = 2;
+    parameter int unsigned  COMMANDS        = 3;
+    parameter int unsigned  CACHE_BASE_ADDR = 4;
 
-    parameter int unsigned  CMD_ACC_ONLY    = 0;
-    parameter int unsigned  CMD_DIV_ONLY    = 1;
-    parameter int unsigned  CMD_LAST        = 2;
+    parameter int unsigned  CMD_ACC_ONLY        = 0;
+    parameter int unsigned  CMD_DIV_ONLY        = 1;
+    parameter int unsigned  CMD_ACQUIRE_SLOT    = 2;
+    parameter int unsigned  CMD_LAST            = 3;
+    parameter int unsigned  CMD_SET_CACHE_ADDR  = 4;
+    parameter int unsigned  CMD_NO_OP           = 5;
 
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
@@ -129,6 +134,40 @@ package sfm_pkg;
 
         logic [WIDTH_ACC - 1: 0]    reciprocal;
     } acc_datapath_ctrl_t;
+
+    typedef enum logic {ALLOC, LOAD} slot_req_op_e;
+    typedef enum logic {UPDATE, FREE} slot_update_op_e;
+
+    typedef struct packed {
+        logic [WIDTH_IN - 1 : 0]    maximum;
+        logic [WIDTH_ACC - 1 : 0]   denominator;
+        logic                       valid;
+    } slot_t;
+
+    typedef struct packed {
+        slot_req_op_e                       op;
+        logic [SLOT_ADDR_BITS -1 : 0]       addr;
+    } slot_req_op_t;
+
+    typedef struct packed {
+        slot_update_op_e                    op;
+        logic [SLOT_ADDR_BITS -1 : 0]       addr;
+
+        logic [WIDTH_IN - 1 : 0]            maximum;
+        logic [WIDTH_ACC - 1 : 0]           denominator;
+    } slot_update_op_t;
+
+    typedef struct packed {
+        logic [31 : 0]                  cache_base_addr;
+
+        logic [SLOT_ADDR_BITS - 1 : 0]  addr;
+
+        logic                           req_valid;
+        slot_req_op_t                   req_op;
+
+        logic                           update_valid;
+        slot_update_op_t                update_op;
+    } slot_regfile_ctrl_t;
 
     function sfm_to_cvfpu(sfm_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;

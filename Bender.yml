@@ -35,6 +35,7 @@ sources:
     - rtl/sfm_streamer_strb_gen.sv
     - rtl/sfm_top.sv
     - rtl/sfm_ctrl.sv
+    - rtl/sfm_slot_regfile.sv
     - rtl/sfm_wrap.sv
     - rtl/expu/expu_correction.sv
     - rtl/expu/expu_row.sv

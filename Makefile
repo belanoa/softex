@@ -101,6 +101,7 @@ length		?= 1024
 range 		?= 128
 monotonic	?= 0
 step		?= 1
+vectors		?= 1
 
 # Run the simulation
 run:
@@ -154,4 +155,4 @@ golden-clean:
 
 golden: golden-clean
 	mkdir -p sw/golden-model/
-	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range) --monotonic $(monotonic) --step $(step)
+	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range) --monotonic $(monotonic) --step $(step) --vectors $(vectors)

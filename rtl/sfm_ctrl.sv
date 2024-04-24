@@ -25,12 +25,14 @@ module sfm_ctrl #(
     input   hci_streamer_flags_t            in_stream_flags_i   ,
     input   hci_streamer_flags_t            out_stream_flags_i  ,
     input   sfm_pkg::datapath_flags_t       datapath_flgs_i     ,
+    input   sfm_pkg::slot_t                 state_slot_i        ,
     output  logic                           clear_o             ,
     output  logic                           busy_o              ,
     output  logic [N_CORES - 1 : 0] [1 : 0] evt_o               ,
     output  hci_streamer_ctrl_t             in_stream_ctrl_o    ,
     output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
     output  sfm_pkg::datapath_ctrl_t        datapath_ctrl_o     ,
+    output  sfm_pkg::slot_regfile_ctrl_t    slot_ctrl_o         ,
 
     hwpe_ctrl_intf_periph.slave             periph
 );
@@ -40,6 +42,7 @@ module sfm_ctrl #(
 
     typedef enum logic [2:0] {
         IDLE,
+        WAIT_SLOT_VALID,
         ACCUMULATION,
         WAIT_DATAPATH_EMPTY,
         WAIT_ACCUMULATION,
@@ -74,22 +77,18 @@ module sfm_ctrl #(
 
     logic   acc_only,
             div_only,
-            last;
+            last,
+            set_cache_addr,
+            acquire_slot,
+            no_operation;
 
-    state_slot_t [N_STATE_SLOTS - 1 : 0]    state_slot_q;
-    state_slot_t                            state_slot_d;
+    logic [31 : 0]  slot_cache_base_addr;
+    logic   cache_base_addr_en;
 
     logic   state_slot_en,
             state_slot_clear;
 
-    logic [$clog2(N_STATE_SLOTS) - 1 : 0]   current_slot,
-                                            free_slot_ptr;
-
-    logic [N_STATE_SLOTS - 1 : 0]   slot_locked;
-
-    logic   slot_free,
-            slot_select,
-            slot_req;
+    logic [16 : 0]   current_slot;
 
     logic [$clog2(DATA_WIDTH / 8) - 1 : 0]  length_lftovr;
 
@@ -98,63 +97,6 @@ module sfm_ctrl #(
     hwpe_ctrl_package::ctrl_regfile_t   reg_file;
     hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
     hwpe_ctrl_package::flags_slave_t    flgs_slave;
-
-    assign state_slot_d.valid       = '1;
-    assign state_slot_d.max         = datapath_flgs_i.max;
-
-    //As we never need both the denominator and its reciprocal, state_slot.denominator is used for both
-    assign state_slot_d.denominator = (acc_only & ~last) ? datapath_flgs_i.accumulator_flags.denominator : datapath_flgs_i.accumulator_flags.reciprocal;
-
-    for (genvar i = 0; i < N_STATE_SLOTS; i++) begin
-        always_ff @(posedge clk_i or negedge rst_ni) begin : state_slot
-            if (~rst_ni) begin
-                state_slot_q [i] <= '0;
-            end else begin
-                if (clear | (state_slot_clear && (i == current_slot))) begin
-                    state_slot_q [i] <= '0;
-                end else if (state_slot_en && (i == current_slot)) begin
-                    state_slot_q [i] <= state_slot_d;
-                end else begin
-                    state_slot_q [i] <= state_slot_q [i];
-                end
-            end
-        end
-    end
-
-    assign datapath_ctrl_o.max                          = state_slot_q[current_slot].max;
-    assign datapath_ctrl_o.denominator                  = state_slot_q[current_slot].denominator;
-    assign datapath_ctrl_o.accumulator_ctrl.reciprocal  = state_slot_q[current_slot].denominator;
-
-    for (genvar i = 0; i < N_STATE_SLOTS; i++) begin
-        always_ff @(posedge clk_i or negedge rst_ni) begin : slot_locked_register
-            if (~rst_ni) begin
-                slot_locked [i] <= '0;
-            end else begin
-                if (clear | (state_slot_clear && (i == current_slot))) begin
-                    slot_locked [i] <= '0;
-                end else if ((i == free_slot_ptr) & slot_select) begin
-                    slot_locked [i] <= '1;
-                end else begin
-                    slot_locked [i] <= slot_locked [i];
-                end
-            end
-        end
-    end
-
-    assign slot_free    = ~&slot_locked;
-
-    always_comb begin : free_slot_ptr_assignment
-        free_slot_ptr   = '0;
-
-        for (int i = 0; i < N_STATE_SLOTS; i++) begin
-            if (~slot_locked[i]) begin
-                free_slot_ptr = i;
-                break;
-            end
-        end
-    end
-
-    assign slot_select = flgs_slave.ext_re & periph.req;
 
     hwpe_ctrl_slave  #(
         .N_CORES        (   N_CORES         ),
@@ -171,6 +113,18 @@ module sfm_ctrl #(
         .flags_o    (   flgs_slave  ),
         .reg_file   (   reg_file    )
     );
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (~rst_ni) begin
+            slot_cache_base_addr <= '0;
+        end else begin
+            if (clear) begin
+                slot_cache_base_addr <= '0;
+            end else if (cache_base_addr_en) begin
+                slot_cache_base_addr <= reg_file.hwpe_params [CACHE_BASE_ADDR];
+            end
+        end
+    end
     
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : state_register
@@ -219,17 +173,36 @@ module sfm_ctrl #(
     assign datapath_ctrl_o.load_denominator                 = dp_load_denominator;
     assign datapath_ctrl_o.accumulator_ctrl.load_reciprocal = dp_load_reciprocal;
 
-    assign acc_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_ACC_ONLY];   //We stop as soon as the denominator is valid, no inversion is performed
-    assign div_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_DIV_ONLY];   //Only perform the normalisation step. The maximum and the denominator are recovered from the state slot
-    assign last                                             = reg_file.hwpe_params [COMMANDS] [CMD_LAST];       //We are performing the last partial accumulation / normalisation
-    
+    assign datapath_ctrl_o.max                              = state_slot_i.maximum;
+    assign datapath_ctrl_o.denominator                      = state_slot_i.denominator;
+    assign datapath_ctrl_o.accumulator_ctrl.reciprocal      = state_slot_i.denominator;
+
+    assign acc_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_ACC_ONLY];       // We stop as soon as the denominator is valid, no inversion is performed
+    assign div_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_DIV_ONLY];       // Only perform the normalisation step. The maximum and the denominator are recovered from the state slot
+    assign last                                             = reg_file.hwpe_params [COMMANDS] [CMD_LAST];           // We are performing the last partial accumulation / normalisation
+    assign set_cache_addr                                   = reg_file.hwpe_params [COMMANDS] [CMD_SET_CACHE_ADDR]; // Sets the base address of the state slot cache
+    assign acquire_slot                                     = reg_file.hwpe_params [COMMANDS] [CMD_ACQUIRE_SLOT];   // This is the first partial iteration of a new operation
+    assign no_operation                                     = reg_file.hwpe_params [COMMANDS] [CMD_NO_OP];          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation 
+
     assign current_slot                                     = reg_file.hwpe_params [COMMANDS] [31 -: 16];
 
     assign ctrl_slave.done                                  = slave_done;
     assign ctrl_slave.evt                                   = '0;
 
-    //The extension is used to acquire a state slot
-    assign ctrl_slave.ext_flags                             = {slot_free, {(32 - $clog2(N_STATE_SLOTS) - 1){1'b0}}, free_slot_ptr};
+    assign slot_ctrl_o.cache_base_addr                      = slot_cache_base_addr;
+    assign slot_ctrl_o.addr                                 = current_slot;
+
+    // "request" commands are pushed as soon a partial operation is detected  
+    assign slot_ctrl_o.req_valid                            = periph.req & periph.gnt & (periph.add [ID_WIDTH - 1 : 0] == (COMMANDS * 4 + 32)) & (periph.data [CMD_ACC_ONLY] | periph.data [CMD_DIV_ONLY]);
+    assign slot_ctrl_o.req_op.addr                          = periph.data [31 -: 16];
+    assign slot_ctrl_o.req_op.op                            = periph.data [CMD_ACQUIRE_SLOT] ? ALLOC : LOAD;
+
+
+    assign slot_ctrl_o.update_valid                         = state_slot_en;
+    assign slot_ctrl_o.update_op.addr                       = current_slot;
+    assign slot_ctrl_o.update_op.op                         = last & div_only ? FREE : UPDATE;   
+    assign slot_ctrl_o.update_op.maximum                    = datapath_flgs_i.max;
+    assign slot_ctrl_o.update_op.denominator                = (acc_only & ~last) ? datapath_flgs_i.accumulator_flags.denominator : datapath_flgs_i.accumulator_flags.reciprocal;
 
     always_comb begin : ctrl_sfm
         next_state          = current_state;
@@ -246,33 +219,71 @@ module sfm_ctrl #(
         dp_load_max         = '0;
         dp_load_denominator = '0;
         dp_load_reciprocal  = '0;
-        
+        cache_base_addr_en  = '0;
+
         case (current_state)
             IDLE: begin
                 busy_o = '0;
 
                 if (flgs_slave.start) begin
-                    casex ({div_only, acc_only})
-                        2'b00:  next_state  = ACCUMULATION;
-                        2'b01:  next_state  = ACCUMULATION;
-                        2'b1?:  next_state  = DIVIDING;
-                    endcase
+                    if (set_cache_addr) begin
+                        cache_base_addr_en <= '1;
+                    end
 
-                    if (state_slot_q[current_slot].valid) begin
-                        dp_load_max = '1;
-
-                        if (acc_only) begin
-                            dp_load_denominator = '1;
+                    if (~no_operation) begin
+                        if (~state_slot_i.valid & (acc_only | div_only)) begin
+                            next_state = WAIT_SLOT_VALID;
                         end else begin
+                            casex ({div_only, acc_only})
+                                2'b00:  next_state  = ACCUMULATION;
+                                2'b01:  next_state  = ACCUMULATION;
+                                2'b1?:  next_state  = DIVIDING;
+                            endcase
+
+                            if ((acc_only | div_only) & ~acquire_slot) begin
+                                dp_load_max = '1;
+
+                                if (acc_only) begin
+                                    dp_load_denominator = '1;
+                                end else begin
+                                    dp_load_reciprocal  = '1;
+                                end
+                            end
+
+                            if (~div_only) begin
+                                in_start    = '1;
+                            end else begin
+                                out_start   = '1;
+                                in_start    = '1;
+                            end  
+                        end
+                    end else begin
+                        slave_done = '1;
+                    end
+                end
+            end
+
+            WAIT_SLOT_VALID: begin
+                if (state_slot_i.valid) begin
+                    if (~acquire_slot) begin
+                        dp_load_max = '1;
+                    end
+
+                    if (acc_only) begin
+                        next_state          = ACCUMULATION;
+                        in_start            = '1;
+
+                        if (~acquire_slot) begin
+                            dp_load_denominator = '1;
+                        end
+                    end else begin
+                        next_state          = DIVIDING;
+                        out_start           = '1;
+                        in_start            = '1;
+
+                        if (~acquire_slot) begin
                             dp_load_reciprocal  = '1;
                         end
-                    end
-                    
-                    if (~div_only) begin
-                        in_start    = '1;
-                    end else begin
-                        out_start   = '1;
-                        in_start    = '1;
                     end
                 end
             end
@@ -332,17 +343,14 @@ module sfm_ctrl #(
             end
 
             FINISHED: begin
-                dp_dividing     = '0;
-                slave_done = '1;
-                busy_o          = '0;
-                clear_regs      = '1;
+                dp_dividing = '0;
+                slave_done  = '1;
+                busy_o      = '0;
+                clear_regs  = '1;
 
-                if (acc_only) begin
+                // The slot only needs to be updated if we are accumulating or if this is the last normalisation iteration
+                if (acc_only | (div_only & last)) begin
                     state_slot_en = '1;
-                end
-
-                if (div_only & last) begin
-                    state_slot_clear = '1;
                 end
 
                 next_state      = IDLE;

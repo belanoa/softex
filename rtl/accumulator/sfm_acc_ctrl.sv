@@ -47,7 +47,9 @@ module sfm_acc_ctrl #(
             inv_fma,
             res_valid,
             fma_inv_valid,
-            first_inv_iter;
+            first_inv_iter,
+            accumulation_done,
+            inversion_done;
 
     logic   den_enable;
 
@@ -93,6 +95,8 @@ module sfm_acc_ctrl #(
     end
 
     assign flags_o.reducing     = reducing;
+    assign flags_o.acc_done     = accumulation_done;
+    assign flags_o.inv_done     = inversion_done;
 
     assign flags_o.denominator  = flags_datapath_i.denominator;
     assign flags_o.reciprocal   = flags_datapath_i.reciprocal;
@@ -126,8 +130,8 @@ module sfm_acc_ctrl #(
         fma_inv_valid           = '0;
         inv_fma                 = '0;
         first_inv_iter          = '0;
-        flags_o.acc_done        = '0;
-        flags_o.inv_done        = '0;
+        accumulation_done       = '0;
+        inversion_done          = '0;
 
         unique case (current_state)
             IDLE: begin
@@ -164,7 +168,7 @@ module sfm_acc_ctrl #(
 
                 // Once only 1 operation is in flight we can proceed
                 if (flags_datapath_i.last_op_in_flight & flags_datapath_i.fma_o_valid) begin
-                    flags_o.acc_done    = '1;
+                    accumulation_done   = '1;
                     den_enable          = '1;
 
                     if (ctrl_i.acc_only) begin
@@ -228,9 +232,9 @@ module sfm_acc_ctrl #(
             end
 
             FINISHED: begin
-                res_valid           = '1;
-                disable_ready       = '0;
-                flags_o.inv_done    = '1;
+                res_valid       = '1;
+                disable_ready   = '0;
+                inversion_done  = '1;
 
                 if (flags_datapath_i.addend_valid) begin
                     next_state = COMPUTING;

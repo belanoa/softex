@@ -26,11 +26,14 @@
 #define SFM_OUT_ADDR        SFM_REG_OFFS + 0x04
 #define SFM_TOT_LEN         SFM_REG_OFFS + 0x08
 #define SFM_COMMANDS        SFM_REG_OFFS + 0x0C
+#define SFM_CACHE_BASE_ADDR SFM_REG_OFFS + 0x10
 
-#define SFM_REQ_SLOT    0x118
 
-#define SFM_CMD_ACC_ONLY    0x00000001
-#define SFM_CMD_DIV_ONLY    0x00000002
-#define SFM_CMD_LAST        0x00000004
+#define SFM_CMD_ACC_ONLY        0x00000001
+#define SFM_CMD_DIV_ONLY        0x00000002
+#define SFM_CMD_ACQUIRE_SLOT    0x00000004
+#define SFM_CMD_LAST            0x00000008
+#define SFM_CMD_SET_CACHE_ADDR  0x00000010
+#define SFM_CMD_NO_OP           0x00000020
 
 #endif
