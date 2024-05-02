@@ -17,6 +17,8 @@ module sfm_streamer #(
     input   logic                   rst_ni              ,
     input   logic                   clear_i             ,
     input   logic                   enable_i            ,
+    input   cast_ctrl_t             in_cast_i           ,
+    input   cast_ctrl_t             out_cast_i          ,
     input   hci_streamer_ctrl_t     in_stream_ctrl_i    ,
     input   hci_streamer_ctrl_t     out_stream_ctrl_i   ,
     input   hci_streamer_ctrl_t     slot_in_ctrl_i      ,
@@ -45,6 +47,18 @@ module sfm_streamer #(
     hwpe_stream_intf_stream #(
         .DATA_WIDTH (   DATA_WIDTH  )
     ) out_stream (
+        .clk(   clk_i   )
+    );
+
+    hwpe_stream_intf_stream #(
+        .DATA_WIDTH (   DATA_WIDTH  )
+    ) in_stream_pre_cast (
+        .clk(   clk_i   )
+    );
+
+    hwpe_stream_intf_stream #(
+        .DATA_WIDTH (   DATA_WIDTH  )
+    ) out_stream_post_cast (
         .clk(   clk_i   )
     );
 
@@ -94,6 +108,14 @@ module sfm_streamer #(
 
     /*      LOAD CHANNEL      */
 
+    sfm_cast_in #(
+        .DATA_WIDTH (   DATA_WIDTH  )
+    ) i_cast_in (
+        .ctrl_i     (   in_cast_i           ),
+        .stream_i   (   in_stream_pre_cast  ),
+        .stream_o   (   in_stream_o         )
+    );
+
     sfm_streamer_strb_gen #(
         .DW (   DATA_WIDTH  )
     ) i_load_strb_gen (
@@ -102,7 +124,7 @@ module sfm_streamer #(
         .clear_i        (   clear_i             ),
         .stream_ctrl_i  (   in_stream_ctrl_i    ),
         .stream_i       (   in_stream           ),
-        .stream_o       (   in_stream_o         )
+        .stream_o       (   in_stream_pre_cast  )
     );
 
     hci_core_intf #(
@@ -189,15 +211,23 @@ module sfm_streamer #(
 
     /*      STORE CHANNEL      */
 
+    sfm_cast_out #(
+        .DATA_WIDTH (   DATA_WIDTH  )
+    ) i_cast_out (
+        .ctrl_i     (   out_cast_i              ),
+        .stream_i   (   out_stream_i            ),
+        .stream_o   (   out_stream_post_cast    )
+    );
+
     sfm_streamer_strb_gen #(
         .DW (   DATA_WIDTH  )
     ) i_store_strb_gen (
-        .clk_i          (   clk_i               ),
-        .rst_ni         (   rst_ni              ),
-        .clear_i        (   clear_i             ),
-        .stream_ctrl_i  (   out_stream_ctrl_i   ),
-        .stream_i       (   out_stream_i        ),
-        .stream_o       (   out_stream          )
+        .clk_i          (   clk_i                   ),
+        .rst_ni         (   rst_ni                  ),
+        .clear_i        (   clear_i                 ),
+        .stream_ctrl_i  (   out_stream_ctrl_i       ),
+        .stream_i       (   out_stream_post_cast    ),
+        .stream_o       (   out_stream              )
     );
 
     hci_core_intf #(

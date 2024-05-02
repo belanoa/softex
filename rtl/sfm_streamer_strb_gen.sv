@@ -27,14 +27,17 @@ module sfm_streamer_strb_gen #(
                     handshake_cnt_q;
     logic           handshake_cnt_enable;
 
-    logic [$clog2(ACTUAL_DW / 8) - 1 : 0]   length_lftovr;
+    logic [$clog2(ACTUAL_DW / 8) - 1 : 0]   length_lftovr,
+                                            stride_msk;
 
     logic   is_lftovr;
 
     logic [ACTUAL_DW / 8 - 1 : 0]   strb,
                                     final_strb;
 
-    assign length_lftovr    = stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(ACTUAL_DW / 8) - 1 : 0];
+    assign stride_msk       = stream_ctrl_i.addressgen_ctrl.d0_stride [$clog2(ACTUAL_DW / 8) - 1 : 0] + '1;
+
+    assign length_lftovr    = stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(ACTUAL_DW / 8) - 1 : 0] & stride_msk;
 
     assign is_lftovr        = |length_lftovr;
 

@@ -33,6 +33,8 @@ sources:
     - rtl/sfm_fp_vect_addmul.sv
     - rtl/sfm_streamer.sv
     - rtl/sfm_streamer_strb_gen.sv
+    - rtl/sfm_cast_in.sv
+    - rtl/sfm_cast_out.sv
     - rtl/sfm_top.sv
     - rtl/sfm_ctrl.sv
     - rtl/sfm_slot_regfile.sv

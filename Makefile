@@ -102,6 +102,12 @@ range 		?= 128
 monotonic	?= 0
 step		?= 1
 vectors		?= 1
+fixed_point	?= 0
+fx_len		?= 8
+i_int_bits	?= 4
+i_is_signed	?= 0
+o_int_bits	?= -6
+o_is_signed	?= 0
 
 # Run the simulation
 run:
@@ -155,4 +161,4 @@ golden-clean:
 
 golden: golden-clean
 	mkdir -p sw/golden-model/
-	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range) --monotonic $(monotonic) --step $(step) --vectors $(vectors)
+	$(PYTHON) golden-model/golden.py --fpformat $(fpformat) --length $(length) --range $(range) --monotonic $(monotonic) --step $(step) --vectors $(vectors) --fixed_point $(fixed_point) --fx_len $(fx_len) --i_int_bits $(i_int_bits) --i_is_signed $(i_is_signed) --o_int_bits $(o_int_bits) --o_is_signed $(o_is_signed)

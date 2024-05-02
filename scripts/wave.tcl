@@ -15,6 +15,8 @@ add wave -group wrap -group top -group streamer /sfm_tb/i_sfm_wrap/i_top/i_strea
 add wave -group wrap -group top -group streamer -group ldst_mux /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_ldst_mux/*
 add wave -group wrap -group top -group streamer -group load_strb_gen /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_load_strb_gen/*
 add wave -group wrap -group top -group streamer -group store_strb_gen /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_store_strb_gen/*
+add wave -group wrap -group top -group streamer -group input_cast /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_cast_in/*
+add wave -group wrap -group top -group streamer -group output_cast /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_cast_out/*
 
 add wave  -group wrap -group top -group ctrl /sfm_tb/i_sfm_wrap/i_top/i_ctrl/*
 add wave -group wrap -group top -group ctrl -group ctrl_slave /sfm_tb/i_sfm_wrap/i_top/i_ctrl/i_slave/*

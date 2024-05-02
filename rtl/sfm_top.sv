@@ -11,6 +11,7 @@ import sfm_pkg::*;
 
 module sfm_top #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
+    parameter int unsigned              INT_WIDTH   = INT_W         ,
     parameter int unsigned              DATA_WIDTH  = DATA_W        ,
     parameter int unsigned              N_CORES     = 8                          
 ) (
@@ -36,6 +37,9 @@ module sfm_top #(
     hci_streamer_ctrl_t     stream_out_ctrl;
     hci_streamer_ctrl_t     slot_in_ctrl;
     hci_streamer_ctrl_t     slot_out_ctrl;
+
+    cast_ctrl_t             in_cast_ctrl;
+    cast_ctrl_t             out_cast_ctrl;
 
     datapath_ctrl_t         datapath_ctrl;
     datapath_flags_t        datapath_flgs;
@@ -72,6 +76,8 @@ module sfm_top #(
         .out_stream_ctrl_o  (   stream_out_ctrl     ),
         .datapath_ctrl_o    (   datapath_ctrl       ),
         .slot_ctrl_o        (   slot_regfile_ctrl   ),
+        .in_cast_ctrl_o     (   in_cast_ctrl        ),
+        .out_cast_ctrl_o    (   out_cast_ctrl       ),
         .periph             (   periph              )
     );
 
@@ -118,7 +124,7 @@ module sfm_top #(
             out_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)] = {(WIDTH / 8){out_strb[i]}};
         end
     end
-    
+
     sfm_streamer #(
         .DATA_WIDTH (   DATA_WIDTH  )
     ) i_streamer (
@@ -130,6 +136,8 @@ module sfm_top #(
         .out_stream_ctrl_i  (   stream_out_ctrl ),
         .slot_in_ctrl_i     (   slot_in_ctrl    ), 
         .slot_out_ctrl_i    (   slot_out_ctrl   ),
+        .in_cast_i          (   in_cast_ctrl    ),
+        .out_cast_i         (   out_cast_ctrl   ),
         .in_stream_flags_o  (   stream_in_flgs  ),
         .out_stream_flags_o (   stream_out_flgs ),
         .slot_in_flags_o    (   slot_in_flgs    ),

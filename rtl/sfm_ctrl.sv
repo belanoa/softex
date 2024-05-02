@@ -16,8 +16,9 @@ module sfm_ctrl #(
     parameter int unsigned              ID_WIDTH        = 8                     ,
     parameter int unsigned              N_STATE_SLOTS   = N_CTRL_STATE_SLOTS    ,
     parameter int unsigned              DATA_WIDTH      = DATA_W - 32           ,
+    parameter int unsigned              INT_WIDTH       = INT_W                 ,
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN           ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC         
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC          
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,
@@ -33,12 +34,17 @@ module sfm_ctrl #(
     output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
     output  sfm_pkg::datapath_ctrl_t        datapath_ctrl_o     ,
     output  sfm_pkg::slot_regfile_ctrl_t    slot_ctrl_o         ,
+    output  sfm_pkg::cast_ctrl_t            in_cast_ctrl_o      ,
+    output  sfm_pkg::cast_ctrl_t            out_cast_ctrl_o     ,
 
     hwpe_ctrl_intf_periph.slave             periph
 );
 
     localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT);
     localparam int unsigned ACC_WIDTH   = fpnew_pkg::fp_width(ACC_FPFORMAT);
+
+    // The number of bits read when the input is integer
+    localparam int unsigned DATA_WIDTH_INT  = INT_WIDTH * DATA_WIDTH / IN_WIDTH > DATA_WIDTH ? DATA_WIDTH : INT_WIDTH * DATA_WIDTH / IN_WIDTH;
 
     typedef enum logic [2:0] {
         IDLE,
@@ -80,7 +86,9 @@ module sfm_ctrl #(
             last,
             set_cache_addr,
             acquire_slot,
-            no_operation;
+            no_operation,
+            cast_input,
+            cast_output;
 
     logic [31 : 0]  slot_cache_base_addr;
     logic   cache_base_addr_en;
@@ -90,9 +98,11 @@ module sfm_ctrl #(
 
     logic [16 : 0]   current_slot;
 
-    logic [$clog2(DATA_WIDTH / 8) - 1 : 0]  length_lftovr;
+    logic [$clog2(DATA_WIDTH / 8) - 1 : 0]  length_lftovr,
+                                            int_length_lftovr;
 
-    logic   lftovr_inc;
+    logic   lftovr_inc,
+            int_lftovr_inc;
 
     hwpe_ctrl_package::ctrl_regfile_t   reg_file;
     hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
@@ -139,16 +149,21 @@ module sfm_ctrl #(
         end
     end
 
-    assign length_lftovr    = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH / 8) - 1 : 0];
+    assign length_lftovr        = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH / 8) - 1 : 0];
 
-    // If the total length of the vector is not multiple of the data width we need to increse the number of loads / stores by one
-    assign lftovr_inc       = length_lftovr != '0;
+    // If the total length of the vector is not a multiple of the data width we need to increse the number of loads / stores by one
+    assign lftovr_inc           = length_lftovr != '0;
+
+    // Same as before but with integer inputs
+    assign int_length_lftovr    = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH_INT / 8) - 1 : 0];
+
+    assign int_lftovr_inc       = int_length_lftovr != '0;
 
     assign in_stream_ctrl_o.req_start                       = in_start;
     assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];
-    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = reg_file.hwpe_params [TOT_LEN];   //Not used by the address generator per se but still necessary
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = DATA_WIDTH / 8;
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = cast_input ? reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH_INT / 8) + int_length_lftovr : reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = reg_file.hwpe_params [TOT_LEN];   // Used by the strobe generator
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = cast_input ? DATA_WIDTH_INT / 8 : DATA_WIDTH / 8;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_stride       = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d2_stride       = '0;
@@ -156,9 +171,9 @@ module sfm_ctrl #(
 
     assign out_stream_ctrl_o.req_start                      = out_start;
     assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];
-    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = reg_file.hwpe_params [TOT_LEN];
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = DATA_WIDTH / 8;
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = cast_output ? reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH_INT / 8) + int_length_lftovr : reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = reg_file.hwpe_params [TOT_LEN];   // Used by the strobe generator
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = cast_output ? DATA_WIDTH_INT / 8 : DATA_WIDTH / 8;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_stride      = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d2_stride      = '0;
@@ -183,8 +198,18 @@ module sfm_ctrl #(
     assign set_cache_addr                                   = reg_file.hwpe_params [COMMANDS] [CMD_SET_CACHE_ADDR]; // Sets the base address of the state slot cache
     assign acquire_slot                                     = reg_file.hwpe_params [COMMANDS] [CMD_ACQUIRE_SLOT];   // This is the first partial iteration of a new operation
     assign no_operation                                     = reg_file.hwpe_params [COMMANDS] [CMD_NO_OP];          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation 
+    assign cast_input                                       = reg_file.hwpe_params [COMMANDS] [CMD_INT_INPUT];      // Cast the input from fixed point to floating point
+    assign cast_output                                      = reg_file.hwpe_params [COMMANDS] [CMD_INT_OUTPUT];     // Cast the output from floating point to fixed point
 
     assign current_slot                                     = reg_file.hwpe_params [COMMANDS] [31 -: 16];
+
+    assign in_cast_ctrl_o.int_bits                          = reg_file.hwpe_params [CAST_CTRL] [6 : 0];
+    assign in_cast_ctrl_o.is_signed                         = reg_file.hwpe_params [CAST_CTRL] [7];
+    assign in_cast_ctrl_o.enable                            = cast_input;
+    
+    assign out_cast_ctrl_o.int_bits                         = reg_file.hwpe_params [CAST_CTRL] [14 : 8];
+    assign out_cast_ctrl_o.is_signed                        = reg_file.hwpe_params [CAST_CTRL] [15];
+    assign out_cast_ctrl_o.enable                           = cast_output;    
 
     assign ctrl_slave.done                                  = slave_done;
     assign ctrl_slave.evt                                   = '0;

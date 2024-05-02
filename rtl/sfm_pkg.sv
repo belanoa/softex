@@ -11,7 +11,7 @@ package sfm_pkg;
     parameter int unsigned  DATA_W  = 128 + 32;
 
     parameter int unsigned  N_CTRL_CNTX         = 2;
-    parameter int unsigned  N_CTRL_REGS         = 5;
+    parameter int unsigned  N_CTRL_REGS         = 6;
     parameter int unsigned  N_CTRL_STATE_SLOTS  = 2;
 
     parameter fpnew_pkg::fp_format_e    FPFORMAT_IN     = fpnew_pkg::FP16ALT;
@@ -31,6 +31,8 @@ package sfm_pkg;
 
     localparam int unsigned WIDTH_IN    = fpnew_pkg::fp_width(FPFORMAT_IN);
     localparam int unsigned WIDTH_ACC   = fpnew_pkg::fp_width(FPFORMAT_ACC);
+
+    parameter int unsigned  INT_W       = 8;
 
     parameter int unsigned  N_ROWS  = (DATA_W - 32) / WIDTH_IN;
 
@@ -53,6 +55,7 @@ package sfm_pkg;
     parameter int unsigned  TOT_LEN         = 2;
     parameter int unsigned  COMMANDS        = 3;
     parameter int unsigned  CACHE_BASE_ADDR = 4;
+    parameter int unsigned  CAST_CTRL       = 5;
 
     parameter int unsigned  CMD_ACC_ONLY        = 0;
     parameter int unsigned  CMD_DIV_ONLY        = 1;
@@ -60,6 +63,8 @@ package sfm_pkg;
     parameter int unsigned  CMD_LAST            = 3;
     parameter int unsigned  CMD_SET_CACHE_ADDR  = 4;
     parameter int unsigned  CMD_NO_OP           = 5;
+    parameter int unsigned  CMD_INT_INPUT       = 6;
+    parameter int unsigned  CMD_INT_OUTPUT      = 7;
 
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
@@ -168,6 +173,13 @@ package sfm_pkg;
         logic                           update_valid;
         slot_update_op_t                update_op;
     } slot_regfile_ctrl_t;
+
+    typedef struct packed {
+        logic signed [6 : 0]    int_bits;
+        logic                   is_signed;
+
+        logic                   enable;
+    } cast_ctrl_t;
 
     function sfm_to_cvfpu(sfm_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;

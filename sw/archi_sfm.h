@@ -27,6 +27,7 @@
 #define SFM_TOT_LEN         SFM_REG_OFFS + 0x08
 #define SFM_COMMANDS        SFM_REG_OFFS + 0x0C
 #define SFM_CACHE_BASE_ADDR SFM_REG_OFFS + 0x10
+#define SFM_CAST_CTRL       SFM_REG_OFFS + 0x14
 
 
 #define SFM_CMD_ACC_ONLY        0x00000001
@@ -35,5 +36,7 @@
 #define SFM_CMD_LAST            0x00000008
 #define SFM_CMD_SET_CACHE_ADDR  0x00000010
 #define SFM_CMD_NO_OP           0x00000020
+#define SFM_CMD_INT_INPUT       0x00000040
+#define SFM_CMD_INT_OUTPUT      0x00000080
 
 #endif
