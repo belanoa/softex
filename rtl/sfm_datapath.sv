@@ -11,6 +11,7 @@ import hwpe_stream_package::*;
 import sfm_pkg::*;
 
 module sfm_datapath #(
+    parameter int unsigned              DATA_WIDTH          = DATA_W            ,
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = FPFORMAT_IN       ,
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC      ,
     parameter sfm_pkg::regs_config_t    REG_POS             = DEFAULT_REG_POS   ,
@@ -20,25 +21,19 @@ module sfm_datapath #(
     parameter int unsigned              MAX_REGS            = NUM_REGS_MAX      ,
     parameter int unsigned              EXP_REGS            = NUM_REGS_EXPU     ,
     parameter int unsigned              FMA_REGS_IN         = NUM_REGS_FMA_IN   ,
-    parameter int unsigned              FMA_REGS_ACC        = NUM_REGS_FMA_ACC  ,
-
-    localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT)
+    parameter int unsigned              FMA_REGS_ACC        = NUM_REGS_FMA_ACC
 ) (
-    input   logic                                           clk_i       ,
-    input   logic                                           rst_ni      ,
-    input   logic                                           clear_i     ,
-    input   logic                                           valid_i     ,
-    input   logic                                           ready_i     ,
-    input   sfm_pkg::datapath_ctrl_t                        ctrl_i      ,
-    input   logic [VECT_WIDTH - 1 : 0]                      strb_i      ,
-    input   logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   data_i      ,
-    output  logic                                           valid_o     ,
-    output  logic                                           ready_o     ,
-    output  sfm_pkg::datapath_flags_t                       flags_o     ,
-    output  logic [VECT_WIDTH - 1 : 0]                      strb_o      ,
-    output  logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   res_o   
+    input   logic                       clk_i       ,
+    input   logic                       rst_ni      ,
+    input   logic                       clear_i     ,
+    input   sfm_pkg::datapath_ctrl_t    ctrl_i      ,
+    output  sfm_pkg::datapath_flags_t   flags_o     ,
+
+    hwpe_stream_intf_stream.source      stream_i    ,
+    hwpe_stream_intf_stream.sink        stream_o
 );
 
+    localparam int unsigned IN_WIDTH        = fpnew_pkg::fp_width(IN_FPFORMAT);
     localparam int unsigned ACC_WIDTH       = fpnew_pkg::fp_width(ACC_FPFORMAT);
     localparam int unsigned VECT_SUM_DELAY  = $clog2(VECT_WIDTH) * SUM_REGS_ACC;
 
@@ -111,11 +106,18 @@ module sfm_datapath #(
     hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_d  (.clk(clk_i));
     hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_q  (.clk(clk_i));
                             
-    assign ready_o  = max_ready & delay_ready;
-    assign valid_o  = mul_valid;
+    assign stream_i.ready   = max_ready & delay_ready;
+    assign stream_o.valid   = mul_valid;
 
-    assign strb_o   = mul_strb;
-    assign res_o    = mul_res;
+    always_comb begin
+        stream_o.strb = '0;
+        stream_o.data = '0;
+
+        for (int i = 0; i < VECT_WIDTH; i++) begin
+            stream_o.strb [IN_WIDTH/8 * i +: IN_WIDTH/8]    = {(IN_WIDTH/8){mul_strb [i]}};
+            stream_o.data [IN_WIDTH * i +: IN_WIDTH]        = mul_res [i];
+        end
+    end
 
     assign flags_o.datapath_busy = |{addmul_o_busy, exp_o_busy, sum_o_busy, ~add_fifo_o_flgs.empty};
 
@@ -144,22 +146,22 @@ module sfm_datapath #(
         .NUM_REGS   (   MAX_REGS        ),
         .VECT_WIDTH (   VECT_WIDTH      )
     ) i_global_maximum (
-        .clk_i           (  clk_i                           ),
-        .rst_ni          (  rst_ni                          ),
-        .clear_i         (  clear_i | ctrl_i.clear_regs     ),
-        .enable_i        (  '1                              ),
-        .valid_i         (  valid_i & ~ctrl_i.disable_max   ),
-        .ready_i         (  max_diff_ready & diff_ready     ),
-        .operation_i     (  sfm_pkg::MAX                    ),
-        .strb_i          (  strb_i                          ),
-        .vect_i          (  data_i                          ),
-        .load_i          (  ctrl_i.max                      ),
-        .load_en_i       (  ctrl_i.load_max                 ),
-        .cur_minmax_o    (  old_max                         ),
-        .new_minmax_o    (  new_max                         ),
-        .new_flg_o       (  new_max_flag                    ),
-        .valid_o         (  max_valid                       ),
-        .ready_o         (  max_ready                       )
+        .clk_i           (  clk_i                                           ),
+        .rst_ni          (  rst_ni                                          ),
+        .clear_i         (  clear_i | ctrl_i.clear_regs                     ),
+        .enable_i        (  '1                                              ),
+        .valid_i         (  stream_i.valid & ~ctrl_i.disable_max            ),
+        .ready_i         (  max_diff_ready & diff_ready                     ),
+        .operation_i     (  sfm_pkg::MAX                                    ),
+        .strb_i          (  stream_i.strb [VECT_WIDTH - 1 : 0]              ),
+        .vect_i          (  stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0]   ),
+        .load_i          (  ctrl_i.max                                      ),
+        .load_en_i       (  ctrl_i.load_max                                 ),
+        .cur_minmax_o    (  old_max                                         ),
+        .new_minmax_o    (  new_max                                         ),
+        .new_flg_o       (  new_max_flag                                    ),
+        .valid_o         (  max_valid                                       ),
+        .ready_o         (  max_ready                                       )
     );
 
     fpnew_fma #(
@@ -207,14 +209,12 @@ module sfm_datapath #(
         .ready_i    (   fact_fifo_d.ready   ),
         .strb_i     (   '1                  ),
         .op_i       (   max_diff            ),
-        .res_o      (   scal_exp_res        ),
-        .valid_o    (   scal_exp_valid      ),
+        .res_o      (   fact_fifo_d.data    ),
+        .valid_o    (   fact_fifo_d.valid   ),
         .ready_o    (   scal_exp_ready      ),
         .strb_o     (                       )
     );
 
-    assign fact_fifo_d.valid    = scal_exp_valid;
-    assign fact_fifo_d.data     = scal_exp_res;
     assign fact_fifo_d.strb     = '1;
 
     hwpe_stream_fifo #(
@@ -236,20 +236,19 @@ module sfm_datapath #(
         .DATA_WIDTH (   IN_WIDTH    ),
         .NUM_ROWS   (   VECT_WIDTH  )
     ) i_data_delay (
-        .clk_i      (   clk_i           ),
-        .rst_ni     (   rst_ni          ),
-        .enable_i   (   '1              ),
-        .clear_i    (   clear_i         ),
-        .valid_i    (   valid_i         ),
-        .ready_i    (   diff_ready      ),
-        .data_i     (   data_i          ),
-        .strb_i     (   strb_i          ),
-        .valid_o    (   delay_valid     ),
-        .ready_o    (   delay_ready     ),
-        .data_o     (   delayed_data    ),
-        .strb_o     (   delayed_strb    )
+        .clk_i      (   clk_i                                           ),
+        .rst_ni     (   rst_ni                                          ),
+        .enable_i   (   '1                                              ),
+        .clear_i    (   clear_i                                         ),
+        .valid_i    (   stream_i.valid                                  ),
+        .ready_i    (   diff_ready                                      ),
+        .data_i     (   stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0]   ),
+        .strb_i     (   stream_i.strb [VECT_WIDTH - 1 : 0]              ),
+        .valid_o    (   delay_valid                                     ),
+        .ready_o    (   delay_ready                                     ),
+        .data_o     (   delayed_data                                    ),
+        .strb_o     (   delayed_strb                                    )
     ); 
-
 
     assign addmul_op        = fma_arb_cnt == '0 ? sfm_pkg::ADD : sfm_pkg::MUL;
 
@@ -286,7 +285,7 @@ module sfm_datapath #(
         .add_tag_o          (   addmul_o_tag                                    ),
         .mul_valid_i        (   add_fifo_q.valid                                ),
         .mul_scal_valid_i   (   cast_valid                                      ),
-        .mul_ready_i        (   ready_i                                         ),
+        .mul_ready_i        (   stream_o.ready                                  ),
         .mul_strb_i         (   add_fifo_q.strb [VECT_WIDTH - 1 : 0]            ),
         .mul_vect_i         (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
         .mul_scal_i         (   inv_cast                                        ),

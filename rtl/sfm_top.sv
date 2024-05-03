@@ -96,34 +96,18 @@ module sfm_top #(
     );
 
     sfm_datapath #(
+        .DATA_WIDTH         (   DATA_WIDTH          ),
         .IN_FPFORMAT        (   FPFORMAT            ),
         .VECT_WIDTH         (   ACTUAL_DW / WIDTH   )
     ) i_datapath (
         .clk_i      (   clk_i                                   ),
         .rst_ni     (   rst_ni                                  ),
         .clear_i    (   clear                                   ),
-        .valid_i    (   in_stream.valid                         ),
-        .ready_i    (   out_stream.ready                        ),
         .ctrl_i     (   datapath_ctrl                           ),
-        .strb_i     (   in_strb                                 ),
-        .data_i     (   in_stream.data [DATA_WIDTH - 33 : 0]    ),
-        .valid_o    (   out_stream.valid                        ),
-        .ready_o    (   in_stream.ready                         ),
         .flags_o    (   datapath_flgs                           ),
-        .strb_o     (   out_strb                                ),
-        .res_o      (   out_stream.data [DATA_WIDTH - 33 : 0]   )   
+        .stream_i   (   in_stream                               ),
+        .stream_o   (   out_stream                              )   
     );
-
-    assign out_stream.data [DATA_WIDTH - 1 -: 32] = '0;
-
-    always_comb begin : strb_assignment
-        out_stream.strb = '0;
-
-        for (int i = 0; i < ACTUAL_DW / WIDTH; i++) begin
-            in_strb [i]                                         = &in_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)];
-            out_stream.strb[(WIDTH / 8) * i + 1 -: (WIDTH / 8)] = {(WIDTH / 8){out_strb[i]}};
-        end
-    end
 
     sfm_streamer #(
         .DATA_WIDTH (   DATA_WIDTH  )
