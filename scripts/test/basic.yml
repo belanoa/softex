@@ -69,3 +69,11 @@ sfm_basic_tests:
   multi_unroll_misaligned_high_stall:
     path: .
     command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.3 TEST=sfm_multi_unroll.c
+
+  fixed_point_aligned_stall:
+    path: .
+    command: make golden sw-all run fixed_point=1 range=15 signed=0 fx_len=8 length=32768 PROB_STALL=0.01 OUTPUT_SIZE=1 TEST=sfm_fixed.c 
+
+  fixed_point_misaligned_stall:
+    path: .
+    command: make golden sw-all run fixed_point=1 range=15 signed=0 fx_len=8 length=31999 PROB_STALL=0.01 OUTPUT_SIZE=1 TEST=sfm_fixed.c 

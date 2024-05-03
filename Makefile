@@ -43,6 +43,7 @@ tb := sfm_tb
 gui      ?= 0
 
 PROB_STALL ?= 0.0
+OUTPUT_SIZE ?= 2
 
 # Include directories
 INC += -I$(SW)
@@ -114,12 +115,14 @@ run:
 ifeq ($(gui), 0)
 	$(QUESTA) vsim -c vopt_tb -do "run -a" 	\
 	-gPROB_STALL=$(PROB_STALL)				\
+	-gOUTPUT_SIZE=$(OUTPUT_SIZE)			\
 	$(sim_flags)
 else
 	$(QUESTA) vsim vopt_tb        	\
 	-do "add log -r sim:/$(tb)/*" 	\
 	-do "source $(WAVES)"         	\
 	-gPROB_STALL=$(PROB_STALL)		\
+	-gOUTPUT_SIZE=$(OUTPUT_SIZE)	\
 	$(sim_flags)
 endif
 

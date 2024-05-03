@@ -24,6 +24,7 @@ module sfm_tb;
     parameter logic [31:0]  HWPE_ADDR_BASE_BIT = 20;
     parameter string        STIM_INSTR = "./stim_instr.txt";
     parameter string        STIM_DATA  = "./stim_data.txt";
+    parameter int unsigned  OUTPUT_SIZE = 2;
 
     logic clk;
     logic rst_n;
@@ -379,7 +380,8 @@ module sfm_tb;
         pos = 0;
 
         while ($fscanf(f_golden, "%d", n) == 1) begin
-            data = ((sfm_tb.i_dummy_dmemory.memory[pos >> 1] >> (16 * pos[0])) & 'h0000FFFF);
+            //data = ((sfm_tb.i_dummy_dmemory.memory[pos >> 1] >> (16 * pos[0])) & 'h0000FFFF);
+            data = ((sfm_tb.i_dummy_dmemory.memory[pos >> $clog2(4/OUTPUT_SIZE)] >> (8 * OUTPUT_SIZE * pos[$clog2(4/OUTPUT_SIZE)-1:0])) & (2**(8*OUTPUT_SIZE)-1)/*'h000000FF*/);
 
             difference = n > data ? n - data : data - n;
 
