@@ -45,10 +45,13 @@ module sfm_tb;
     logic [MP-1:0]       tcdm_wen;
     logic [MP-1:0][3:0]  tcdm_be;
     logic [MP-1:0][31:0] tcdm_data;
+    logic [MP-1:0]       tcdm_r_ready;
+    logic [MP-1:0] [7:0] tcdm_id;
     logic [MP-1:0][31:0] tcdm_r_data;
     logic [MP-1:0]       tcdm_r_valid;
     logic                tcdm_r_opc;
     logic                tcdm_r_user;
+    logic          [7:0] tcdm_r_id;
    
     logic          periph_req;
     logic          periph_gnt;
@@ -131,23 +134,28 @@ module sfm_tb;
     end
     
     for(genvar ii=0; ii<MP; ii++) begin : tcdm_binding
-        assign tcdm[ii].req  = tcdm_req  [ii];
-        assign tcdm[ii].add  = tcdm_add  [ii];
-        assign tcdm[ii].wen  = tcdm_wen  [ii];
-        assign tcdm[ii].be   = tcdm_be   [ii];
-        assign tcdm[ii].data = tcdm_data [ii];
+        assign tcdm[ii].req     = tcdm_req     [ii];
+        assign tcdm[ii].add     = tcdm_add     [ii];
+        assign tcdm[ii].wen     = tcdm_wen     [ii];
+        assign tcdm[ii].be      = tcdm_be      [ii];
+        assign tcdm[ii].data    = tcdm_data    [ii];
+        //assign tcdm[ii].r_ready = tcdm_r_ready [ii];
+        //assign tcdm[ii].id      = tcdm_id      [ii];
         assign tcdm_gnt     [ii] = tcdm[ii].gnt;
         assign tcdm_r_data  [ii] = tcdm[ii].r_data;
         assign tcdm_r_valid [ii] = tcdm[ii].r_valid;
     end
 
-    assign tcdm[MP].req  = data_req & (data_addr[31:24] != '0) & (data_addr[31:24] != 8'h80) & ~data_addr[HWPE_ADDR_BASE_BIT];
-    assign tcdm[MP].add  = data_addr;
-    assign tcdm[MP].wen  = ~data_we;
-    assign tcdm[MP].be   = data_be;
-    assign tcdm[MP].data = data_wdata;
+    assign tcdm[MP].req     = data_req & (data_addr[31:24] != '0) & (data_addr[31:24] != 8'h80) & ~data_addr[HWPE_ADDR_BASE_BIT];
+    assign tcdm[MP].add     = data_addr;
+    assign tcdm[MP].wen     = ~data_we;
+    assign tcdm[MP].be      = data_be;
+    assign tcdm[MP].data    = data_wdata;
+    //assign tcdm[MP].r_ready = '1;
+    //assign tcdm[MP].id      = '0;
     assign tcdm_r_opc   = 0;
     assign tcdm_r_user  = 0;
+    assign tcdm_r_id    = tcdm_id [0];
     assign data_gnt    = periph_req ?
                          periph_gnt : stack[0].req ?
                                       stack[0].gnt : tcdm[MP].req ?
@@ -178,11 +186,14 @@ module sfm_tb;
         .tcdm_wen_o         ( tcdm_wen           ),
         .tcdm_be_o          ( tcdm_be            ),
         .tcdm_data_o        ( tcdm_data          ),
+        .tcdm_r_ready_o     ( tcdm_r_ready       ),
+        .tcdm_id_o          ( tcdm_id            ),
         .tcdm_gnt_i         ( tcdm_gnt           ),
         .tcdm_r_data_i      ( tcdm_r_data        ),
         .tcdm_r_valid_i     ( tcdm_r_valid       ),
         .tcdm_r_opc_i       ( tcdm_r_opc         ),
         .tcdm_r_user_i      ( tcdm_r_user        ),
+        .tcdm_r_id_i        ( tcdm_r_id          ),
         .periph_req_i       ( periph_req         ),
         .periph_gnt_o       ( periph_gnt         ),
         .periph_add_i       ( periph_add         ),

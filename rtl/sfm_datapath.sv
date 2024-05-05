@@ -40,8 +40,6 @@ module sfm_datapath #(
     logic [IN_WIDTH - 1 : 0]    old_max,
                                 new_max,
                                 max_diff,
-                                scal_exp_res,
-                                exp_delay,
                                 inv_cast;
 
     logic [ACC_WIDTH - 1 : 0]   sum_res,
@@ -58,10 +56,7 @@ module sfm_datapath #(
             max_ready,
             max_diff_valid,
             max_diff_ready,
-            scal_exp_valid,
             scal_exp_ready,
-            exp_delay_valid,
-            exp_delay_ready,
             delay_valid,
             delay_ready,
             diff_valid,

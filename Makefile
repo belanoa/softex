@@ -25,7 +25,7 @@ TEST_SRCS 	:= $(SW)/$(TEST)
 compile_script 	?= scripts/compile.tcl
 compile_flag  	?= -suppress 2583 -suppress 13314 -suppress 8386
 
-sim_flags		?= -suppress 3999
+sim_flags		?= -suppress 3999 -suppress 3009
 
 bender_defs += -D COREV_ASSERT_OFF
 

@@ -12,6 +12,10 @@ add wave -group wrap /sfm_tb/i_sfm_wrap/*
 add wave -group wrap -group top /sfm_tb/i_sfm_wrap/i_top/*
 
 add wave -group wrap -group top -group streamer /sfm_tb/i_sfm_wrap/i_top/i_streamer/*
+add wave -group wrap -group top -group streamer -group in_stream /sfm_tb/i_sfm_wrap/i_top/i_streamer/in_stream_o/*
+add wave -group wrap -group top -group streamer -group out_stream /sfm_tb/i_sfm_wrap/i_top/i_streamer/out_stream_i/*
+add wave -group wrap -group top -group streamer -group slot_in_stream /sfm_tb/i_sfm_wrap/i_top/i_streamer/slot_in_stream_o/*
+add wave -group wrap -group top -group streamer -group slot_out_stream /sfm_tb/i_sfm_wrap/i_top/i_streamer/slot_out_stream_i/*
 add wave -group wrap -group top -group streamer -group ldst_mux /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_ldst_mux/*
 add wave -group wrap -group top -group streamer -group load_strb_gen /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_load_strb_gen/*
 add wave -group wrap -group top -group streamer -group store_strb_gen /sfm_tb/i_sfm_wrap/i_top/i_streamer/i_store_strb_gen/*

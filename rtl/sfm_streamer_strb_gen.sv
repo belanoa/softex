@@ -21,23 +21,21 @@ module sfm_streamer_strb_gen #(
     hwpe_stream_intf_stream.source  stream_o    
 );
 
-    localparam int unsigned ACTUAL_DW   = DW - 32;
-
     logic [31:0]    handshake_cnt_d,
                     handshake_cnt_q;
     logic           handshake_cnt_enable;
 
-    logic [$clog2(ACTUAL_DW / 8) - 1 : 0]   length_lftovr,
+    logic [$clog2(DW / 8) - 1 : 0]   length_lftovr,
                                             stride_msk;
 
     logic   is_lftovr;
 
-    logic [ACTUAL_DW / 8 - 1 : 0]   strb,
+    logic [DW / 8 - 1 : 0]   strb,
                                     final_strb;
 
-    assign stride_msk       = stream_ctrl_i.addressgen_ctrl.d0_stride [$clog2(ACTUAL_DW / 8) - 1 : 0] + '1;
+    assign stride_msk       = stream_ctrl_i.addressgen_ctrl.d0_stride [$clog2(DW / 8) - 1 : 0] + '1;
 
-    assign length_lftovr    = stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(ACTUAL_DW / 8) - 1 : 0] & stride_msk;
+    assign length_lftovr    = stream_ctrl_i.addressgen_ctrl.d0_len [$clog2(DW / 8) - 1 : 0] & stride_msk;
 
     assign is_lftovr        = |length_lftovr;
 
@@ -50,7 +48,7 @@ module sfm_streamer_strb_gen #(
     always_comb begin
         final_strb = '1;
 
-        for (int i = 0; i < ACTUAL_DW / 8; i++) begin
+        for (int i = 0; i < DW / 8; i++) begin
             if (i >= length_lftovr) begin
                 final_strb [i] = 1'b0;
             end 
@@ -82,7 +80,7 @@ module sfm_streamer_strb_gen #(
 
     assign  stream_o.valid   = stream_i.valid;
     assign  stream_o.data    = stream_i.data;
-    assign  stream_o.strb    = {32'b0, strb};
+    assign  stream_o.strb    = strb;
 
     assign  stream_i.ready   = stream_o.ready;
     

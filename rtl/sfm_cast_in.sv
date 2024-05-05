@@ -19,8 +19,6 @@ module sfm_cast_in #(
     hwpe_stream_intf_stream.source  stream_o 
 );
 
-    localparam int unsigned ACTUAL_DW       =   DATA_WIDTH - 32;
-
     localparam int unsigned MANTISSA_BITS   = fpnew_pkg::man_bits(FPFORMAT);
     localparam int unsigned EXPONENT_BITS   = fpnew_pkg::exp_bits(FPFORMAT);
     localparam int unsigned BIAS            = fpnew_pkg::bias(FPFORMAT); 
@@ -28,7 +26,7 @@ module sfm_cast_in #(
 
     localparam int unsigned TREE_DEPTH      = $clog2(INT_WIDTH / 2); 
 
-    localparam int unsigned NUM_ROWS        = INT_WIDTH > FP_WIDTH ? ACTUAL_DW / INT_WIDTH : ACTUAL_DW / FP_WIDTH;
+    localparam int unsigned NUM_ROWS        = INT_WIDTH > FP_WIDTH ? DATA_WIDTH / INT_WIDTH : DATA_WIDTH / FP_WIDTH;
 
     logic [NUM_ROWS - 1 : 0] [INT_WIDTH - 1 : 0]    signed_data,
                                                     unsigned_data;
@@ -106,7 +104,7 @@ module sfm_cast_in #(
     assign stream_i.ready   = stream_o.ready;
 
     assign stream_o.valid   = stream_i.valid;
-    assign stream_o.data    = ctrl_i.enable ? {32'b0, {((ACTUAL_DW / FP_WIDTH - NUM_ROWS) * FP_WIDTH){1'b0}}, results} : stream_i.data;
-    assign stream_o.strb    = ctrl_i.enable ? {4'b0, {((ACTUAL_DW / FP_WIDTH - NUM_ROWS) * FP_WIDTH/8){1'b0}}, strbs} : stream_i.strb;
+    assign stream_o.data    = ctrl_i.enable ? {{((DATA_WIDTH / FP_WIDTH - NUM_ROWS) * FP_WIDTH){1'b0}}, results} : stream_i.data;
+    assign stream_o.strb    = ctrl_i.enable ? {{((DATA_WIDTH / FP_WIDTH - NUM_ROWS) * FP_WIDTH/8){1'b0}}, strbs} : stream_i.strb;
 
 endmodule
