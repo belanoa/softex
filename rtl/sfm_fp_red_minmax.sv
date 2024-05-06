@@ -85,7 +85,7 @@ module sfm_fp_red_minmax #(
         .valid_o    (               ),
         .ready_o    (               ),
         .i_data_i   (   mode_i      ),
-        .i_data_o   (   mode        ),
+        .i_data_o   (   {mode}      ),
         .o_data_i   (               ),
         .o_data_o   (               ),
         .i_strb_i   (   '1          ),
