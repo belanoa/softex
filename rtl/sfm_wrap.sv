@@ -52,7 +52,7 @@ module sfm_wrap #(
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT);
 
-    hci_core_intf #(.DW(DW),.IW(1)) tcdm (.clk(clk_i));
+    hci_core_intf #(.DW(DW),.IW(0)) tcdm (.clk(clk_i));
     hwpe_ctrl_intf_periph #(.ID_WIDTH(ID_WIDTH)) periph (.clk(clk_i));
 
     for(genvar ii=0; ii<MP; ii++) begin: gen_tcdm_binding

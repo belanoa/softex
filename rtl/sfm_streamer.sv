@@ -64,7 +64,7 @@ module sfm_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .IW (   1           )
+        .IW (   0           )
     ) ldst_tcdm [0:0] ( 
         .clk    (   clk_i   ) 
     );
@@ -79,6 +79,13 @@ module sfm_streamer #(
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
         .IW (   1           )
+    ) store_tcdm ( 
+        .clk    (   clk_i   ) 
+    );
+
+    hci_core_intf #(
+        .DW (   DATA_WIDTH  ),
+        .IW (   0           )
     ) mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
@@ -95,12 +102,12 @@ module sfm_streamer #(
     );
 
     hci_core_r_valid_filter i_tcdm_r_valid_filter (
-        .clk_i          (  clk_i        ),
-        .rst_ni         (  rst_ni       ),
-        .clear_i        (  clear_i      ),
-        .enable_i       (  1'b1         ),
-        .tcdm_target    (  ldst_tcdm [0]   ),
-        .tcdm_initiator (  tcdm    )
+        .clk_i          (  clk_i            ),
+        .rst_ni         (  rst_ni           ),
+        .clear_i        (  clear_i          ),
+        .enable_i       (  1'b1             ),
+        .tcdm_target    (  ldst_tcdm [0]    ),
+        .tcdm_initiator (  tcdm             )
     );
 
     /*      LOAD CHANNEL      */
@@ -126,7 +133,7 @@ module sfm_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .IW (   1           )
+        .IW (   0           )
     ) load_mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
@@ -221,7 +228,7 @@ module sfm_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .IW (   1           )
+        .IW (   0           )
     ) store_mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
@@ -276,12 +283,21 @@ module sfm_streamer #(
     hci_core_fifo #(
         .FIFO_DEPTH (   2   )
     ) i_store_fifo (
-        .clk_i          (  clk_i           ),
-        .rst_ni         (  rst_ni          ),
-        .clear_i        (  clear_i         ),
-        .flags_o        (                  ),
-        .tcdm_target    (  store_fifo      ),
-        .tcdm_initiator (  mux_i_tcdm [1]  )
+        .clk_i          (  clk_i        ),
+        .rst_ni         (  rst_ni       ),
+        .clear_i        (  clear_i      ),
+        .flags_o        (               ),
+        .tcdm_target    (  store_fifo   ),
+        .tcdm_initiator (  store_tcdm   )
     ); 
+    
+    hci_core_r_id_filter i_store_r_id_filter (
+        .clk_i          (   clk_i           ),
+        .rst_ni         (   rst_ni          ),
+        .clear_i        (   clear_i         ),
+        .enable_i       (   enable_i        ),
+        .tcdm_target    (   store_tcdm      ),
+        .tcdm_initiator (   mux_i_tcdm [1]  )
+    );
 
 endmodule
