@@ -9,9 +9,9 @@ import sfm_pkg::*;
 import hwpe_stream_package::*;
 
 module sfm_cast_in #(
-    parameter int unsigned                      DATA_WIDTH  = DATA_W        ,
-    parameter int unsigned                      FPFORMAT    = FPFORMAT_IN   ,
-    parameter int unsigned                      INT_WIDTH   = INT_W          
+    parameter int unsigned              DATA_WIDTH  = DATA_W        ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
+    parameter int unsigned              INT_WIDTH   = INT_W          
 ) (
     input cast_ctrl_t               ctrl_i      ,
 

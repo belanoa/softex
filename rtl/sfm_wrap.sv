@@ -10,11 +10,11 @@ import hwpe_ctrl_package::*;
 import sfm_pkg::*;
 
 module sfm_wrap #(
-    parameter int unsigned  ID_WIDTH    = 8             ,
-    parameter int unsigned  N_CORES     = 8             ,
-    parameter int unsigned  DW          = DATA_W        ,
-    parameter int unsigned  MP          = DW / 32       ,
-    parameter int unsigned  FPFORMAT    = FPFORMAT_IN   
+    parameter int unsigned              ID_WIDTH    = 8             ,
+    parameter int unsigned              N_CORES     = 8             ,
+    parameter int unsigned              DW          = DATA_W        ,
+    parameter int unsigned              MP          = DW / 32       ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   
 ) (
     // global signals
     input  logic                      clk_i               ,
