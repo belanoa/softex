@@ -33,101 +33,95 @@ module softex_streamer #(
     hwpe_stream_intf_stream.source  slot_in_stream_o    ,
     hwpe_stream_intf_stream.sink    slot_out_stream_i   ,
 
-    hci_core_intf.master            tcdm                
+    hci_core_intf.initiator         tcdm                
 );
 
     localparam int unsigned ACTUAL_DW   = DATA_WIDTH - 32;
 
     hwpe_stream_intf_stream #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+        .DATA_WIDTH (   ACTUAL_DW  )
     ) in_stream (
         .clk(   clk_i   )
     );
 
     hwpe_stream_intf_stream #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+        .DATA_WIDTH (   ACTUAL_DW  )
     ) out_stream (
         .clk(   clk_i   )
     );
 
     hwpe_stream_intf_stream #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+        .DATA_WIDTH (   ACTUAL_DW  )
     ) in_stream_pre_cast (
         .clk(   clk_i   )
     );
 
     hwpe_stream_intf_stream #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+        .DATA_WIDTH (   ACTUAL_DW  )
     ) out_stream_post_cast (
         .clk(   clk_i   )
     );
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
-    ) ldst_tcdm ( 
+        .IW (   0           )
+    ) ldst_tcdm [0:0] ( 
         .clk    (   clk_i   ) 
     );
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
+        .IW (   1           )
     ) load_tcdm ( 
         .clk    (   clk_i   ) 
     );
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
+        .IW (   1           )
+    ) store_tcdm ( 
+        .clk    (   clk_i   ) 
+    );
+
+    hci_core_intf #(
+        .DW (   DATA_WIDTH  ),
+        .IW (   0           )
     ) mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
 
-    hci_core_mux_ooo #(
-        .NB_CHAN    (   2           ),
-        .DW         (   DATA_WIDTH  ),
-        .UW         (   1           )
+    hci_core_mux_dynamic #(
+        .NB_IN_CHAN  (   2   ),
+        .NB_OUT_CHAN (   1   )
     ) i_ldst_mux (
         .clk_i              (   clk_i       ),
         .rst_ni             (   rst_ni      ),
         .clear_i            (   clear_i     ),
-        .priority_force_i   (   '0          ),
-        .priority_i         (   '0          ),
         .in                 (   mux_i_tcdm  ),
         .out                (   ldst_tcdm   )
     );
 
-    hci_core_r_valid_filter i_tcdm_filter (
-        .clk_i       (  clk_i           ),
-        .rst_ni      (  rst_ni          ),
-        .clear_i     (  clear_i         ),
-        .enable_i    (  1'b1            ),
-        .tcdm_slave  (  ldst_tcdm       ),
-        .tcdm_master (  tcdm            )
+    hci_core_r_valid_filter i_tcdm_r_valid_filter (
+        .clk_i          (  clk_i            ),
+        .rst_ni         (  rst_ni           ),
+        .clear_i        (  clear_i          ),
+        .enable_i       (  1'b1             ),
+        .tcdm_target    (  ldst_tcdm [0]    ),
+        .tcdm_initiator (  tcdm             )
     );
 
     /*      LOAD CHANNEL      */
 
-<<<<<<< HEAD:rtl/sfm_streamer.sv
-    sfm_cast_in #(
-        .DATA_WIDTH (   DATA_WIDTH  )
-=======
     softex_cast_in #(
         .DATA_WIDTH (   ACTUAL_DW  )
->>>>>>> 42e159d (Updated name):rtl/softex_streamer.sv
     ) i_cast_in (
         .ctrl_i     (   in_cast_i           ),
         .stream_i   (   in_stream_pre_cast  ),
         .stream_o   (   in_stream_o         )
     );
 
-<<<<<<< HEAD:rtl/sfm_streamer.sv
-    sfm_streamer_strb_gen #(
-        .DW (   DATA_WIDTH  )
-=======
     softex_streamer_strb_gen #(
         .DW (   ACTUAL_DW  )
->>>>>>> 42e159d (Updated name):rtl/softex_streamer.sv
     ) i_load_strb_gen (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
@@ -139,13 +133,12 @@ module softex_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
+        .IW (   0           )
     ) load_mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
 
     hci_core_source #(
-        .DATA_WIDTH             (   DATA_WIDTH  ),
         .MISALIGNED_ACCESSES    (   1           )
     ) i_stream_in (
         .clk_i          (   clk_i               ),
@@ -160,7 +153,6 @@ module softex_streamer #(
     );
 
     hci_core_source #(
-        .DATA_WIDTH             (   DATA_WIDTH  ),
         .MISALIGNED_ACCESSES    (   1           )
     ) i_slot_in (
         .clk_i          (   clk_i               ),
@@ -176,15 +168,13 @@ module softex_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
+        .IW (   1           )
     ) load_fifo (
         .clk    (   clk_i   )
     );
 
     hci_core_mux_ooo #(
-        .NB_CHAN    (   2           ),
-        .DW         (   DATA_WIDTH  ),
-        .UW         (   1           )
+        .NB_CHAN    (   2   )
     ) i_load_mux (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
@@ -196,41 +186,37 @@ module softex_streamer #(
     );
 
     hci_core_fifo #(
-        .FIFO_DEPTH (   2           ),
-        .DW         (   DATA_WIDTH  ),
-        .UW         (   1           )
+        .FIFO_DEPTH (   2   )
     ) i_load_fifo (
-        .clk_i       (  clk_i       ),
-        .rst_ni      (  rst_ni      ),
-        .clear_i     (  clear_i     ),
-        .flags_o     (              ),
-        .tcdm_slave  (  load_fifo   ),
-        .tcdm_master (  load_tcdm   )
+        .clk_i          (  clk_i        ),
+        .rst_ni         (  rst_ni       ),
+        .clear_i        (  clear_i      ),
+        .flags_o        (               ),
+        .tcdm_target    (  load_fifo    ),
+        .tcdm_initiator (  load_tcdm    )
     );
 
-    hci_core_r_user_filter #(
-        .UW (   1   )
-    ) i_load_r_user_filter (
+    hci_core_r_id_filter i_load_r_id_filter (
         .clk_i          (   clk_i           ),
         .rst_ni         (   rst_ni          ),
         .clear_i        (   clear_i         ),
         .enable_i       (   enable_i        ),
-        .tcdm_slave     (   load_tcdm       ),
-        .tcdm_master    (   mux_i_tcdm [0]  )
+        .tcdm_target    (   load_tcdm       ),
+        .tcdm_initiator (   mux_i_tcdm [0]  )
     );
 
     /*      STORE CHANNEL      */
 
-    sfm_cast_out #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+    softex_cast_out #(
+        .DATA_WIDTH (   ACTUAL_DW  )
     ) i_cast_out (
         .ctrl_i     (   out_cast_i              ),
         .stream_i   (   out_stream_i            ),
         .stream_o   (   out_stream_post_cast    )
     );
 
-    sfm_streamer_strb_gen #(
-        .DW (   DATA_WIDTH  )
+    softex_streamer_strb_gen #(
+        .DW (   ACTUAL_DW  )
     ) i_store_strb_gen (
         .clk_i          (   clk_i                   ),
         .rst_ni         (   rst_ni                  ),
@@ -242,14 +228,13 @@ module softex_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
+        .IW (   0           )
     ) store_mux_i_tcdm [1:0] (
         .clk    (   clk_i   )
     );
 
     hci_core_sink #(
-        .DATA_WIDTH             (   DATA_WIDTH  ),
-        .MISALIGNED_ACCESSES    (   1           )
+        .MISALIGNED_ACCESSES    (   1   )
     ) i_stream_out (
         .clk_i          (   clk_i                   ),
         .rst_ni         (   rst_ni                  ),
@@ -263,8 +248,7 @@ module softex_streamer #(
     );
 
     hci_core_sink #(
-        .DATA_WIDTH             (   DATA_WIDTH  ),
-        .MISALIGNED_ACCESSES    (   1           )
+        .MISALIGNED_ACCESSES    (   1   )
     ) i_slot_out (
         .clk_i          (   clk_i                   ),
         .rst_ni         (   rst_ni                  ),
@@ -279,15 +263,13 @@ module softex_streamer #(
 
     hci_core_intf #(
         .DW (   DATA_WIDTH  ),
-        .UW (   1           )
+        .IW (   1           )
     ) store_fifo (
         .clk    (   clk_i   )
     );
 
     hci_core_mux_ooo #(
-        .NB_CHAN (   2           ),
-        .DW         (   DATA_WIDTH  ),
-        .UW         (   1           )
+        .NB_CHAN (   2  )
     ) i_store_mux (
         .clk_i              (   clk_i               ),
         .rst_ni             (   rst_ni              ),
@@ -299,15 +281,23 @@ module softex_streamer #(
     );
 
     hci_core_fifo #(
-        .FIFO_DEPTH (   2           ),
-        .DW         (   DATA_WIDTH  )
+        .FIFO_DEPTH (   2   )
     ) i_store_fifo (
-        .clk_i       (  clk_i           ),
-        .rst_ni      (  rst_ni          ),
-        .clear_i     (  clear_i         ),
-        .flags_o     (                  ),
-        .tcdm_slave  (  store_fifo      ),
-        .tcdm_master (  mux_i_tcdm [1]  )
+        .clk_i          (  clk_i        ),
+        .rst_ni         (  rst_ni       ),
+        .clear_i        (  clear_i      ),
+        .flags_o        (               ),
+        .tcdm_target    (  store_fifo   ),
+        .tcdm_initiator (  store_tcdm   )
     ); 
+    
+    hci_core_r_id_filter i_store_r_id_filter (
+        .clk_i          (   clk_i           ),
+        .rst_ni         (   rst_ni          ),
+        .clear_i        (   clear_i         ),
+        .enable_i       (   enable_i        ),
+        .tcdm_target    (   store_tcdm      ),
+        .tcdm_initiator (   mux_i_tcdm [1]  )
+    );
 
 endmodule

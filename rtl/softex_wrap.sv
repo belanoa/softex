@@ -30,10 +30,13 @@ module softex_wrap #(
     output logic [      MP-1:0]       tcdm_wen_o          ,
     output logic [      MP-1:0][ 3:0] tcdm_be_o           ,
     output logic [      MP-1:0][31:0] tcdm_data_o         ,
+    output logic [      MP-1:0]       tcdm_r_ready_o      ,
+    output logic [      MP-1:0][ 7:0] tcdm_id_o           ,    
     input  logic [      MP-1:0][31:0] tcdm_r_data_i       ,
     input  logic [      MP-1:0]       tcdm_r_valid_i      ,
     input  logic                      tcdm_r_opc_i        ,
     input  logic                      tcdm_r_user_i       ,
+    input  logic               [ 7:0] tcdm_r_id_i         ,
     // periph slave port  
     input  logic                      periph_req_i        ,
     output logic                      periph_gnt_o        ,
@@ -49,15 +52,17 @@ module softex_wrap #(
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT);
 
-    hci_core_intf #(.DW(DW)) tcdm (.clk(clk_i));
+    hci_core_intf #(.DW(DW),.IW(0)) tcdm (.clk(clk_i));
     hwpe_ctrl_intf_periph #(.ID_WIDTH(ID_WIDTH)) periph (.clk(clk_i));
 
     for(genvar ii=0; ii<MP; ii++) begin: gen_tcdm_binding
-        assign tcdm_req_o  [ii] = tcdm.req;
-        assign tcdm_add_o  [ii] = tcdm.add + ii*4;
-        assign tcdm_wen_o  [ii] = tcdm.wen;
-        assign tcdm_be_o   [ii] = tcdm.be[(ii+1)*4-1:ii*4];
-        assign tcdm_data_o [ii] = tcdm.data[(ii+1)*32-1:ii*32];
+        assign tcdm_req_o       [ii] = tcdm.req;
+        assign tcdm_add_o       [ii] = tcdm.add + ii*4;
+        assign tcdm_wen_o       [ii] = tcdm.wen;
+        assign tcdm_be_o        [ii] = tcdm.be[(ii+1)*4-1:ii*4];
+        assign tcdm_data_o      [ii] = tcdm.data[(ii+1)*32-1:ii*32];
+        assign tcdm_r_ready_o   [ii] = tcdm.r_ready;
+        assign tcdm_id_o        [ii] = tcdm.id;
     end
     
     assign tcdm.gnt     = &(tcdm_gnt_i);
@@ -65,6 +70,7 @@ module softex_wrap #(
     assign tcdm.r_data  = { >> {tcdm_r_data_i} };
     assign tcdm.r_opc   = tcdm_r_opc_i;
     assign tcdm.r_user  = tcdm_r_user_i;
+    assign tcdm.r_id    = tcdm_r_id_i;
 
     always_comb begin
     /*assign*/ periph.req     = periph_req_i;

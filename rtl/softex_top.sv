@@ -21,7 +21,7 @@ module softex_top #(
     output  logic                           busy_o  ,
     output  logic [N_CORES - 1 : 0] [1 : 0] evt_o   ,
 
-    hci_core_intf.master                    tcdm    ,
+    hci_core_intf.initiator                 tcdm    ,
     hwpe_ctrl_intf_periph.slave             periph  
 );
 
@@ -48,13 +48,10 @@ module softex_top #(
 
     slot_t                  state_slot;
 
-    hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) in_stream        (.clk(clk_i));
-    hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) out_stream       (.clk(clk_i));
-    hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) slot_in_stream   (.clk(clk_i));
-    hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) slot_out_stream  (.clk(clk_i));
-
-    logic [ACTUAL_DW / WIDTH - 1 : 0]   in_strb,
-                                        out_strb;
+    hwpe_stream_intf_stream #(.DATA_WIDTH(ACTUAL_DW)) in_stream        (.clk(clk_i));
+    hwpe_stream_intf_stream #(.DATA_WIDTH(ACTUAL_DW)) out_stream       (.clk(clk_i));
+    hwpe_stream_intf_stream #(.DATA_WIDTH(ACTUAL_DW)) slot_in_stream   (.clk(clk_i));
+    hwpe_stream_intf_stream #(.DATA_WIDTH(ACTUAL_DW)) slot_out_stream  (.clk(clk_i));
 
     logic   clear;
 
@@ -81,8 +78,8 @@ module softex_top #(
         .periph             (   periph              )
     );
 
-    sfm_slot_regfile #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+    softex_slot_regfile #(
+        .DATA_WIDTH (   ACTUAL_DW  )
     ) i_slot_regfile (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
@@ -95,8 +92,8 @@ module softex_top #(
         .load_i         (   slot_in_stream      )
     );
 
-    sfm_datapath #(
-        .DATA_WIDTH         (   DATA_WIDTH          ),
+    softex_datapath #(
+        .DATA_WIDTH         (   ACTUAL_DW           ),
         .IN_FPFORMAT        (   FPFORMAT            ),
         .VECT_WIDTH         (   ACTUAL_DW / WIDTH   )
     ) i_datapath (
