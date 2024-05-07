@@ -18,7 +18,7 @@ XLEN        ?= 32
 XTEN        ?= imc
 
 BENDER		?= $(BENDER_DIR)/$(BENDER_NAME)
-TEST		?= sfm.c
+TEST		?= softex.c
 
 TEST_SRCS 	:= $(SW)/$(TEST)
 
@@ -32,13 +32,13 @@ bender_defs += -D COREV_ASSERT_OFF
 sim_targs += -t rtl
 sim_targs += -t test
 bender_targs += -t cv32e40p_exclude_tracer
-sim_targs += -t sfm_sim
+sim_targs += -t softex_sim
 
 INI_PATH  = $(mkfile_path)/modelsim.ini
 WORK_PATH = $(BUILD_DIR)
 WAVES	  = scripts/wave.tcl
 
-tb := sfm_tb
+tb := softex_tb
 
 gui      ?= 0
 

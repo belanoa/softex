@@ -118,8 +118,8 @@ for i in np.arange(0, vectors):
 
 
 with open("sw/golden-model/scores.h", "w") as file:
-    file.write("#ifndef __SFM_SCORES__\n")
-    file.write("#define __SFM_SCORES__\n\n")
+    file.write("#ifndef __SOFTEX_SCORES__\n")
+    file.write("#define __SOFTEX_SCORES__\n\n")
 
     file.write(f"#define LENGTH  {length}\n\n")
 
@@ -143,8 +143,8 @@ with open("sw/golden-model/scores.h", "w") as file:
     file.write("#endif")
 
 with open("sw/golden-model/golden.h", "w") as file:
-    file.write("#ifndef __SFM_GOLDEN__\n")
-    file.write("#define __SFM_GOLDEN__\n\n")
+    file.write("#ifndef __SOFTEX_GOLDEN__\n")
+    file.write("#define __SOFTEX_GOLDEN__\n\n")
     
     file.write("#define GOLDEN {    \\\n")
 

@@ -5,7 +5,7 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-import sfm_pkg::*;
+import softex_pkg::*;
 import fpnew_pkg::*;
 
 module expu_correction #(

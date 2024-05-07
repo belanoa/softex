@@ -5,75 +5,75 @@
 # Andrea Belano <andrea.belano@studio.unibo.it>
 #
 
-sfm_basic_tests:
+softex_basic_tests:
   basic_aligned_no_stall:
     path: .
-    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.00 TEST=sfm_basic.c
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.00 TEST=softex_basic.c
 
   basic_aligned_stall:
     path: .
-    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=sfm_basic.c
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=softex_basic.c
 
   split_aligned_stall:
     path: .
-    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=sfm_split.c
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=softex_split.c
 
   partial_aligned_stall:
     path: .
-    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=sfm.c
+    command: make golden sw-all run length=32768 range=32 PROB_STALL=0.01 TEST=softex.c
 
   basic_misaligned_stall:
     path: .
-    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=sfm_basic.c
+    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=softex_basic.c
 
   split_misaligned_stall:
     path: .
-    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=sfm_split.c
+    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=softex_split.c
 
   partial_misaligned_stall:
     path: .
-    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=sfm.c
+    command: make golden sw-all run length=32767 range=32 PROB_STALL=0.01 TEST=softex.c
 
   basic_misaligned_monotonic_stall:
     path: .
-    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=sfm_basic.c
+    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=softex_basic.c
 
   split_misaligned_monotonic_stall:
     path: .
-    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=sfm_split.c
+    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=softex_split.c
 
   partial_misaligned_monotonic_stall:
     path: .
-    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=sfm.c
+    command: make golden sw-all run length=32767 monotonic=1 step=1 PROB_STALL=0.01 TEST=softex.c
 
   basic_aligned_stall_long:
     path: .
-    command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.01 TEST=sfm_basic.c
+    command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.01 TEST=softex_basic.c
 
   basic_aligned_high_stall_long:
     path: .
-    command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.3 TEST=sfm_basic.c
+    command: make golden sw-all run length=98304 range=98304 PROB_STALL=0.3 TEST=softex_basic.c
 
   multi_aligned_stall:
     path: .
-    command: make golden sw-all run length=4096 range=32 vectors=16 PROB_STALL=0.01 TEST=sfm_multi.c
+    command: make golden sw-all run length=4096 range=32 vectors=16 PROB_STALL=0.01 TEST=softex_multi.c
 
   multi_unroll_aligned_stall:
     path: .
-    command: make golden sw-all run length=4096 range=32 vectors=16 PROB_STALL=0.01 TEST=sfm_multi_unroll.c
+    command: make golden sw-all run length=4096 range=32 vectors=16 PROB_STALL=0.01 TEST=softex_multi_unroll.c
 
   multi_unroll_misaligned_stall:
     path: .
-    command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.01 TEST=sfm_multi_unroll.c
+    command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.01 TEST=softex_multi_unroll.c
 
   multi_unroll_misaligned_high_stall:
     path: .
-    command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.3 TEST=sfm_multi_unroll.c
+    command: make golden sw-all run length=3999 range=32 vectors=16 PROB_STALL=0.3 TEST=softex_multi_unroll.c
 
   fixed_point_aligned_stall:
     path: .
-    command: make golden sw-all run fixed_point=1 range=15 signed=0 fx_len=8 length=32768 PROB_STALL=0.01 OUTPUT_SIZE=1 TEST=sfm_fixed.c 
+    command: make golden sw-all run fixed_point=1 range=15 signed=0 fx_len=8 length=32768 PROB_STALL=0.01 OUTPUT_SIZE=1 TEST=softex_fixed.c 
 
   fixed_point_misaligned_stall:
     path: .
-    command: make golden sw-all run fixed_point=1 range=15 signed=0 fx_len=8 length=31999 PROB_STALL=0.01 OUTPUT_SIZE=1 TEST=sfm_fixed.c 
+    command: make golden sw-all run fixed_point=1 range=15 signed=0 fx_len=8 length=31999 PROB_STALL=0.01 OUTPUT_SIZE=1 TEST=softex_fixed.c 

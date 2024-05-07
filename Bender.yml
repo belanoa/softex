@@ -6,7 +6,7 @@
 #
 
 package:
-  name: ez_sfm  #Provisional name
+  name: softex
 
 dependencies:
   ibex          : { git: "https://github.com/pulp-platform/ibex.git"        , rev: pulpissimo-v6.1.2    }
@@ -18,37 +18,36 @@ dependencies:
 
 sources:
   files:
-    - rtl/sfm_pkg.sv
-    - rtl/sfm_fp_red_minmax.sv
-    - rtl/sfm_fp_minmax_rec.sv
-    - rtl/sfm_fp_red_sum.sv
-    - rtl/sfm_fp_add_rec.sv
-    - rtl/sfm_pipeline.sv
-    - rtl/sfm_macros.svh
-    - rtl/sfm_delay.sv
-    - rtl/sfm_fp_glob_minmax.sv
-    - rtl/sfm_accumulator.sv
-    - rtl/sfm_datapath.sv
-    - rtl/sfm_den_inverter.sv
-    - rtl/sfm_fp_vect_addmul.sv
-    - rtl/sfm_streamer.sv
-    - rtl/sfm_streamer_strb_gen.sv
-    - rtl/sfm_cast_in.sv
-    - rtl/sfm_cast_out.sv
-    - rtl/sfm_top.sv
-    - rtl/sfm_ctrl.sv
-    - rtl/sfm_slot_regfile.sv
-    - rtl/sfm_wrap.sv
+    - rtl/softex_pkg.sv
+    - rtl/softex_fp_red_minmax.sv
+    - rtl/softex_fp_minmax_rec.sv
+    - rtl/softex_fp_red_sum.sv
+    - rtl/softex_fp_add_rec.sv
+    - rtl/softex_pipeline.sv
+    - rtl/softex_macros.svh
+    - rtl/softex_delay.sv
+    - rtl/softex_fp_glob_minmax.sv
+    - rtl/softex_datapath.sv
+    - rtl/softex_den_inverter.sv
+    - rtl/softex_fp_vect_addmul.sv
+    - rtl/softex_streamer.sv
+    - rtl/softex_streamer_strb_gen.sv
+    - rtl/softex_cast_in.sv
+    - rtl/softex_cast_out.sv
+    - rtl/softex_top.sv
+    - rtl/softex_ctrl.sv
+    - rtl/softex_slot_regfile.sv
+    - rtl/softex_wrap.sv
     - rtl/expu/expu_correction.sv
     - rtl/expu/expu_row.sv
     - rtl/expu/expu_schraudolph.sv
     - rtl/expu/expu_top.sv
-    - rtl/accumulator/sfm_acc_ctrl.sv
-    - rtl/accumulator/sfm_acc_datapath.sv
-    - rtl/accumulator/sfm_acc_top.sv
-    - rtl/accumulator/sfm_acc_den_inverter.sv
+    - rtl/accumulator/softex_acc_ctrl.sv
+    - rtl/accumulator/softex_acc_datapath.sv
+    - rtl/accumulator/softex_acc_top.sv
+    - rtl/accumulator/softex_acc_den_inverter.sv
 
-    - target: sfm_sim
+    - target: softex_sim
       files:
         - tb/tb_dummy_memory.sv
-        - tb/sfm_tb.sv
+        - tb/softex_tb.sv
