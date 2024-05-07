@@ -5,12 +5,12 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-import sfm_pkg::*;
+import softex_pkg::*;
 import fpnew_pkg::*;
 
 module expu_top #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN                   ,
-    parameter sfm_pkg::regs_config_t    REG_POS                 = DEFAULT_REG_POS               ,
+    parameter softex_pkg::regs_config_t    REG_POS                 = DEFAULT_REG_POS               ,
     parameter int unsigned              NUM_REGS                = 0                             ,
     parameter int unsigned              N_ROWS                  = 1                             ,
     parameter int unsigned              A_FRACTION              = EXPU_A_FRACTION               ,
