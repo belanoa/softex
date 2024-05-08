@@ -11,7 +11,7 @@ import softex_pkg::*;
 
 module softex_fp_glob_minmax #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN       ,
-    parameter softex_pkg::regs_config_t    REG_POS     = DEFAULT_REG_POS   ,
+    parameter softex_pkg::regs_config_t REG_POS     = DEFAULT_REG_POS   ,
     parameter int unsigned              NUM_REGS    = 0                 ,
     parameter int unsigned              VECT_WIDTH  = 1                 ,
 
@@ -23,7 +23,7 @@ module softex_fp_glob_minmax #(
     input   logic                                       enable_i        ,
     input   logic                                       valid_i         ,
     input   logic                                       ready_i         ,
-    input   softex_pkg::min_max_mode_t                     operation_i     ,
+    input   softex_pkg::min_max_mode_t                  operation_i     ,
     input   logic [VECT_WIDTH - 1 : 0]                  strb_i          ,
     input   logic [VECT_WIDTH - 1 : 0] [WIDTH - 1 : 0]  vect_i          ,
     input   logic [WIDTH - 1 : 0]                       load_i          ,

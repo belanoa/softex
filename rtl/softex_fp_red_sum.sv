@@ -13,7 +13,7 @@ import fpnew_pkg::*;
 module softex_fp_red_sum #(
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT             = FPFORMAT_IN       ,
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT            = FPFORMAT_ACC      ,
-    parameter softex_pkg::regs_config_t    REG_POS                 = DEFAULT_REG_POS   ,
+    parameter softex_pkg::regs_config_t REG_POS                 = DEFAULT_REG_POS   ,
     parameter int unsigned              NUM_REGS                = 0                 ,
     parameter int unsigned              VECT_WIDTH              = 1                 ,
     parameter type                      TAG_TYPE                = logic             ,

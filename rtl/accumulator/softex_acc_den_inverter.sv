@@ -11,7 +11,7 @@ import softex_pkg::*;
 
 module softex_acc_den_inverter #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_ACC      ,
-    parameter softex_pkg::regs_config_t    REG_POS     = softex_pkg::BEFORE   ,
+    parameter softex_pkg::regs_config_t REG_POS     = softex_pkg::BEFORE   ,
     parameter int unsigned              NUM_REGS    = NUM_REGS_INV_APPR ,
     parameter int unsigned              N_MANT_BITS = N_BITS_INV        ,
 

@@ -10,14 +10,14 @@
 import softex_pkg::*;
 
 module softex_fp_minmax_rec #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN   ,
-    parameter int unsigned              N_INP                   = 1             ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
+    parameter int unsigned              N_INP       = 1             ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
 ) (
     input   logic [N_INP - 1 : 0] [WIDTH - 1 : 0]   op_i    ,
     input   logic [N_INP - 1 : 0]                   strb_i  ,
-    input   softex_pkg::min_max_mode_t                 mode_i  ,
+    input   softex_pkg::min_max_mode_t              mode_i  ,
     output  logic [WIDTH - 1 : 0]                   res_o   ,
     output  logic                                   strb_o
 );

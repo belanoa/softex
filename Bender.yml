@@ -28,7 +28,6 @@ sources:
     - rtl/softex_delay.sv
     - rtl/softex_fp_glob_minmax.sv
     - rtl/softex_datapath.sv
-    - rtl/softex_den_inverter.sv
     - rtl/softex_fp_vect_addmul.sv
     - rtl/softex_streamer.sv
     - rtl/softex_streamer_strb_gen.sv

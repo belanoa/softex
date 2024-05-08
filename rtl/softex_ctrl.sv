@@ -25,17 +25,17 @@ module softex_ctrl #(
     input   logic                           enable_i            ,
     input   hci_streamer_flags_t            in_stream_flags_i   ,
     input   hci_streamer_flags_t            out_stream_flags_i  ,
-    input   softex_pkg::datapath_flags_t       datapath_flgs_i     ,
-    input   softex_pkg::slot_t                 state_slot_i        ,
+    input   softex_pkg::datapath_flags_t    datapath_flgs_i     ,
+    input   softex_pkg::slot_t              state_slot_i        ,
     output  logic                           clear_o             ,
     output  logic                           busy_o              ,
     output  logic [N_CORES - 1 : 0] [1 : 0] evt_o               ,
     output  hci_streamer_ctrl_t             in_stream_ctrl_o    ,
     output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
-    output  softex_pkg::datapath_ctrl_t        datapath_ctrl_o     ,
-    output  softex_pkg::slot_regfile_ctrl_t    slot_ctrl_o         ,
-    output  softex_pkg::cast_ctrl_t            in_cast_ctrl_o      ,
-    output  softex_pkg::cast_ctrl_t            out_cast_ctrl_o     ,
+    output  softex_pkg::datapath_ctrl_t     datapath_ctrl_o     ,
+    output  softex_pkg::slot_regfile_ctrl_t slot_ctrl_o         ,
+    output  softex_pkg::cast_ctrl_t         in_cast_ctrl_o      ,
+    output  softex_pkg::cast_ctrl_t         out_cast_ctrl_o     ,
 
     hwpe_ctrl_intf_periph.slave             periph
 );

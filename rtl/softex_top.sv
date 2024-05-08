@@ -93,9 +93,9 @@ module softex_top #(
     );
 
     softex_datapath #(
-        .DATA_WIDTH         (   ACTUAL_DW           ),
-        .IN_FPFORMAT        (   FPFORMAT            ),
-        .VECT_WIDTH         (   ACTUAL_DW / WIDTH   )
+        .DATA_WIDTH     (   ACTUAL_DW           ),
+        .IN_FPFORMAT    (   FPFORMAT            ),
+        .VECT_WIDTH     (   ACTUAL_DW / WIDTH   )
     ) i_datapath (
         .clk_i      (   clk_i                                   ),
         .rst_ni     (   rst_ni                                  ),
