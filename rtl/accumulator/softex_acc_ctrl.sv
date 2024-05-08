@@ -11,13 +11,13 @@ module softex_acc_ctrl #(
     parameter int unsigned  N_INV_ITERS = N_NEWTON_ITERS            ,
     parameter logic         COMB_INV    = NUM_REGS_INV_APPR == 0    
 ) (
-    input   logic                           clk_i               ,
-    input   logic                           rst_ni              ,
-    input   logic                           clear_i             ,
-    input   softex_pkg::accumulator_ctrl_t     ctrl_i              ,
-    output  softex_pkg::accumulator_flags_t    flags_o             ,
-    output  softex_pkg::acc_datapath_ctrl_t    ctrl_datapath_o     ,
-    input   softex_pkg::acc_datapath_flags_t   flags_datapath_i    
+    input   logic                               clk_i               ,
+    input   logic                               rst_ni              ,
+    input   logic                               clear_i             ,
+    input   softex_pkg::accumulator_ctrl_t      ctrl_i              ,
+    output  softex_pkg::accumulator_flags_t     flags_o             ,
+    output  softex_pkg::acc_datapath_ctrl_t     ctrl_datapath_o     ,
+    input   softex_pkg::acc_datapath_flags_t    flags_datapath_i    
 );
 
     typedef enum logic [3:0] {

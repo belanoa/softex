@@ -9,7 +9,7 @@ import softex_pkg::*;
 
 module softex_fp_vect_addmul #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN       ,
-    parameter softex_pkg::regs_config_t    REG_POS     = DEFAULT_REG_POS   ,
+    parameter softex_pkg::regs_config_t REG_POS     = DEFAULT_REG_POS   ,
     parameter int unsigned              NUM_REGS    = 0                 ,
     parameter int unsigned              VECT_WIDTH  = 1                 ,
     parameter type                      TAG_TYPE    = logic             ,
@@ -21,7 +21,7 @@ module softex_fp_vect_addmul #(
     input   logic                                       clear_i             ,
     input   logic                                       enable_i            ,
     input   fpnew_pkg::roundmode_e                      round_mode_i        ,
-    input   softex_pkg::operation_t                        operation_i         ,
+    input   softex_pkg::operation_t                     operation_i         ,
     input   logic                                       op_mod_add_i        ,
     input   logic                                       op_mod_mul_i        ,
     output  logic                                       busy_o              ,
@@ -121,7 +121,7 @@ module softex_fp_vect_addmul #(
             .FpFormat       (   FPFORMAT                ),
             .NumPipeRegs    (   NUM_REGS                ),
             .PipeConfig     (   REG_POS_CVFPU           ),
-            .TagType        (   softex_pkg::operation_t    ),
+            .TagType        (   softex_pkg::operation_t ),
             .AuxType        (   TAG_TYPE                )
         ) i_addmul_fma (
             .clk_i              (   clk_i               ),
@@ -138,8 +138,8 @@ module softex_fp_vect_addmul #(
             .in_ready_o         (   fma_readies [i]     ),
             .flush_i            (   clear_i             ),
             .result_o           (   fma_res [i]         ),
-            .status_o           (   ),
-            .extension_bit_o    (   ),
+            .status_o           (                       ),
+            .extension_bit_o    (                       ),
             .tag_o              (   o_operations [i]    ),
             .mask_o             (   fma_o_strb [i]      ),
             .aux_o              (   fma_o_auxs [i]      ),

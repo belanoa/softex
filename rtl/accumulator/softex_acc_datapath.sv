@@ -25,18 +25,18 @@ module softex_acc_datapath #(
     localparam int unsigned ADD_WIDTH   = fpnew_pkg::fp_width(ADD_FPFORMAT),
     localparam int unsigned MUL_WIDTH   = fpnew_pkg::fp_width(MUL_FPFORMAT)
 ) (
-    input   logic                           clk_i       ,
-    input   logic                           rst_ni      ,
-    input   logic                           clear_i     ,
-    input   softex_pkg::acc_datapath_ctrl_t    ctrl_i      ,
-    input   logic                           add_valid_i ,
-    input   logic [ADD_WIDTH - 1 : 0]       add_i       ,
-    input   logic                           mul_valid_i ,
-    input   logic [MUL_WIDTH - 1 : 0]       mul_i       ,
-    output  logic                           ready_o     ,
-    output  logic                           valid_o     ,
-    output  softex_pkg::acc_datapath_flags_t   flags_o     ,
-    output  logic [ACC_WIDTH - 1 : 0]       acc_o    
+    input   logic                               clk_i       ,
+    input   logic                               rst_ni      ,
+    input   logic                               clear_i     ,
+    input   softex_pkg::acc_datapath_ctrl_t     ctrl_i      ,
+    input   logic                               add_valid_i ,
+    input   logic [ADD_WIDTH - 1 : 0]           add_i       ,
+    input   logic                               mul_valid_i ,
+    input   logic [MUL_WIDTH - 1 : 0]           mul_i       ,
+    output  logic                               ready_o     ,
+    output  logic                               valid_o     ,
+    output  softex_pkg::acc_datapath_flags_t    flags_o     ,
+    output  logic [ACC_WIDTH - 1 : 0]           acc_o    
 );
 
     localparam int unsigned ZEROPAD_MUL = ACC_WIDTH - MUL_WIDTH;
@@ -201,7 +201,7 @@ module softex_acc_datapath #(
         .testmode_i (   '0              ),
         .full_o     (   addend_full     ),
         .empty_o    (   addend_empty    ),
-        .usage_o    (   ),
+        .usage_o    (                   ),
         .data_i     (   i_addend        ),
         .push_i     (   addend_push     ),    
         .data_o     (   addend          ),

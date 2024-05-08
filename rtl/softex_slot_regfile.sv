@@ -384,8 +384,6 @@ module softex_slot_regfile #(
         endcase
     end
 
-    //target_present ? target_slot_ptr : free_slot_ptr
-
     always_comb begin : slot_d_assignment
         slot_d = slots_q [target_slot_ptr];
 

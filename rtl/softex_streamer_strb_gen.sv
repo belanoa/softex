@@ -25,13 +25,13 @@ module softex_streamer_strb_gen #(
                     handshake_cnt_q;
     logic           handshake_cnt_enable;
 
-    logic [$clog2(DW / 8) - 1 : 0]   length_lftovr,
-                                            stride_msk;
+    logic [$clog2(DW / 8) - 1 : 0]  length_lftovr,
+                                    stride_msk;
 
     logic   is_lftovr;
 
-    logic [DW / 8 - 1 : 0]   strb,
-                                    final_strb;
+    logic [DW / 8 - 1 : 0]  strb,
+                            final_strb;
 
     assign stride_msk       = stream_ctrl_i.addressgen_ctrl.d0_stride [$clog2(DW / 8) - 1 : 0] + '1;
 

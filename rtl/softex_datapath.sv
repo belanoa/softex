@@ -11,26 +11,26 @@ import hwpe_stream_package::*;
 import softex_pkg::*;
 
 module softex_datapath #(
-    parameter int unsigned              DATA_WIDTH          = DATA_W            ,
-    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = FPFORMAT_IN       ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC      ,
-    parameter softex_pkg::regs_config_t    REG_POS             = DEFAULT_REG_POS   ,
-    parameter int unsigned              VECT_WIDTH          = N_ROWS            ,
-    parameter int unsigned              SUM_REGS_IN         = NUM_REGS_SUM_IN   ,
-    parameter int unsigned              SUM_REGS_ACC        = NUM_REGS_SUM_ACC  ,
-    parameter int unsigned              MAX_REGS            = NUM_REGS_MAX      ,
-    parameter int unsigned              EXP_REGS            = NUM_REGS_EXPU     ,
-    parameter int unsigned              FMA_REGS_IN         = NUM_REGS_FMA_IN   ,
-    parameter int unsigned              FMA_REGS_ACC        = NUM_REGS_FMA_ACC
+    parameter int unsigned              DATA_WIDTH      = DATA_W            ,
+    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN       ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC      ,
+    parameter softex_pkg::regs_config_t REG_POS         = DEFAULT_REG_POS   ,
+    parameter int unsigned              VECT_WIDTH      = N_ROWS            ,
+    parameter int unsigned              SUM_REGS_IN     = NUM_REGS_SUM_IN   ,
+    parameter int unsigned              SUM_REGS_ACC    = NUM_REGS_SUM_ACC  ,
+    parameter int unsigned              MAX_REGS        = NUM_REGS_MAX      ,
+    parameter int unsigned              EXP_REGS        = NUM_REGS_EXPU     ,
+    parameter int unsigned              FMA_REGS_IN     = NUM_REGS_FMA_IN   ,
+    parameter int unsigned              FMA_REGS_ACC    = NUM_REGS_FMA_ACC
 ) (
-    input   logic                       clk_i       ,
-    input   logic                       rst_ni      ,
-    input   logic                       clear_i     ,
-    input   softex_pkg::datapath_ctrl_t    ctrl_i      ,
-    output  softex_pkg::datapath_flags_t   flags_o     ,
+    input   logic                           clk_i       ,
+    input   logic                           rst_ni      ,
+    input   logic                           clear_i     ,
+    input   softex_pkg::datapath_ctrl_t     ctrl_i      ,
+    output  softex_pkg::datapath_flags_t    flags_o     ,
 
-    hwpe_stream_intf_stream.source      stream_i    ,
-    hwpe_stream_intf_stream.sink        stream_o
+    hwpe_stream_intf_stream.source          stream_i    ,
+    hwpe_stream_intf_stream.sink            stream_o
 );
 
     localparam int unsigned IN_WIDTH        = fpnew_pkg::fp_width(IN_FPFORMAT);
@@ -147,7 +147,7 @@ module softex_datapath #(
         .enable_i        (  '1                                              ),
         .valid_i         (  stream_i.valid & ~ctrl_i.disable_max            ),
         .ready_i         (  max_diff_ready & diff_ready                     ),
-        .operation_i     (  softex_pkg::MAX                                    ),
+        .operation_i     (  softex_pkg::MAX                                 ),
         .strb_i          (  stream_i.strb [VECT_WIDTH - 1 : 0]              ),
         .vect_i          (  stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0]   ),
         .load_i          (  ctrl_i.max                                      ),
@@ -191,10 +191,10 @@ module softex_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT               (   IN_FPFORMAT ),
-        .REG_POS                (   REG_POS     ),
-        .NUM_REGS               (   EXP_REGS    ),
-        .N_ROWS                 (   1           )
+        .FPFORMAT   (   IN_FPFORMAT ),
+        .REG_POS    (   REG_POS     ),
+        .NUM_REGS   (   EXP_REGS    ),
+        .N_ROWS     (   1           )
     ) i_scal_exp (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
