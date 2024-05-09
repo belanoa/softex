@@ -108,26 +108,16 @@ module softex_streamer #(
 
     /*      LOAD CHANNEL      */
 
-<<<<<<< HEAD:rtl/sfm_streamer.sv
-    sfm_cast_in #(
-        .DATA_WIDTH (   DATA_WIDTH  )
-=======
     softex_cast_in #(
-        .DATA_WIDTH (   ACTUAL_DW  )
->>>>>>> 42e159d (Updated name):rtl/softex_streamer.sv
+        .DATA_WIDTH (   DATA_WIDTH  )
     ) i_cast_in (
         .ctrl_i     (   in_cast_i           ),
         .stream_i   (   in_stream_pre_cast  ),
         .stream_o   (   in_stream_o         )
     );
 
-<<<<<<< HEAD:rtl/sfm_streamer.sv
-    sfm_streamer_strb_gen #(
-        .DW (   DATA_WIDTH  )
-=======
     softex_streamer_strb_gen #(
-        .DW (   ACTUAL_DW  )
->>>>>>> 42e159d (Updated name):rtl/softex_streamer.sv
+        .DW (   DATA_WIDTH  )
     ) i_load_strb_gen (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
@@ -221,7 +211,7 @@ module softex_streamer #(
 
     /*      STORE CHANNEL      */
 
-    sfm_cast_out #(
+    softex_cast_out #(
         .DATA_WIDTH (   DATA_WIDTH  )
     ) i_cast_out (
         .ctrl_i     (   out_cast_i              ),
@@ -229,7 +219,7 @@ module softex_streamer #(
         .stream_o   (   out_stream_post_cast    )
     );
 
-    sfm_streamer_strb_gen #(
+    softex_streamer_strb_gen #(
         .DW (   DATA_WIDTH  )
     ) i_store_strb_gen (
         .clk_i          (   clk_i                   ),

@@ -81,7 +81,7 @@ module softex_top #(
         .periph             (   periph              )
     );
 
-    sfm_slot_regfile #(
+    softex_slot_regfile #(
         .DATA_WIDTH (   DATA_WIDTH  )
     ) i_slot_regfile (
         .clk_i          (   clk_i               ),
@@ -95,7 +95,7 @@ module softex_top #(
         .load_i         (   slot_in_stream      )
     );
 
-    sfm_datapath #(
+    softex_datapath #(
         .DATA_WIDTH         (   DATA_WIDTH          ),
         .IN_FPFORMAT        (   FPFORMAT            ),
         .VECT_WIDTH         (   ACTUAL_DW / WIDTH   )
