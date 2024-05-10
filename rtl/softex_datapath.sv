@@ -196,18 +196,21 @@ module softex_datapath #(
         .NUM_REGS   (   EXP_REGS    ),
         .N_ROWS     (   1           )
     ) i_scal_exp (
-        .clk_i      (   clk_i               ),
+        .clk_i      (   clk_i               ),  
         .rst_ni     (   rst_ni              ),
         .clear_i    (   clear_i             ),
-        .enable_i   (   '1                  ),
+        .enable_i   (   '1                  ),      
         .valid_i    (   max_diff_valid      ),
         .ready_i    (   fact_fifo_d.ready   ),
         .strb_i     (   '1                  ),
         .op_i       (   max_diff            ),
+        .tag_i      (   '0                  ),
         .res_o      (   fact_fifo_d.data    ),
         .valid_o    (   fact_fifo_d.valid   ),
         .ready_o    (   scal_exp_ready      ),
-        .strb_o     (                       )
+        .strb_o     (                       ),
+        .tag_o      (                       ),
+        .busy_o     (                       )
     );
 
     assign fact_fifo_d.strb     = '1;
@@ -284,10 +287,12 @@ module softex_datapath #(
         .mul_strb_i         (   add_fifo_q.strb [VECT_WIDTH - 1 : 0]            ),
         .mul_vect_i         (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
         .mul_scal_i         (   inv_cast                                        ),
+        .mul_tag_i          (   '0                                              ),
         .mul_valid_o        (   mul_valid                                       ),
         .mul_ready_o        (   mul_ready                                       ),
         .mul_strb_o         (   mul_strb                                        ),
-        .mul_res_o          (   mul_res                                         )       
+        .mul_res_o          (   mul_res                                         ),
+        .mul_tag_o          (                                                   )
     );
 
     expu_top #(
