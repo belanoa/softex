@@ -55,35 +55,107 @@ module softex_wrap #(
     hci_core_intf #(.DW(DW),.IW(0)) tcdm (.clk(clk_i));
     hwpe_ctrl_intf_periph #(.ID_WIDTH(ID_WIDTH)) periph (.clk(clk_i));
 
-    for(genvar ii=0; ii<MP; ii++) begin: gen_tcdm_binding
-        assign tcdm_req_o       [ii] = tcdm.req;
-        assign tcdm_add_o       [ii] = tcdm.add + ii*4;
-        assign tcdm_wen_o       [ii] = tcdm.wen;
-        assign tcdm_be_o        [ii] = tcdm.be[(ii+1)*4-1:ii*4];
-        assign tcdm_data_o      [ii] = tcdm.data[(ii+1)*32-1:ii*32];
-        assign tcdm_r_ready_o   [ii] = tcdm.r_ready;
-        assign tcdm_id_o        [ii] = tcdm.id;
-    end
-    
-    assign tcdm.gnt     = &(tcdm_gnt_i);
-    assign tcdm.r_valid = &(tcdm_r_valid_i);
-    assign tcdm.r_data  = { >> {tcdm_r_data_i} };
-    assign tcdm.r_opc   = tcdm_r_opc_i;
-    assign tcdm.r_user  = tcdm_r_user_i;
-    assign tcdm.r_id    = tcdm_r_id_i;
+    `ifndef SYNTHESIS
+        for(genvar ii=0; ii<MP; ii++) begin: gen_tcdm_binding
+            assign tcdm_req_o       [ii] = tcdm.req;
+            assign tcdm_add_o       [ii] = tcdm.add + ii*4;
+            assign tcdm_wen_o       [ii] = tcdm.wen;
+            assign tcdm_be_o        [ii] = tcdm.be[(ii+1)*4-1:ii*4];
+            assign tcdm_data_o      [ii] = tcdm.data[(ii+1)*32-1:ii*32];
+            assign tcdm_r_ready_o   [ii] = tcdm.r_ready;
+            assign tcdm_id_o        [ii] = tcdm.id;
+        end
 
-    always_comb begin
-    /*assign*/ periph.req     = periph_req_i;
-    /*assign*/ periph.add     = periph_add_i;
-    /*assign*/ periph.wen     = periph_wen_i;
-    /*assign*/ periph.be      = periph_be_i;
-    /*assign*/ periph.data    = periph_data_i;
-    /*assign*/ periph.id      = periph_id_i;
-    /*assign*/ periph_gnt_o     = periph.gnt;
-    /*assign*/ periph_r_data_o  = periph.r_data;
-    /*assign*/ periph_r_valid_o = periph.r_valid;
-    /*assign*/ periph_r_id_o    = periph.r_id;
-    end
+        assign tcdm.gnt     = &(tcdm_gnt_i);
+        assign tcdm.r_valid = &(tcdm_r_valid_i);
+        assign tcdm.r_data  = { >> {tcdm_r_data_i} };
+        assign tcdm.r_opc   = tcdm_r_opc_i;
+        assign tcdm.r_user  = tcdm_r_user_i;
+        assign tcdm.r_id    = tcdm_r_id_i;
+
+        assign periph.req       = periph_req_i;
+        assign periph.add       = periph_add_i;
+        assign periph.wen       = periph_wen_i;
+        assign periph.be        = periph_be_i;
+        assign periph.data      = periph_data_i;
+        assign periph.id        = periph_id_i;
+        assign periph_gnt_o     = periph.gnt;
+        assign periph_r_data_o  = periph.r_data;
+        assign periph_r_valid_o = periph.r_valid;
+        assign periph_r_id_o    = periph.r_id;
+    `else
+        always_ff @(posedge clk_i, negedge rst_ni) begin
+            if (~rst_ni) begin
+                // TCDM port
+                for (int ii = 0; ii < MP; ii++) begin
+                    tcdm_req_o      [ii] <= '0;
+                    tcdm_add_o      [ii] <= '0;
+                    tcdm_wen_o      [ii] <= '0;
+                    tcdm_be_o       [ii] <= '0;
+                    tcdm_data_o     [ii] <= '0;
+                    tcdm_r_ready_o  [ii] <= '0;
+                    tcdm_id_o       [ii] <= '0;
+                end
+
+                tcdm.gnt     <= '0;
+                tcdm.r_valid <= '0;
+                tcdm.r_data  <= '0;
+                tcdm.r_opc   <= '0;
+                tcdm.r_user  <= '0;
+                tcdm.r_id    <= '0;
+
+                // Control port
+                periph.req     <= '0;
+                periph.add     <= '0;
+                periph.wen     <= '0;
+                periph.be      <= '0;
+                periph.data    <= '0;
+                periph.id      <= '0;
+                periph_gnt_o     <= '0;
+                periph_r_data_o  <= '0;
+                periph_r_valid_o <= '0;
+                periph_r_id_o    <= '0;
+
+                // Other
+                busy_o           <= '0;
+                evt_o            <= '0;
+            end else begin
+                // TCDM port
+                for (int ii = 0; ii < MP; ii++) begin
+                    tcdm_req_o       [ii] <= tcdm.req;
+                    tcdm_add_o       [ii] <= tcdm.add + ii*4;
+                    tcdm_wen_o       [ii] <= tcdm.wen;
+                    tcdm_be_o        [ii] <= tcdm.be[ii*4+:4];
+                    tcdm_data_o      [ii] <= tcdm.data[ii*32+:32];
+                    tcdm_r_ready_o   [ii] <= tcdm.r_ready;
+                    tcdm_id_o        [ii] <= tcdm.id;
+                end
+
+                tcdm.gnt     <= &(tcdm_gnt_i);
+                tcdm.r_valid <= &(tcdm_r_valid_i);
+                tcdm.r_data  <= { >> {tcdm_r_data_i} };
+                tcdm.r_opc   <= tcdm_r_opc_i;
+                tcdm.r_user  <= tcdm_r_user_i;
+                tcdm.r_id    <= tcdm_r_id_i;
+
+                // Control port
+                periph.req     <= periph_req_i;
+                periph.add     <= periph_add_i;
+                periph.wen     <= periph_wen_i;
+                periph.be      <= periph_be_i;
+                periph.data    <= periph_data_i;
+                periph.id      <= periph_id_i;
+                periph_gnt_o     <= periph.gnt;
+                periph_r_data_o  <= periph.r_data;
+                periph_r_valid_o <= periph.r_valid;
+                periph_r_id_o    <= periph.r_id;
+                
+                // Other
+                busy_o           <= busy;
+                evt_o            <= evt;
+            end
+        end
+    `endif
 
     softex_top #(
         .FPFORMAT   (   FPFORMAT    ),
