@@ -8,8 +8,6 @@
 mkfile_path := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 SW          ?= $(mkfile_path)sw
 BUILD_DIR  	?= $(mkfile_path)/work
-BENDER_DIR	?= .
-BENDER_NAME	?= bender
 QUESTA      ?= #questa-2020.1
 PYTHON		?= python
 ISA         ?= riscv
@@ -17,12 +15,13 @@ ARCH        ?= rv
 XLEN        ?= 32
 XTEN        ?= imc
 
-BENDER		?= $(BENDER_DIR)/$(BENDER_NAME)
+BENDER		?= $(mkfile_path)/bender
 TEST		?= softex.c
 
 TEST_SRCS 	:= $(SW)/$(TEST)
 
-compile_script 	?= scripts/compile.tcl
+compile_script 	?= $(mkfile_path)scripts/compile.tcl
+compile_script_synth ?= $(mkfile_path)scripts/synth_compile.tcl
 compile_flag  	?= -suppress 2583 -suppress 13314 -suppress 8386
 
 sim_flags		?= -suppress 3009
@@ -138,6 +137,13 @@ update-ips:
 	$(bender_targs) $(bender_defs) \
 	$(sim_targs)    $(sim_deps)    \
 	> ${compile_script}
+
+synth-ips:
+	$(BENDER) update			
+	$(BENDER) script synopsys      \
+	$(common_targs) $(common_defs) \
+	$(synth_targs) $(synth_defs)   \
+	> ${compile_script_synth}
 
 hw-opt:
 	$(QUESTA) vopt +acc=npr -o vopt_tb $(tb) -floatparameters+$(tb) -work $(BUILD_DIR)

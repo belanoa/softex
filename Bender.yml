@@ -14,7 +14,7 @@ dependencies:
   common_cells  : { git: "git@github.com:pulp-platform/common_cells.git"    , rev: "v1.32.0"            } 
   hci           : { git: "https://github.com/pulp-platform/hci.git"         , rev: "v1.1"               }
   hwpe-stream   : { git: "https://github.com/pulp-platform/hwpe-stream.git" , version: 1.7              }
-  hwpe-ctrl     : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"   , rev: "v1.7.3"             }
+  hwpe-ctrl     : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"   , rev: "2926867"            } # branch: master
 
 sources:
   files:
