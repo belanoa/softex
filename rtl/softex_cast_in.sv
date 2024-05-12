@@ -83,7 +83,7 @@ module softex_cast_in #(
 
     for (genvar i = 0; i < NUM_ROWS; i++) begin : assign_mantissae
         if (INT_WIDTH >= MANTISSA_BITS) begin
-            assign mantissae [i] = {(unsigned_data [i] << (leading_zeros [TREE_DEPTH] [i] + 1))} [INT_WIDTH - 1 -: MANTISSA_BITS];
+            assign mantissae [i] = {(unsigned_data [i] << (leading_zeros [TREE_DEPTH] [i] + 1))} >> (INT_WIDTH - MANTISSA_BITS);
         end else begin
             assign mantissae [i] = {{(unsigned_data [i] << (leading_zeros [TREE_DEPTH] [i] + 1))}, {(MANTISSA_BITS - INT_WIDTH){1'b0}}};
         end

@@ -27,5 +27,3 @@
 `define NEG_INFTY(FPFORMAT) {1'b1, {fpnew_pkg::exp_bits(FPFORMAT){1'b1}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
 
 `define FP_TWO(FPFORMAT) {1'b0, {1'b1, {(fpnew_pkg::exp_bits(FPFORMAT) - 1){1'b0}}}, {fpnew_pkg::man_bits(FPFORMAT){1'b0}}}
-
-`define FMT_TO_CONF(FPFORMAT1, FPFORMAT2) {<<{{{2**FPFORMAT1} | {2**FPFORMAT2}}[fpnew_pkg::NUM_FP_FORMATS - 1 : 0]}}

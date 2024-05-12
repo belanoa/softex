@@ -5,8 +5,6 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-`include "softex_macros.svh"
-
 import hwpe_stream_package::*;
 import softex_pkg::*;
 
@@ -387,12 +385,12 @@ module softex_datapath #(
     );
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   `FMT_TO_CONF(ACC_FPFORMAT, IN_FPFORMAT) ),
-        .IntFmtConfig   (   '0                                      ),
-        .NumPipeRegs    (   0                                       ),
-        .PipeConfig     (   fpnew_pkg::BEFORE                       ),
-        .TagType        (   logic                                   ),
-        .AuxType        (   logic                                   )
+        .FpFmtConfig    (   softex_pkg::fmt_to_conf(ACC_FPFORMAT, IN_FPFORMAT)  ),
+        .IntFmtConfig   (   '0                                                  ),
+        .NumPipeRegs    (   0                                                   ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+        .TagType        (   logic                                               ),
+        .AuxType        (   logic                                               )
     ) i_inv_cast (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),

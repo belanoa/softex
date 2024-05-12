@@ -37,17 +37,21 @@ package softex_pkg;
     parameter int unsigned  N_ROWS  = (DATA_W - 32) / WIDTH_IN;
 
     //Exponential unit constants
-    parameter int unsigned  EXPU_A_FRACTION              = 14;
-    parameter logic         EXPU_ENABLE_ROUNDING         = 1;
-    parameter logic         EXPU_ENABLE_MANT_CORRECTION  = 1;
-    parameter int unsigned  EXPU_COEFFICIENT_FRACTION    = 4;
-    parameter int unsigned  EXPU_CONSTANT_FRACTION       = 7;
-    parameter int unsigned  EXPU_MUL_SURPLUS_BITS        = 1;
-    parameter int unsigned  EXPU_NOT_SURPLUS_BITS        = 0;
-    parameter real          EXPU_ALPHA_REAL              = 0.24609375;
-    parameter real          EXPU_BETA_REAL               = 0.41015625;
-    parameter real          EXPU_GAMMA_1_REAL            = 2.8359375;
-    parameter real          EXPU_GAMMA_2_REAL            = 2.16796875;
+    parameter int unsigned  EXPU_A_FRACTION             = 14;
+    parameter logic         EXPU_ENABLE_ROUNDING        = 1;
+    parameter logic         EXPU_ENABLE_MANT_CORRECTION = 1;
+    parameter int unsigned  EXPU_COEFFICIENT_FRACTION   = 4;
+    parameter int unsigned  EXPU_CONSTANT_FRACTION      = 7;
+    parameter int unsigned  EXPU_MUL_SURPLUS_BITS       = 1;
+    parameter int unsigned  EXPU_NOT_SURPLUS_BITS       = 0;
+    parameter real          EXPU_ALPHA_REAL             = 0.24609375;
+    parameter real          EXPU_BETA_REAL              = 0.41015625;
+    parameter real          EXPU_GAMMA_1_REAL           = 2.8359375;
+    parameter real          EXPU_GAMMA_2_REAL           = 2.16796875;
+    parameter int unsigned  EXPU_ALPHA_FIXED            = int'(EXPU_ALPHA_REAL * 2 ** EXPU_COEFFICIENT_FRACTION);
+    parameter int unsigned  EXPU_BETA_FIXED             = int'(EXPU_BETA_REAL * 2 ** EXPU_COEFFICIENT_FRACTION);
+    parameter int unsigned  EXPU_GAMMA_1_FIXED          = int'(EXPU_GAMMA_1_REAL * 2 ** EXPU_CONSTANT_FRACTION);
+    parameter int unsigned  EXPU_GAMMA_2_FIXED          = int'(EXPU_GAMMA_2_REAL * 2 ** EXPU_CONSTANT_FRACTION);
 
     //Register file indexes
     parameter int unsigned  IN_ADDR         = 0;
@@ -181,7 +185,7 @@ package softex_pkg;
         logic                   enable;
     } cast_ctrl_t;
 
-    function softex_to_cvfpu(softex_pkg::regs_config_t arg);
+    function automatic softex_to_cvfpu(softex_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;
 
         unique case (arg)
@@ -189,6 +193,14 @@ package softex_pkg;
             softex_pkg::AFTER  :   res = fpnew_pkg::AFTER;
             softex_pkg::AROUND :   res = fpnew_pkg::DISTRIBUTED;
         endcase
+
+        return res;
+    endfunction
+
+    function automatic fmt_to_conf(int unsigned fpformat1, int unsigned fpformat2);
+        int unsigned tmp = {{2**fpformat1} | {2**fpformat2}};
+
+        int unsigned res = {<<{tmp [fpnew_pkg::NUM_FP_FORMATS - 1 : 0]}};
 
         return res;
     endfunction

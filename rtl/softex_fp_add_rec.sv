@@ -5,8 +5,6 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-`include "softex_macros.svh"
-
 import softex_pkg::*;
 
 module softex_fp_add_rec #(
