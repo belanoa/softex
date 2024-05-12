@@ -5,8 +5,6 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-`include "softex_macros.svh"
-
 import softex_pkg::*;
 import fpnew_pkg::*;
 
@@ -46,12 +44,12 @@ module softex_fp_red_sum #(
 
     for (genvar i = 0; i < VECT_WIDTH; i++) begin : input_cast
         fpnew_cast_multi #(
-            .FpFmtConfig    (   `FMT_TO_CONF(IN_FPFORMAT, ACC_FPFORMAT) ),
-            .IntFmtConfig   (   '0                                      ),
-            .NumPipeRegs    (   0                                       ),
-            .PipeConfig     (   fpnew_pkg::BEFORE                       ),
-            .TagType        (   logic                                   ),
-            .AuxType        (   logic                                   )
+            .FpFmtConfig    (   softex_pkg::fmt_to_conf(IN_FPFORMAT, ACC_FPFORMAT)  ),
+            .IntFmtConfig   (   '0                                                  ),
+            .NumPipeRegs    (   0                                                   ),
+            .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+            .TagType        (   logic                                               ),
+            .AuxType        (   logic                                               )
         ) i_vect_cast (
             .clk_i              (   clk_i                           ),
             .rst_ni             (   rst_ni                          ),

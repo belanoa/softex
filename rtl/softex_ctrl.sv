@@ -252,7 +252,7 @@ module softex_ctrl #(
 
                 if (flgs_slave.start) begin
                     if (set_cache_addr) begin
-                        cache_base_addr_en <= '1;
+                        cache_base_addr_en = '1;
                     end
 
                     if (~no_operation) begin

@@ -52,6 +52,9 @@ module softex_wrap #(
     hci_core_intf #(.DW(DW)) tcdm (.clk(clk_i));
     hwpe_ctrl_intf_periph #(.ID_WIDTH(ID_WIDTH)) periph (.clk(clk_i));
 
+    logic busy;
+    logic [N_CORES-1:0][1:0] evt;
+
     `ifndef SYNTHESIS
         for(genvar ii=0; ii<MP; ii++) begin: gen_tcdm_binding
             assign tcdm_req_o       [ii] = tcdm.req;
@@ -77,6 +80,9 @@ module softex_wrap #(
         assign periph_r_data_o  = periph.r_data;
         assign periph_r_valid_o = periph.r_valid;
         assign periph_r_id_o    = periph.r_id;
+
+        assign busy_o   = busy;
+        assign evt_o    = evt;
     `else
         always_ff @(posedge clk_i, negedge rst_ni) begin
             if (~rst_ni) begin
@@ -153,8 +159,8 @@ module softex_wrap #(
     ) i_top (
         .clk_i  (   clk_i   ),
         .rst_ni (   rst_ni  ),
-        .busy_o (   busy_o  ),
-        .evt_o  (   evt_o   ),
+        .busy_o (   busy    ),
+        .evt_o  (   evt     ),
         .tcdm   (   tcdm    ),
         .periph (   periph  ) 
     );

@@ -259,12 +259,12 @@ module softex_acc_datapath #(
     end
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   `FMT_TO_CONF(MUL_FPFORMAT, ACC_FPFORMAT)    ),
-        .IntFmtConfig   (   '0                                          ),
-        .NumPipeRegs    (   0                                           ),
-        .PipeConfig     (   fpnew_pkg::BEFORE                           ),
-        .TagType        (   logic                                       ),
-        .AuxType        (   logic                                       )
+        .FpFmtConfig    (   softex_pkg::fmt_to_conf(MUL_FPFORMAT, ACC_FPFORMAT) ),
+        .IntFmtConfig   (   '0                                                  ),
+        .NumPipeRegs    (   0                                                   ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+        .TagType        (   logic                                               ),
+        .AuxType        (   logic                                               )
     ) i_factor_cast (
         .clk_i              (   clk_i                               ),
         .rst_ni             (   rst_ni                              ),
@@ -314,12 +314,12 @@ module softex_acc_datapath #(
     assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
 
     fpnew_cast_multi #(
-        .FpFmtConfig    (   `FMT_TO_CONF(ADD_FPFORMAT, ACC_FPFORMAT)    ),
-        .IntFmtConfig   (   '0                                          ),
-        .NumPipeRegs    (   0                                           ),
-        .PipeConfig     (   fpnew_pkg::BEFORE                           ),
-        .TagType        (   logic                                       ),
-        .AuxType        (   logic                                       )
+        .FpFmtConfig    (   softex_pkg::fmt_to_conf(ADD_FPFORMAT, ACC_FPFORMAT) ),
+        .IntFmtConfig   (   '0                                                  ),
+        .NumPipeRegs    (   0                                                   ),
+        .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+        .TagType        (   logic                                               ),
+        .AuxType        (   logic                                               )
     ) i_addend_cast (
         .clk_i              (   clk_i                                       ),
         .rst_ni             (   rst_ni                                      ),

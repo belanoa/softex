@@ -66,7 +66,7 @@ module softex_cast_out #(
     always_comb begin : results_assignment
         for (int i = 0; i < NUM_ROWS; i++) begin
             if (ctrl_i.is_signed & ovrf [i]) begin
-                results [i] = {1'b0, shifted_mantissae [i] [SHIFTED_LENGTH - 2 : 1]} [SHIFTED_LENGTH - 1 -: INT_WIDTH];
+                results [i] = {1'b0, shifted_mantissae [i] [SHIFTED_LENGTH - 2 : 1]} >> (SHIFTED_LENGTH - INT_WIDTH);
             end else begin
                 results [i] = shifted_mantissae [i] [SHIFTED_LENGTH - 1 -: INT_WIDTH] + shifted_mantissae [i] [SHIFTED_LENGTH - INT_WIDTH - 1];
             end

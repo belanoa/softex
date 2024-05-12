@@ -20,10 +20,10 @@ module expu_top #(
     parameter int unsigned              CONSTANT_FRACTION       = EXPU_CONSTANT_FRACTION        ,
     parameter int unsigned              MUL_SURPLUS_BITS        = EXPU_MUL_SURPLUS_BITS         ,
     parameter int unsigned              NOT_SURPLUS_BITS        = EXPU_NOT_SURPLUS_BITS         ,
-    parameter real                      ALPHA_REAL              = EXPU_ALPHA_REAL               ,
-    parameter real                      BETA_REAL               = EXPU_BETA_REAL                ,
-    parameter real                      GAMMA_1_REAL            = EXPU_GAMMA_1_REAL             ,
-    parameter real                      GAMMA_2_REAL            = EXPU_GAMMA_2_REAL             ,
+    parameter int unsigned              ALPHA_FIXED             = EXPU_ALPHA_FIXED              ,
+    parameter int unsigned              BETA_FIXED              = EXPU_BETA_FIXED               ,
+    parameter int unsigned              GAMMA_1_FIXED           = EXPU_GAMMA_1_FIXED            ,
+    parameter int unsigned              GAMMA_2_FIXED           = EXPU_GAMMA_2_FIXED            ,
     parameter type                      TAG_TYPE                = logic                         ,
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT)
@@ -78,10 +78,10 @@ module expu_top #(
                 .CONSTANT_FRACTION      (   CONSTANT_FRACTION       ),
                 .MUL_SURPLUS_BITS       (   MUL_SURPLUS_BITS        ),
                 .NOT_SURPLUS_BITS       (   NOT_SURPLUS_BITS        ),
-                .ALPHA_REAL             (   ALPHA_REAL              ),
-                .BETA_REAL              (   BETA_REAL               ),
-                .GAMMA_1_REAL           (   GAMMA_1_REAL            ),
-                .GAMMA_2_REAL           (   GAMMA_2_REAL            )
+                .ALPHA_FIXED            (   ALPHA_FIXED             ),
+                .BETA_FIXED             (   BETA_FIXED              ),
+                .GAMMA_1_FIXED          (   GAMMA_1_FIXED           ),
+                .GAMMA_2_FIXED          (   GAMMA_2_FIXED           )
             ) i_expu_row (
                 .clk_i      (   clk_i           ),
                 .rst_ni     (   rst_ni          ),
