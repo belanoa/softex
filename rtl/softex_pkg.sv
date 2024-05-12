@@ -185,7 +185,7 @@ package softex_pkg;
         logic                   enable;
     } cast_ctrl_t;
 
-    function automatic softex_to_cvfpu(softex_pkg::regs_config_t arg);
+    function automatic fpnew_pkg::pipe_config_t softex_to_cvfpu(softex_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;
 
         unique case (arg)
@@ -197,10 +197,14 @@ package softex_pkg;
         return res;
     endfunction
 
-    function automatic fmt_to_conf(int unsigned fpformat1, int unsigned fpformat2);
-        int unsigned tmp = {{2**fpformat1} | {2**fpformat2}};
+    function automatic fpnew_pkg::fmt_logic_t fmt_to_conf(fpnew_pkg::fp_format_e fpformat1, fpnew_pkg::fp_format_e fpformat2);
+        fpnew_pkg::fmt_logic_t res;
 
-        int unsigned res = {<<{tmp [fpnew_pkg::NUM_FP_FORMATS - 1 : 0]}};
+        res = '0;
+
+        for (int i = 0; i < fpnew_pkg::NUM_FP_FORMATS; i++) begin
+            res[i] = (fpformat1 == i) | (fpformat2 == i); 
+        end
 
         return res;
     endfunction
