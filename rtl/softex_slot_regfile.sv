@@ -93,8 +93,7 @@ module softex_slot_regfile #(
     logic   start_load,
             start_store;
 
-    logic   store_valid,
-            load_ready;
+    logic   store_valid;
 
     logic   moving_data;
 
@@ -139,8 +138,6 @@ module softex_slot_regfile #(
 
 
     // Target slot assignments
-
-    assign moving_data  = store_valid | load_ready;
 
     // When we are in the middle of moving a slot, the address of the target must remain constant
     assign op_addr = (update_valid & ~moving_data) ? current_update.addr : current_request.addr;
@@ -301,7 +298,6 @@ module softex_slot_regfile #(
         update_pop      = '0;
         start_load      = '0;
         start_store     = '0;
-        load_ready      = '0;
         store_valid     = '0;
         inc_uses        = '0;
         dec_uses        = '0;
@@ -309,6 +305,7 @@ module softex_slot_regfile #(
         acquire         = '0;
         update          = '0;
         slot_enable     = '0;
+        moving_data     = '0;
 
         case (current_state)
             IDLE: begin
@@ -330,7 +327,6 @@ module softex_slot_regfile #(
                     end else if (free_valid) begin  // The slot is not loaded but there is room for it
                         if (current_request.op == LOAD) begin
                             start_load  = '1;
-                            load_ready  = '1;
 
                             next_state  = WAIT_LOAD;
                         end else begin  
@@ -349,6 +345,8 @@ module softex_slot_regfile #(
 
             WAIT_STORE: begin
                 store_valid = '1;
+                moving_data = '1;
+
                 //We wait for the ready signal to be asserted
                 if (store_o.ready) begin
                     if (current_request.op == ALLOC) begin
@@ -359,7 +357,6 @@ module softex_slot_regfile #(
                         next_state  = FINISHED;
                     end else begin
                         start_load  = '1;
-                        load_ready  = '1;
 
                         next_state  = WAIT_LOAD;
                     end
@@ -367,9 +364,10 @@ module softex_slot_regfile #(
             end
 
             WAIT_LOAD: begin
+                moving_data = '1;
+
                 //We wait for the valid signal to be asserted
                 if (load_i.valid) begin
-                    load_ready  = '0;
                     slot_enable = '1;
                     request_pop = '1;
 
