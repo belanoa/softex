@@ -22,8 +22,8 @@ package softex_pkg;
     parameter int unsigned              SLOT_ADDR_BITS  = 8;
 
     parameter int unsigned  NUM_REGS_EXPU       = 1;
-    parameter int unsigned  NUM_REGS_FMA_IN     = 1;
-    parameter int unsigned  NUM_REGS_FMA_ACC    = 3;
+    parameter int unsigned  NUM_REGS_FMA_IN     = 2;
+    parameter int unsigned  NUM_REGS_FMA_ACC    = 4;
     parameter int unsigned  NUM_REGS_SUM_IN     = 1;
     parameter int unsigned  NUM_REGS_SUM_ACC    = 2;
     parameter int unsigned  NUM_REGS_MAX        = 0;
