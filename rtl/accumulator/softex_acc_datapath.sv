@@ -42,7 +42,7 @@ module softex_acc_datapath #(
     localparam int unsigned ZEROPAD_MUL = ACC_WIDTH - MUL_WIDTH;
     localparam int unsigned ZEROPAD_ADD = ACC_WIDTH - ADD_WIDTH;
 
-    localparam int unsigned USES_CNT_W  = $clog2(NUM_REGS_FMA) + $onehot(NUM_REGS_FMA);
+    localparam int unsigned USES_CNT_W  = ~(NUM_REGS_FMA & (NUM_REGS_FMA - 1)) ? $clog2(NUM_REGS_FMA) + 1 : $clog2(NUM_REGS_FMA);
 
     typedef struct packed {
         logic [MUL_WIDTH - 1 : 0]               value;
