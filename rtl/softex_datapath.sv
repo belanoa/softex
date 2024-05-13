@@ -27,8 +27,8 @@ module softex_datapath #(
     input   softex_pkg::datapath_ctrl_t     ctrl_i      ,
     output  softex_pkg::datapath_flags_t    flags_o     ,
 
-    hwpe_stream_intf_stream.source          stream_i    ,
-    hwpe_stream_intf_stream.sink            stream_o
+    hwpe_stream_intf_stream.sink            stream_i    ,
+    hwpe_stream_intf_stream.source          stream_o
 );
 
     localparam int unsigned IN_WIDTH        = fpnew_pkg::fp_width(IN_FPFORMAT);
