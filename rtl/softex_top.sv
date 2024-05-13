@@ -56,6 +56,9 @@ module softex_top #(
     logic [ACTUAL_DW / WIDTH - 1 : 0]   in_strb,
                                         out_strb;
 
+    hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) out_fifo_d (.clk(clk_i));
+    hwpe_stream_intf_stream #(.DATA_WIDTH(DATA_WIDTH)) in_fifo_q (.clk(clk_i));
+
     logic   clear;
 
     softex_ctrl #(
@@ -95,6 +98,18 @@ module softex_top #(
         .load_i         (   slot_in_stream      )
     );
 
+    hwpe_stream_fifo #(
+        .DATA_WIDTH (   DATA_WIDTH  ),
+        .FIFO_DEPTH (   2           )
+    ) i_in_fifo (
+        .clk_i      (   clk_i       ),
+        .rst_ni     (   rst_ni      ),
+        .clear_i    (   clear       ),
+        .flags_o    (               ),
+        .push_i     (   in_stream   ),
+        .pop_o      (   in_fifo_q   )
+    );
+
     softex_datapath #(
         .DATA_WIDTH         (   DATA_WIDTH          ),
         .IN_FPFORMAT        (   FPFORMAT            ),
@@ -105,8 +120,20 @@ module softex_top #(
         .clear_i    (   clear                                   ),
         .ctrl_i     (   datapath_ctrl                           ),
         .flags_o    (   datapath_flgs                           ),
-        .stream_i   (   in_stream                               ),
-        .stream_o   (   out_stream                              )   
+        .stream_i   (   in_fifo_q                               ),
+        .stream_o   (   out_fifo_d                              )   
+    );
+
+    hwpe_stream_fifo #(
+        .DATA_WIDTH (   DATA_WIDTH  ),
+        .FIFO_DEPTH (   2           )
+    ) i_out_fifo (
+        .clk_i      (   clk_i       ),
+        .rst_ni     (   rst_ni      ),
+        .clear_i    (   clear       ),
+        .flags_o    (               ),
+        .push_i     (   out_fifo_d  ),
+        .pop_o      (   out_stream  )
     );
 
     softex_streamer #(
