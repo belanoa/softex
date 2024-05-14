@@ -258,40 +258,44 @@ module softex_acc_datapath #(
         end
     end
 
-    fpnew_cast_multi #(
-        .FpFmtConfig    (   softex_pkg::fmt_to_conf(MUL_FPFORMAT, ACC_FPFORMAT) ),
-        .IntFmtConfig   (   '0                                                  ),
-        .NumPipeRegs    (   0                                                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
-        .TagType        (   logic                                               ),
-        .AuxType        (   logic                                               )
-    ) i_factor_cast (
-        .clk_i              (   clk_i                               ),
-        .rst_ni             (   rst_ni                              ),
-        .operands_i         (   {{ZEROPAD_MUL{1'b0}}, factor.value} ),
-        .is_boxed_i         (   '1                                  ),
-        .rnd_mode_i         (   fpnew_pkg::RNE                      ),
-        .op_i               (   fpnew_pkg::F2F                      ),
-        .op_mod_i           (   '0                                  ),
-        .src_fmt_i          (   MUL_FPFORMAT                        ),
-        .dst_fmt_i          (   ACC_FPFORMAT                        ),
-        .int_fmt_i          (   fpnew_pkg::INT8                     ),
-        .tag_i              (   '0                                  ),
-        .mask_i             (   '0                                  ),
-        .aux_i              (   '0                                  ),
-        .in_valid_i         (   '1                                  ),
-        .in_ready_o         (                                       ),
-        .flush_i            (   '0                                  ),
-        .result_o           (   fma_factor                          ),
-        .status_o           (                                       ),
-        .extension_bit_o    (                                       ),
-        .tag_o              (                                       ),
-        .mask_o             (                                       ),
-        .aux_o              (                                       ),
-        .out_valid_o        (                                       ),
-        .out_ready_i        (   '1                                  ),
-        .busy_o             (                                       )
-    );
+    if (MUL_FPFORMAT != ACC_FPFORMAT) begin : gen_factor_cast
+        fpnew_cast_multi #(
+            .FpFmtConfig    (   softex_pkg::fmt_to_conf(MUL_FPFORMAT, ACC_FPFORMAT) ),
+            .IntFmtConfig   (   '0                                                  ),
+            .NumPipeRegs    (   0                                                   ),
+            .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+            .TagType        (   logic                                               ),
+            .AuxType        (   logic                                               )
+        ) i_factor_cast (
+            .clk_i              (   clk_i                               ),
+            .rst_ni             (   rst_ni                              ),
+            .operands_i         (   {{ZEROPAD_MUL{1'b0}}, factor.value} ),
+            .is_boxed_i         (   '1                                  ),
+            .rnd_mode_i         (   fpnew_pkg::RNE                      ),
+            .op_i               (   fpnew_pkg::F2F                      ),
+            .op_mod_i           (   '0                                  ),
+            .src_fmt_i          (   MUL_FPFORMAT                        ),
+            .dst_fmt_i          (   ACC_FPFORMAT                        ),
+            .int_fmt_i          (   fpnew_pkg::INT8                     ),
+            .tag_i              (   '0                                  ),
+            .mask_i             (   '0                                  ),
+            .aux_i              (   '0                                  ),
+            .in_valid_i         (   '1                                  ),
+            .in_ready_o         (                                       ),
+            .flush_i            (   '0                                  ),
+            .result_o           (   fma_factor                          ),
+            .status_o           (                                       ),
+            .extension_bit_o    (                                       ),
+            .tag_o              (                                       ),
+            .mask_o             (                                       ),
+            .aux_o              (                                       ),
+            .out_valid_o        (                                       ),
+            .out_ready_i        (   '1                                  ),
+            .busy_o             (                                       )
+        );
+    end else begin : assign_factor
+        assign fma_factor = factor.value;
+    end
 
     always_comb begin : fma_op_selection
         unique casex ({ctrl_i.inv_fma, ctrl_i.inverting, fma_o_valid, factor_match, addend_match})
@@ -313,40 +317,44 @@ module softex_acc_datapath #(
 
     assign fma_addend_pre_cast = ((fma_o_valid & addend_match) ? addend.value : '0);
 
-    fpnew_cast_multi #(
-        .FpFmtConfig    (   softex_pkg::fmt_to_conf(ADD_FPFORMAT, ACC_FPFORMAT) ),
-        .IntFmtConfig   (   '0                                                  ),
-        .NumPipeRegs    (   0                                                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
-        .TagType        (   logic                                               ),
-        .AuxType        (   logic                                               )
-    ) i_addend_cast (
-        .clk_i              (   clk_i                                       ),
-        .rst_ni             (   rst_ni                                      ),
-        .operands_i         (   {{ZEROPAD_ADD{1'b0}}, fma_addend_pre_cast}  ),
-        .is_boxed_i         (   '1                                          ),
-        .rnd_mode_i         (   fpnew_pkg::RNE                              ),
-        .op_i               (   fpnew_pkg::F2F                              ),
-        .op_mod_i           (   '0                                          ),
-        .src_fmt_i          (   ADD_FPFORMAT                                ),
-        .dst_fmt_i          (   ACC_FPFORMAT                                ),
-        .int_fmt_i          (   fpnew_pkg::INT8                             ),
-        .tag_i              (   '0                                          ),
-        .mask_i             (   '0                                          ),
-        .aux_i              (   '0                                          ),
-        .in_valid_i         (   '1                                          ),
-        .in_ready_o         (                                               ),
-        .flush_i            (   '0                                          ),
-        .result_o           (   fma_addend                                  ),
-        .status_o           (                                               ),
-        .extension_bit_o    (                                               ),
-        .tag_o              (                                               ),
-        .mask_o             (                                               ),
-        .aux_o              (                                               ),
-        .out_valid_o        (                                               ),
-        .out_ready_i        (   '1                                          ),
-        .busy_o             (                                               )
-    );
+    if (ADD_FPFORMAT != ACC_FPFORMAT) begin : gen_addend_cast
+        fpnew_cast_multi #(
+            .FpFmtConfig    (   softex_pkg::fmt_to_conf(ADD_FPFORMAT, ACC_FPFORMAT) ),
+            .IntFmtConfig   (   '0                                                  ),
+            .NumPipeRegs    (   0                                                   ),
+            .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+            .TagType        (   logic                                               ),
+            .AuxType        (   logic                                               )
+        ) i_addend_cast (
+            .clk_i              (   clk_i                                       ),
+            .rst_ni             (   rst_ni                                      ),
+            .operands_i         (   {{ZEROPAD_ADD{1'b0}}, fma_addend_pre_cast}  ),
+            .is_boxed_i         (   '1                                          ),
+            .rnd_mode_i         (   fpnew_pkg::RNE                              ),
+            .op_i               (   fpnew_pkg::F2F                              ),
+            .op_mod_i           (   '0                                          ),
+            .src_fmt_i          (   ADD_FPFORMAT                                ),
+            .dst_fmt_i          (   ACC_FPFORMAT                                ),
+            .int_fmt_i          (   fpnew_pkg::INT8                             ),
+            .tag_i              (   '0                                          ),
+            .mask_i             (   '0                                          ),
+            .aux_i              (   '0                                          ),
+            .in_valid_i         (   '1                                          ),
+            .in_ready_o         (                                               ),
+            .flush_i            (   '0                                          ),
+            .result_o           (   fma_addend                                  ),
+            .status_o           (                                               ),
+            .extension_bit_o    (                                               ),
+            .tag_o              (                                               ),
+            .mask_o             (                                               ),
+            .aux_o              (                                               ),
+            .out_valid_o        (                                               ),
+            .out_ready_i        (   '1                                          ),
+            .busy_o             (                                               )
+        );
+    end else begin : assign_addend
+        assign fma_addend = fma_addend_pre_cast;
+    end
 
     always_comb begin
         unique casex ({ctrl_i.inv_fma, ctrl_i.inverting, fma_o_valid})

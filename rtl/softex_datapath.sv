@@ -384,40 +384,45 @@ module softex_datapath #(
         .acc_o          (   inv_pre_cast                        )
     );
 
-    fpnew_cast_multi #(
-        .FpFmtConfig    (   softex_pkg::fmt_to_conf(ACC_FPFORMAT, IN_FPFORMAT)  ),
-        .IntFmtConfig   (   '0                                                  ),
-        .NumPipeRegs    (   0                                                   ),
-        .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
-        .TagType        (   logic                                               ),
-        .AuxType        (   logic                                               )
-    ) i_inv_cast (
-        .clk_i              (   clk_i           ),
-        .rst_ni             (   rst_ni          ),
-        .operands_i         (   inv_pre_cast    ),
-        .is_boxed_i         (   '1              ),
-        .rnd_mode_i         (   fpnew_pkg::RNE  ),
-        .op_i               (   fpnew_pkg::F2F  ),
-        .op_mod_i           (   '0              ),
-        .src_fmt_i          (   ACC_FPFORMAT    ),
-        .dst_fmt_i          (   IN_FPFORMAT     ),
-        .int_fmt_i          (   fpnew_pkg::INT8 ),
-        .tag_i              (   '0              ),
-        .mask_i             (   '0              ),
-        .aux_i              (   '0              ),
-        .in_valid_i         (   acc_valid       ),
-        .in_ready_o         (                   ),
-        .flush_i            (   '0              ),
-        .result_o           (   inv_cast_res    ),
-        .status_o           (                   ),
-        .extension_bit_o    (                   ),
-        .tag_o              (                   ),
-        .mask_o             (                   ),
-        .aux_o              (                   ),
-        .out_valid_o        (   cast_valid      ),
-        .out_ready_i        (   '1              ),
-        .busy_o             (                   )
-    );
+    if (ACC_FPFORMAT != IN_FPFORMAT) begin : gen_inv_cast
+        fpnew_cast_multi #(
+            .FpFmtConfig    (   softex_pkg::fmt_to_conf(ACC_FPFORMAT, IN_FPFORMAT)  ),
+            .IntFmtConfig   (   '0                                                  ),
+            .NumPipeRegs    (   0                                                   ),
+            .PipeConfig     (   fpnew_pkg::BEFORE                                   ),
+            .TagType        (   logic                                               ),
+            .AuxType        (   logic                                               )
+        ) i_inv_cast (
+            .clk_i              (   clk_i           ),
+            .rst_ni             (   rst_ni          ),
+            .operands_i         (   inv_pre_cast    ),
+            .is_boxed_i         (   '1              ),
+            .rnd_mode_i         (   fpnew_pkg::RNE  ),
+            .op_i               (   fpnew_pkg::F2F  ),
+            .op_mod_i           (   '0              ),
+            .src_fmt_i          (   ACC_FPFORMAT    ),
+            .dst_fmt_i          (   IN_FPFORMAT     ),
+            .int_fmt_i          (   fpnew_pkg::INT8 ),
+            .tag_i              (   '0              ),
+            .mask_i             (   '0              ),
+            .aux_i              (   '0              ),
+            .in_valid_i         (   acc_valid       ),
+            .in_ready_o         (                   ),
+            .flush_i            (   '0              ),
+            .result_o           (   inv_cast_res    ),
+            .status_o           (                   ),
+            .extension_bit_o    (                   ),
+            .tag_o              (                   ),
+            .mask_o             (                   ),
+            .aux_o              (                   ),
+            .out_valid_o        (   cast_valid      ),
+            .out_ready_i        (   '1              ),
+            .busy_o             (                   )
+        );
+    end else begin : assign_inv
+        assign inv_cast_res = inv_pre_cast;
+        assign cast_valid   = acc_valid;
+    end
 
     assign inv_cast = inv_cast_res;
 
