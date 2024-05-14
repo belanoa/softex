@@ -326,7 +326,9 @@ module softex_streamer #(
         .tcdm_initiator (  store_tcdm   )
     ); 
     
-    hci_core_r_id_filter i_store_r_id_filter (
+    hci_core_r_id_filter #(
+        .`HCI_SIZE_PARAM(tcdm_target)   (   `HCI_SIZE_PARAM(tcdm_iw_1)  )
+    ) i_store_r_id_filter (
         .clk_i          (   clk_i           ),
         .rst_ni         (   rst_ni          ),
         .clear_i        (   clear_i         ),
