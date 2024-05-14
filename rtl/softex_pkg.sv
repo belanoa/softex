@@ -24,7 +24,7 @@ package softex_pkg;
     parameter int unsigned  NUM_REGS_EXPU       = 1;
     parameter int unsigned  NUM_REGS_FMA_IN     = 2;
     parameter int unsigned  NUM_REGS_FMA_ACC    = 4;
-    parameter int unsigned  NUM_REGS_SUM_IN     = 1;
+    parameter int unsigned  NUM_REGS_SUM_IN     = 0;
     parameter int unsigned  NUM_REGS_SUM_ACC    = 2;
     parameter int unsigned  NUM_REGS_MAX        = 0;
     parameter int unsigned  NUM_REGS_INV_APPR   = 1;
