@@ -13,6 +13,7 @@ package softex_pkg;
     parameter int unsigned  N_CTRL_CNTX         = 2;
     parameter int unsigned  N_CTRL_REGS         = 6;
     parameter int unsigned  N_CTRL_STATE_SLOTS  = 2;
+    parameter int unsigned  CTRL_REGFILE_SCM    = 0;
 
     parameter fpnew_pkg::fp_format_e    FPFORMAT_IN     = fpnew_pkg::FP16ALT;
     parameter fpnew_pkg::fp_format_e    FPFORMAT_ACC    = fpnew_pkg::FP32;
@@ -21,10 +22,10 @@ package softex_pkg;
     parameter int unsigned              N_BITS_INV      = 7;
     parameter int unsigned              SLOT_ADDR_BITS  = 8;
 
-    parameter int unsigned  NUM_REGS_EXPU       = 1;
+    parameter int unsigned  NUM_REGS_EXPU       = 2;
     parameter int unsigned  NUM_REGS_FMA_IN     = 2;
     parameter int unsigned  NUM_REGS_FMA_ACC    = 4;
-    parameter int unsigned  NUM_REGS_SUM_IN     = 0;
+    parameter int unsigned  NUM_REGS_SUM_IN     = 2;
     parameter int unsigned  NUM_REGS_SUM_ACC    = 2;
     parameter int unsigned  NUM_REGS_MAX        = 0;
     parameter int unsigned  NUM_REGS_INV_APPR   = 1;

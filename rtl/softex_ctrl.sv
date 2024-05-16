@@ -109,11 +109,12 @@ module softex_ctrl #(
     hwpe_ctrl_package::flags_slave_t    flgs_slave;
 
     hwpe_ctrl_slave  #(
-        .N_CORES        (   N_CORES         ),
-        .N_CONTEXT      (   N_CONTEXT       ),
-        .N_IO_REGS      (   IO_REGS         ),
-        .N_GENERIC_REGS (   0               ),
-        .ID_WIDTH       (   ID_WIDTH        )
+        .REGFILE_SCM    (   CTRL_REGFILE_SCM    ),
+        .N_CORES        (   N_CORES             ),
+        .N_CONTEXT      (   N_CONTEXT           ),
+        .N_IO_REGS      (   IO_REGS             ),
+        .N_GENERIC_REGS (   0                   ),
+        .ID_WIDTH       (   ID_WIDTH            )
     ) i_slave (
         .clk_i      (   clk_i       ),
         .rst_ni     (   rst_ni      ),
