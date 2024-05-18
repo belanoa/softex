@@ -370,18 +370,18 @@ module softex_datapath #(
         .NUM_REGS_FMA       (   FMA_REGS_ACC        ),
         .ROUND_MODE         (   fpnew_pkg::RNE      )
     ) i_denominator_accumulator (
-        .clk_i          (   clk_i                               ),     
-        .rst_ni         (   rst_ni                              ),     
-        .clear_i        (   clear_i | ctrl_i.clear_regs         ),
-        .ctrl_i         (   ctrl_i.accumulator_ctrl             ),    
-        .add_valid_i    (   sum_valid | ctrl_i.load_denominator ),
-        .add_i          (   acc_i_add                           ),      
-        .mul_valid_i    (   fact_fifo_q.valid & sum_o_tag       ),
-        .mul_i          (   fact_fifo_q.data                    ),         
-        .ready_o        (   acc_ready                           ),    
-        .valid_o        (   acc_valid                           ),
-        .flags_o        (   flags_o.accumulator_flags           ),
-        .acc_o          (   inv_pre_cast                        )
+        .clk_i          (   clk_i                                       ),     
+        .rst_ni         (   rst_ni                                      ),     
+        .clear_i        (   clear_i | ctrl_i.clear_regs                 ),
+        .ctrl_i         (   ctrl_i.accumulator_ctrl                     ),    
+        .add_valid_i    (   sum_valid | ctrl_i.load_denominator         ),
+        .add_i          (   acc_i_add                                   ),      
+        .mul_valid_i    (   fact_fifo_q.valid & sum_o_tag & sum_valid   ),
+        .mul_i          (   fact_fifo_q.data                            ),         
+        .ready_o        (   acc_ready                                   ),    
+        .valid_o        (   acc_valid                                   ),
+        .flags_o        (   flags_o.accumulator_flags                   ),
+        .acc_o          (   inv_pre_cast                                )
     );
 
     if (ACC_FPFORMAT != IN_FPFORMAT) begin : gen_inv_cast
