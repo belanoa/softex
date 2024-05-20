@@ -189,10 +189,10 @@ module softex_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT   (   IN_FPFORMAT ),
-        .REG_POS    (   REG_POS     ),
-        .NUM_REGS   (   EXP_REGS    ),
-        .N_ROWS     (   1           )
+        .FPFORMAT   (   IN_FPFORMAT         ),
+        .REG_POS    (   softex_pkg::BEFORE  ),
+        .NUM_REGS   (   EXP_REGS            ),
+        .N_ROWS     (   1                   )
     ) i_scal_exp (
         .clk_i      (   clk_i               ),  
         .rst_ni     (   rst_ni              ),
@@ -294,11 +294,11 @@ module softex_datapath #(
     );
 
     expu_top #(
-        .FPFORMAT               (   IN_FPFORMAT ),
-        .REG_POS                (   REG_POS     ),
-        .NUM_REGS               (   EXP_REGS    ),
-        .N_ROWS                 (   VECT_WIDTH  ),
-        .TAG_TYPE               (   logic       )
+        .FPFORMAT               (   IN_FPFORMAT         ),
+        .REG_POS                (   softex_pkg::BEFORE  ),
+        .NUM_REGS               (   EXP_REGS            ),
+        .N_ROWS                 (   VECT_WIDTH          ),
+        .TAG_TYPE               (   logic               )
     ) i_vect_exp (
         .clk_i      (   clk_i               ),
         .rst_ni     (   rst_ni              ),
