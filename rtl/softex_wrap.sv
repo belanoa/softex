@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Andrea Belano <andrea.belano@studio.unibo.it>
+// Yvan Tortorella <yvan.tortorella@unibo.it>
 //
+
+`include "hci_helpers.svh"
 
 import hci_package::*;
 import hwpe_ctrl_package::*;
@@ -52,7 +55,17 @@ module softex_wrap #(
 
     localparam int unsigned WIDTH   = fpnew_pkg::fp_width(FPFORMAT);
 
-    hci_core_intf #(.DW(DW),.IW(0)) tcdm (.clk(clk_i));
+    localparam hci_package::hci_size_parameter_t `HCI_SIZE_PARAM(tcdm) = '{
+      DW:  DW,
+      AW:  hci_package::DEFAULT_AW,
+      BW:  hci_package::DEFAULT_BW,
+      UW:  hci_package::DEFAULT_UW,
+      IW:  hci_package::DEFAULT_IW,
+      EW:  hci_package::DEFAULT_EW,
+      EHW: hci_package::DEFAULT_EHW
+    };
+    `HCI_INTF(tcdm, clk_i);
+
     hwpe_ctrl_intf_periph #(.ID_WIDTH(ID_WIDTH)) periph (.clk(clk_i));
 
     logic busy;
@@ -165,8 +178,8 @@ module softex_wrap #(
 
     softex_top #(
         .FPFORMAT   (   FPFORMAT    ),
-        .DATA_WIDTH (   DW          ),
-        .N_CORES    (   N_CORES     )  
+        .N_CORES    (   N_CORES     ),
+        .`HCI_SIZE_PARAM(Tcdm) ( HCI_SIZE_tcdm )
     ) i_top (
         .clk_i  (   clk_i   ),
         .rst_ni (   rst_ni  ),

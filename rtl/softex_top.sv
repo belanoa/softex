@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Andrea Belano <andrea.belano@studio.unibo.it>
+// Yvan Tortorella <yvan.tortorella@unibo.it>
 //
+
+`include "hci_helpers.svh"
 
 import hci_package::*;
 import hwpe_stream_package::*;
@@ -12,8 +15,8 @@ import softex_pkg::*;
 module softex_top #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
     parameter int unsigned              INT_WIDTH   = INT_W         ,
-    parameter int unsigned              DATA_WIDTH  = DATA_W        ,
-    parameter int unsigned              N_CORES     = 8                          
+    parameter int unsigned              N_CORES     = 8,
+    parameter hci_size_parameter_t `HCI_SIZE_PARAM(Tcdm) = '0
 ) (
     input   logic                           clk_i   ,
     input   logic                           rst_ni  ,
@@ -26,7 +29,7 @@ module softex_top #(
 );
 
     localparam int unsigned WIDTH       = fpnew_pkg::fp_width(FPFORMAT);
-    localparam int unsigned ACTUAL_DW   = DATA_WIDTH - 32;
+    localparam int unsigned ACTUAL_DW   = `HCI_SIZE_GET_DW(Tcdm) - 32;
 
     hci_streamer_flags_t    stream_in_flgs;
     hci_streamer_flags_t    stream_out_flgs;
@@ -134,7 +137,8 @@ module softex_top #(
     );
 
     softex_streamer #(
-        .DATA_WIDTH (   DATA_WIDTH  )
+        .`HCI_SIZE_PARAM(Tcdm) ( `HCI_SIZE_PARAM(Tcdm)),
+        .ACTUAL_DW ( ACTUAL_DW )
     ) i_streamer (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
