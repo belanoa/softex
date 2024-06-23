@@ -100,6 +100,6 @@ module softex_fp_glob_minmax #(
 
     assign cur_minmax_o = minmax_q;
     assign new_minmax_o = new_flg ? vect_minmax : minmax_q;
-    assign new_flg_o    = new_flg;
+    assign new_flg_o    = new_flg & ready_i;
 
 endmodule
