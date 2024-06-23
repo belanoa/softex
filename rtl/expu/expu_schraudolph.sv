@@ -47,7 +47,7 @@ module expu_schraudolph #(
     logic [EXPONENT_BITS - 1 : 0]   new_exponent;
     logic [MANTISSA_BITS - 1 : 0]   new_mantissa;
 
-    logic   ovfr;
+    logic   ovfr, denormal;
 
     assign sign     =   op_i   [MANTISSA_BITS + EXPONENT_BITS];
     assign exponent =   op_i   [MANTISSA_BITS + EXPONENT_BITS - 1 : MANTISSA_BITS];
@@ -67,8 +67,11 @@ module expu_schraudolph #(
                         )
                     );
 
+    //Denormal numbers are flushed to zero
+    assign denormal =   (sign == 1'b1) && (exponent == MAX_EXP) && (signed_mantissa [EXPONENT_BITS + MANTISSA_BITS - 1 -: EXPONENT_BITS] == {1'b1, {(EXPONENT_BITS - 2){1'b0}}, 1'b1});
+
     always_comb begin
-        if (~ovfr) begin
+        if (~ovfr & ~denormal) begin
             new_exponent    =   signed_mantissa [EXPONENT_BITS + MANTISSA_BITS - 1 : MANTISSA_BITS] + BIAS;
             new_mantissa    =   signed_mantissa [MANTISSA_BITS - 1 : 0];
         end else begin

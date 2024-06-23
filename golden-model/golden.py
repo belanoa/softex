@@ -68,6 +68,10 @@ final_scores_np     = np.empty(0, dtype = inttype)
 final_baseline_np   = np.empty(0, dtype = inttype)
 denominators        = []
 
+# if the format we are using is BF16 flush denormal numbers
+if fpformat == "BFLOAT16":
+    torch.set_flush_denormal(True)
+
 for i in np.arange(0, vectors):
     if fixed_point == 0:
         if monotonic == 0:
