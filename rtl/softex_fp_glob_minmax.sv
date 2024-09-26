@@ -55,7 +55,7 @@ module softex_fp_glob_minmax #(
         end else begin
             if (clear_i) begin
                 o_valid_q <= '0;
-            end else if (minmax_valid) begin
+            end else if (minmax_valid | load_en_i) begin
                 o_valid_q <= '1;
             end
         end
