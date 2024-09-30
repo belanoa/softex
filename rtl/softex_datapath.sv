@@ -225,7 +225,7 @@ module softex_datapath #(
         .pop_o      (   fact_fifo_q )
     );
 
-    assign fact_fifo_q.ready    = acc_ready & sum_o_tag;
+    assign fact_fifo_q.ready    = acc_ready & sum_o_tag & sum_valid;
 
     softex_delay #(
         .NUM_REGS   (   MAX_REGS    ),
