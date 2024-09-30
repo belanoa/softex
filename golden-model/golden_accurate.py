@@ -168,7 +168,7 @@ for i in np.arange(0, vectors):
             partial_sums = partial_sums * torch.Tensor(exponentiate((fmax - loc_max)))
             fmax = loc_max
 
-        partial_sums[sum_index] += torch.from_numpy(exponentiate(input - fmax)).bfloat16().sum().float()
+        partial_sums[sum_index] += torch.from_numpy(exponentiate(input - fmax)).sum()
     
         if sum_index == acc_regs - 1:
             sum_index = 0
@@ -176,6 +176,8 @@ for i in np.arange(0, vectors):
             sum_index += 1
 
     den = partial_sums.sum().numpy()
+
+    denominators.append(den.item())
 
     den_sign, den_mant, den_exp = decompose(den)
     
