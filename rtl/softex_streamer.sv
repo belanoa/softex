@@ -27,15 +27,21 @@ import softex_pkg::*;
     input   hci_streamer_ctrl_t     out_stream_ctrl_i   ,
     input   hci_streamer_ctrl_t     slot_in_ctrl_i      ,
     input   hci_streamer_ctrl_t     slot_out_ctrl_i     ,
+    input   hci_streamer_ctrl_t     a_in_stream_ctrl_i  ,
+    input   hci_streamer_ctrl_t     b_in_stream_ctrl_i  ,
     output  hci_streamer_flags_t    in_stream_flags_o   ,
     output  hci_streamer_flags_t    out_stream_flags_o  ,
     output  hci_streamer_flags_t    slot_in_flags_o     ,
     output  hci_streamer_flags_t    slot_out_flags_o    ,
+    output  hci_streamer_flags_t    a_in_stream_flags_o ,
+    output  hci_streamer_flags_t    b_in_stream_flags_o ,
 
     hwpe_stream_intf_stream.source  in_stream_o         ,
     hwpe_stream_intf_stream.sink    out_stream_i        ,
     hwpe_stream_intf_stream.source  slot_in_stream_o    ,
     hwpe_stream_intf_stream.sink    slot_out_stream_i   ,
+    hwpe_stream_intf_stream.source  a_in_stream_o       ,
+    hwpe_stream_intf_stream.source  b_in_stream_o       ,
 
     hci_core_intf.initiator         tcdm
 );
@@ -180,7 +186,7 @@ import softex_pkg::*;
 
     hci_core_intf #(
         .DW ( DW )
-    ) load_mux_i_tcdm [1:0] (
+    ) load_mux_i_tcdm [3:0] (
         .clk    (   clk_i   )
     );
 
@@ -214,6 +220,36 @@ import softex_pkg::*;
         .flags_o        (   slot_in_flags_o     )
     );
 
+    hci_core_source #(
+        .MISALIGNED_ACCESSES    (   1                            ),
+        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
+    ) i_a_weight_in (
+        .clk_i          (   clk_i               ),
+        .rst_ni         (   rst_ni              ),
+        .test_mode_i    (   '0                  ),
+        .clear_i        (   clear_i             ),
+        .enable_i       (   enable_i            ),
+        .tcdm           (   load_mux_i_tcdm [2] ),
+        .stream         (   a_in_stream_o       ),
+        .ctrl_i         (   a_in_stream_ctrl_i  ),
+        .flags_o        (   a_in_stream_flags_o )
+    );
+
+    hci_core_source #(
+        .MISALIGNED_ACCESSES    (   1                            ),
+        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
+    ) i_b_weight_in (
+        .clk_i          (   clk_i               ),
+        .rst_ni         (   rst_ni              ),
+        .test_mode_i    (   '0                  ),
+        .clear_i        (   clear_i             ),
+        .enable_i       (   enable_i            ),
+        .tcdm           (   load_mux_i_tcdm [3] ),
+        .stream         (   b_in_stream_o       ),
+        .ctrl_i         (   b_in_stream_ctrl_i  ),
+        .flags_o        (   b_in_stream_flags_o )
+    );
+
     hci_core_intf #(
         .DW ( DW )
     ) load_fifo (
@@ -221,7 +257,7 @@ import softex_pkg::*;
     );
 
     hci_core_mux_ooo #(
-        .NB_CHAN                (   2                            ),
+        .NB_CHAN                (   4                            ),
         .`HCI_SIZE_PARAM(out)   (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_load_mux (
         .clk_i              (   clk_i           ),
@@ -342,8 +378,8 @@ import softex_pkg::*;
         .flags_o        (               ),
         .tcdm_target    (  store_fifo   ),
         .tcdm_initiator (  store_tcdm   )
-    ); 
-    
+    );
+
     hci_core_r_id_filter #(
         .`HCI_SIZE_PARAM(tcdm_target)   (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_store_r_id_filter (
