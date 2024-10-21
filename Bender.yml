@@ -45,6 +45,10 @@ sources:
     - rtl/accumulator/softex_acc_datapath.sv
     - rtl/accumulator/softex_acc_top.sv
     - rtl/accumulator/softex_acc_den_inverter.sv
+    - rtl/softex_x_buffer.sv
+    - rtl/softex_ab_buffer.sv
+    - rtl/softex_ab_addressgen.sv
+    - rtl/softex_row_acc.sv
 
     - target: softex_sim
       files:

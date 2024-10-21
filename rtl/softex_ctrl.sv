@@ -5,21 +5,21 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-
 module softex_ctrl
-import hci_package::*;
-import hwpe_stream_package::*;
-import softex_pkg::*;
+    import hci_package::*;
+    import hwpe_stream_package::*;
+    import softex_pkg::*;
 #(
-    parameter int unsigned              N_CORES         = 1                     ,
-    parameter int unsigned              N_CONTEXT       = N_CTRL_CNTX           ,
-    parameter int unsigned              IO_REGS         = N_CTRL_REGS           ,
-    parameter int unsigned              ID_WIDTH        = 8                     ,
-    parameter int unsigned              N_STATE_SLOTS   = N_CTRL_STATE_SLOTS    ,
-    parameter int unsigned              DATA_WIDTH      = DATA_W - 32           ,
-    parameter int unsigned              INT_WIDTH       = INT_W                 ,
-    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN           ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC          
+    parameter int unsigned              N_CORES             = 1                     ,
+    parameter int unsigned              N_CONTEXT           = N_CTRL_CNTX           ,
+    parameter int unsigned              IO_REGS             = N_CTRL_REGS           ,
+    parameter int unsigned              ID_WIDTH            = 8                     ,
+    parameter int unsigned              N_STATE_SLOTS       = N_CTRL_STATE_SLOTS    ,
+    parameter int unsigned              DATA_WIDTH          = DATA_W - 32           ,
+    parameter int unsigned              INT_WIDTH           = INT_W                 ,
+    parameter int unsigned              WEIGHT_LEN_WIDTH    = BUF_CNT_WIDTH         ,
+    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = FPFORMAT_IN           ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,
@@ -33,6 +33,11 @@ import softex_pkg::*;
     output  logic [N_CORES - 1 : 0] [1 : 0] evt_o               ,
     output  hci_streamer_ctrl_t             in_stream_ctrl_o    ,
     output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
+    output  x_buffer_ctrl_t                 x_buffer_ctrl_o     ,
+    output  ab_buffer_ctrl_t                a_buffer_ctrl_o     ,
+    output  ab_buffer_ctrl_t                b_buffer_ctrl_o     ,
+    output  ab_addressgen_ctrl_t            a_addressgen_ctrl_o ,
+    output  ab_addressgen_ctrl_t            b_addressgen_ctrl_o ,
     output  softex_pkg::datapath_ctrl_t     datapath_ctrl_o     ,
     output  softex_pkg::slot_regfile_ctrl_t slot_ctrl_o         ,
     output  softex_pkg::cast_ctrl_t         in_cast_ctrl_o      ,
@@ -89,7 +94,10 @@ import softex_pkg::*;
             acquire_slot,
             no_operation,
             cast_input,
-            cast_output;
+            cast_output,
+            gelu_mode;
+
+    logic [WEIGHT_LEN_WIDTH-1:0]    weight_len;
 
     logic [31 : 0]  slot_cache_base_addr;
     logic   cache_base_addr_en;
@@ -137,7 +145,7 @@ import softex_pkg::*;
             end
         end
     end
-    
+
 
     always_ff @(posedge clk_i or negedge rst_ni) begin : state_register
         if (~rst_ni) begin
@@ -190,6 +198,28 @@ import softex_pkg::*;
     assign datapath_ctrl_o.load_denominator                 = dp_load_denominator;
     assign datapath_ctrl_o.accumulator_ctrl.load_reciprocal = dp_load_reciprocal;
 
+
+    assign datapath_ctrl_o.softmax_mode                     = ~gelu_mode;
+
+    assign x_buffer_ctrl_o.loop                             = gelu_mode;
+    assign x_buffer_ctrl_o.num_loops                        = weight_len;
+
+    assign a_buffer_ctrl_o.num_blocks                       = (weight_len - 1) >> $clog2(BUF_AB_ELEMENTS);
+    assign a_buffer_ctrl_o.leftover                         = (weight_len - 1);
+
+    assign b_buffer_ctrl_o.num_blocks                       = (weight_len - 1) >> $clog2(BUF_AB_ELEMENTS);
+    assign b_buffer_ctrl_o.leftover                         = (weight_len - 1);
+
+    assign a_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;   //FIXME ?
+    assign a_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;            // prolly FIXME, check if this breaks anything
+    assign a_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [A_ADDR];
+    assign a_addressgen_ctrl_o.ab_buf_ctrl                  = a_buffer_ctrl_o;
+
+    assign b_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;   //FIXME ?
+    assign b_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;            // prolly FIXME, check if this breaks anything
+    assign b_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [B_ADDR];
+    assign b_addressgen_ctrl_o.ab_buf_ctrl                  = b_buffer_ctrl_o;
+
     assign datapath_ctrl_o.max                              = state_slot_i.maximum;
     assign datapath_ctrl_o.denominator                      = state_slot_i.denominator;
     assign datapath_ctrl_o.accumulator_ctrl.reciprocal      = state_slot_i.denominator;
@@ -199,19 +229,21 @@ import softex_pkg::*;
     assign last                                             = reg_file.hwpe_params [COMMANDS] [CMD_LAST];           // We are performing the last partial accumulation / normalisation
     assign set_cache_addr                                   = reg_file.hwpe_params [COMMANDS] [CMD_SET_CACHE_ADDR]; // Sets the base address of the state slot cache
     assign acquire_slot                                     = reg_file.hwpe_params [COMMANDS] [CMD_ACQUIRE_SLOT];   // This is the first partial iteration of a new operation
-    assign no_operation                                     = reg_file.hwpe_params [COMMANDS] [CMD_NO_OP];          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation 
+    assign no_operation                                     = reg_file.hwpe_params [COMMANDS] [CMD_NO_OP];          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation
     assign cast_input                                       = reg_file.hwpe_params [COMMANDS] [CMD_INT_INPUT];      // Cast the input from fixed point to floating point
     assign cast_output                                      = reg_file.hwpe_params [COMMANDS] [CMD_INT_OUTPUT];     // Cast the output from floating point to fixed point
+    assign gelu_mode                                        = reg_file.hwpe_params [COMMANDS] [CMD_GELU_MODE];      // We are using SoftEx to perform the GELU activation
 
     assign current_slot                                     = reg_file.hwpe_params [COMMANDS] [31 -: 16];
+    assign weight_len                                       = reg_file.hwpe_params [COMMANDS] [16+WEIGHT_LEN_WIDTH-1:16];    // Partially overlaps with the current slot index. as we do not need it in GELU mode
 
     assign in_cast_ctrl_o.int_bits                          = reg_file.hwpe_params [CAST_CTRL] [6 : 0];
     assign in_cast_ctrl_o.is_signed                         = reg_file.hwpe_params [CAST_CTRL] [7];
     assign in_cast_ctrl_o.enable                            = cast_input;
-    
+
     assign out_cast_ctrl_o.int_bits                         = reg_file.hwpe_params [CAST_CTRL] [14 : 8];
     assign out_cast_ctrl_o.is_signed                        = reg_file.hwpe_params [CAST_CTRL] [15];
-    assign out_cast_ctrl_o.enable                           = cast_output;    
+    assign out_cast_ctrl_o.enable                           = cast_output;
 
     assign ctrl_slave.done                                  = slave_done;
     assign ctrl_slave.evt                                   = '0;
@@ -219,7 +251,7 @@ import softex_pkg::*;
     assign slot_ctrl_o.cache_base_addr                      = slot_cache_base_addr;
     assign slot_ctrl_o.addr                                 = current_slot;
 
-    // "request" commands are pushed as soon a partial operation is detected  
+    // "request" commands are pushed as soon a partial operation is detected
     assign slot_ctrl_o.req_valid                            = periph.req & periph.gnt & (periph.add [ID_WIDTH - 1 : 0] == (COMMANDS * 4 + 32)) & (periph.data [CMD_ACC_ONLY] | periph.data [CMD_DIV_ONLY]);
     assign slot_ctrl_o.req_op.addr                          = periph.data [31 -: 16];
     assign slot_ctrl_o.req_op.op                            = periph.data [CMD_ACQUIRE_SLOT] ? ALLOC : LOAD;
@@ -227,7 +259,7 @@ import softex_pkg::*;
 
     assign slot_ctrl_o.update_valid                         = state_slot_en;
     assign slot_ctrl_o.update_op.addr                       = current_slot;
-    assign slot_ctrl_o.update_op.op                         = last & div_only ? FREE : UPDATE;   
+    assign slot_ctrl_o.update_op.op                         = last & div_only ? FREE : UPDATE;
     assign slot_ctrl_o.update_op.maximum                    = datapath_flgs_i.max;
     assign slot_ctrl_o.update_op.denominator                = (acc_only & ~last) ? datapath_flgs_i.accumulator_flags.denominator : datapath_flgs_i.accumulator_flags.reciprocal;
 
@@ -236,7 +268,7 @@ import softex_pkg::*;
         out_start           = '0;
         in_start            = '0;
         dp_acc_finished     = '0;
-        dp_disable_max      = '0;
+        dp_disable_max      = '0;   //Remember to set this to 1 when we compute the gelu
         dp_dividing         = '0;
         slave_done          = '0;
         busy_o              = '1;
@@ -282,7 +314,7 @@ import softex_pkg::*;
                             end else begin
                                 out_start   = '1;
                                 in_start    = '1;
-                            end  
+                            end
                         end
                     end else begin
                         slave_done = '1;
