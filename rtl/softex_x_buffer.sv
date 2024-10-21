@@ -11,7 +11,7 @@ import softex_pkg::*;
 module softex_x_buffer #(
     parameter int unsigned              DATA_WIDTH      = DATA_W - 32       ,
     parameter int unsigned              STRB_WIDTH      = DATA_WIDTH / 8    ,
-    parameter int unsigned              DEPTH           = NUM_REGS_FMA_IN   ,
+    parameter int unsigned              DEPTH           = NUM_REGS_ROW_ACC  ,
     parameter int unsigned              CNT_WIDTH       = BUF_CNT_WIDTH     , 
     parameter logic                     LATCH_BUFFER    = USE_LATCH_BUF
 ) (
@@ -38,6 +38,8 @@ module softex_x_buffer #(
     logic                   loop_flg_en, loop_flg_clr;
 
     logic                   buffer_fill, buf_start_pointer_en;
+
+    logic                   last_read;
 
     logic [DEPTH-1:0] [DATA_WIDTH+STRB_WIDTH-1:0]  buf_registers;
 
@@ -129,6 +131,8 @@ module softex_x_buffer #(
         read_pointer_d          = read_pointer_q;
 
         buf_start_pointer_en    = '0;
+
+        last_read               = '0;
 
         next_state              = current_state;
 

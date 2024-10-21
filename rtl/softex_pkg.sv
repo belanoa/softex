@@ -29,11 +29,14 @@ package softex_pkg;
     parameter int unsigned  NUM_REGS_SUM_ACC    = 2;
     parameter int unsigned  NUM_REGS_MAX        = 0;
     parameter int unsigned  NUM_REGS_INV_APPR   = 1;
+    parameter int unsigned  NUM_REGS_ROW_ACC    = 2;
 
     localparam int unsigned WIDTH_IN    = fpnew_pkg::fp_width(FPFORMAT_IN);
     localparam int unsigned WIDTH_ACC   = fpnew_pkg::fp_width(FPFORMAT_ACC);
 
     parameter int unsigned  INT_W       = 8;
+
+    parameter int unsigned  ROW_ACC_WIDTH   = 14;
 
     parameter logic         USE_LATCH_BUF   = 0;
     parameter int unsigned  BUF_CNT_WIDTH   = 8;
@@ -66,6 +69,8 @@ package softex_pkg;
     parameter int unsigned  COMMANDS        = 3;
     parameter int unsigned  CACHE_BASE_ADDR = 4;
     parameter int unsigned  CAST_CTRL       = 5;
+    parameter int unsigned  A_ADDR          = 6;
+    parameter int unsigned  B_ADDR          = 7;
 
     parameter int unsigned  CMD_ACC_ONLY        = 0;
     parameter int unsigned  CMD_DIV_ONLY        = 1;
@@ -75,6 +80,9 @@ package softex_pkg;
     parameter int unsigned  CMD_NO_OP           = 5;
     parameter int unsigned  CMD_INT_INPUT       = 6;
     parameter int unsigned  CMD_INT_OUTPUT      = 7;
+    // NEW PARAMETERS
+    parameter int unsigned  CMD_GELU_MODE       = 8;
+
 
     typedef enum int unsigned   { BEFORE, AFTER, AROUND }   regs_config_t;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
@@ -113,6 +121,7 @@ package softex_pkg;
         logic                       clear_regs;
         logic                       load_max;
         logic                       load_denominator;
+        logic                       softmax_mode;
 
         logic [WIDTH_IN - 1 : 0]    max;
         logic [WIDTH_ACC - 1 : 0]   denominator;
@@ -192,22 +201,38 @@ package softex_pkg;
     } cast_ctrl_t;
 
     typedef struct packed {
-        logic                               loop;       //If this parameter is set to 0, the x buffer behaves like a FIFO
-        logic [$clog2(BUF_CNT_WIDTH)-1:0]   num_loops;  //The number of times each element has to be read before it is popped
+        logic                       loop;       //If this parameter is set to 0, the x buffer behaves like a FIFO
+        logic [BUF_CNT_WIDTH-1:0]   num_loops;  //The number of times each element has to be read before it is popped
     } x_buffer_ctrl_t;
 
     typedef struct packed {
-        logic [$clog2(BUF_CNT_WIDTH-1)-1:0] num_blocks; //The number of blocks to read excluding the last one
-        logic [$clog2(BUF_AB_ELEMENTS)-1:0] leftover;   //The poiniter to the last element of the final block
+        logic [BUF_CNT_WIDTH-$clog2(BUF_AB_ELEMENTS)-1:0]   num_blocks; //The number of blocks to read excluding the last one
+        logic [$clog2(BUF_AB_ELEMENTS)-1:0]                 leftover;   //The poiniter to the last element of the final block
     } ab_buffer_ctrl_t;
+
+    typedef struct packed {
+        logic               addressgen_start;
+        logic               x_done;
+        logic [31:0]        base_addr;
+        ab_buffer_ctrl_t    ab_buf_ctrl;
+    } ab_addressgen_ctrl_t;
 
     typedef struct packed {
         logic   placeholder;
     } x_buffer_flags_t;
 
     typedef struct packed {
-        logic   placeholder;
+        logic   last_weight;
     } ab_buffer_flags_t;
+
+    typedef struct packed {
+        logic   new_max;
+        logic   last_op;
+    } softex_glob_tag_t;
+
+    typedef struct packed {
+        logic   is_positive;
+    } softex_loc_tag_t;
 
     function automatic fpnew_pkg::pipe_config_t softex_to_cvfpu(softex_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;

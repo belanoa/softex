@@ -14,7 +14,7 @@ module softex_ab_buffer #(
     parameter int unsigned              ELEM_WIDTH      = WIDTH_IN                  ,
     parameter int unsigned              STRB_WIDTH      = 0                         ,
     parameter int unsigned              CNT_WIDTH       = BUF_CNT_WIDTH             ,
-    parameter int unsigned              ELEM_READS      = NUM_REGS_FMA_IN           ,
+    parameter int unsigned              ELEM_READS      = NUM_REGS_ROW_ACC          ,
     parameter logic                     LATCH_BUFFER    = USE_LATCH_BUF              
 ) (
     input   logic                   clk_i       ,
@@ -45,6 +45,8 @@ module softex_ab_buffer #(
     logic                   dir_toggle;
 
     logic                   last_blk, write_done;
+
+    logic                   last_weight;
 
     logic [CNT_WIDTH-$clog2(N_BLOCKS)-1:0]  buffer_read_cnt, num_buffer_reads;
     logic [$clog2(N_BLOCKS)-1:0]            block_leftover;
@@ -146,13 +148,13 @@ module softex_ab_buffer #(
     end
 
     // We can do this as N_BLOCKS has to be a power of 2
-    assign buffer_read_cnt  = block_read_cnt >> $clog2(N_BLOCKS);
-    assign block_leftover   = ctrl_i.num_blocks[$clog2(N_BLOCKS)-1:0];
-    assign num_buffer_reads = ctrl_i.num_blocks >> $clog2(N_BLOCKS);
+    assign buffer_read_cnt      = block_read_cnt >> $clog2(N_BLOCKS);
+    assign block_leftover       = ctrl_i.num_blocks[$clog2(N_BLOCKS)-1:0];
+    assign num_buffer_reads     = ctrl_i.num_blocks >> $clog2(N_BLOCKS);
 
-    assign last_blk         =   ((buffer_read_cnt == num_buffer_reads - 1) && (read_pointer_q > block_leftover)) || (buffer_read_cnt == num_buffer_reads);
+    assign last_blk             = ((buffer_read_cnt == num_buffer_reads - 1) && (read_pointer_q > block_leftover)) || (buffer_read_cnt == num_buffer_reads);
 
-    assign write_done       = last_blk && (direction == FORWARD ? (write_pointer_q == block_leftover) : (write_pointer_q == '0));
+    assign write_done           = last_blk && (direction == FORWARD ? (write_pointer_q == block_leftover) : (write_pointer_q == '0));
 
     always_comb begin
         buffer_i.ready      = '0;
@@ -168,6 +170,8 @@ module softex_ab_buffer #(
 
         block_read_cnt_en   = '0;
         block_read_cnt_clr  = '0;
+
+        last_weight         = '0;
 
         next_state          = current_state;
 
@@ -394,6 +398,8 @@ module softex_ab_buffer #(
                     elem_read_cnt_en    = '1;
 
                     if (direction == FORWARD) begin
+                        last_weight = (read_pointer_q == write_pointer_q) && (e_read_pointer_q == ctrl_i.leftover);
+
                         if ((read_pointer_q == write_pointer_q) && (e_read_pointer_q == ctrl_i.leftover) && (elem_read_cnt == ELEM_READS - 1)) begin
                             next_state          = buffer_read_cnt == '0 ? BOUNCE : FULL;
                             dir_toggle          = '1;
@@ -417,6 +423,8 @@ module softex_ab_buffer #(
                             end
                         end
                     end else begin
+                        last_weight = (e_read_pointer_q == '0) && (read_pointer_q == write_pointer_q);
+
                         if ((e_read_pointer_q == '0) && (elem_read_cnt == ELEM_READS - 1)) begin
                             if (read_pointer_q == write_pointer_q) begin
                                 next_state          = buffer_read_cnt == '0 ? BOUNCE : FULL;
@@ -466,7 +474,7 @@ module softex_ab_buffer #(
 
         assign {block_strb_out, block_data_out} = buf_registers[read_pointer_q];
 
-        assign buffer_o.data    = block_data_out[e_read_pointer_q];
+        assign buffer_o.data    = {last_weight, block_data_out[e_read_pointer_q]};
         assign buffer_o.strb    = block_strb_out[e_read_pointer_q];
     end else begin : gen_latch_buffer
         hwpe_stream_fifo_scm #(
@@ -483,7 +491,7 @@ module softex_ab_buffer #(
             .WriteData      (   {buffer_i.strb, buffer_i.data}      )
         );
 
-        assign buffer_o.data    = block_data_out[e_read_pointer_q];
+        assign buffer_o.data    = {last_weight, block_data_out[e_read_pointer_q]};
         assign buffer_o.strb    = block_strb_out[e_read_pointer_q];
     end
 

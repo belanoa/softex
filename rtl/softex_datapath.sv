@@ -12,6 +12,7 @@ module softex_datapath #(
     parameter int unsigned              DATA_WIDTH      = DATA_W            ,
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN       ,
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC      ,
+    parameter int unsigned              ROW_ACC_BITS    = ROW_ACC_WIDTH     ,
     parameter softex_pkg::regs_config_t REG_POS         = DEFAULT_REG_POS   ,
     parameter int unsigned              VECT_WIDTH      = N_ROWS            ,
     parameter int unsigned              SUM_REGS_IN     = NUM_REGS_SUM_IN   ,
@@ -19,16 +20,19 @@ module softex_datapath #(
     parameter int unsigned              MAX_REGS        = NUM_REGS_MAX      ,
     parameter int unsigned              EXP_REGS        = NUM_REGS_EXPU     ,
     parameter int unsigned              FMA_REGS_IN     = NUM_REGS_FMA_IN   ,
-    parameter int unsigned              FMA_REGS_ACC    = NUM_REGS_FMA_ACC
+    parameter int unsigned              FMA_REGS_ACC    = NUM_REGS_FMA_ACC  ,
+    parameter int unsigned              ROW_ACC_REGS    = NUM_REGS_ROW_ACC  
 ) (
-    input   logic                           clk_i       ,
-    input   logic                           rst_ni      ,
-    input   logic                           clear_i     ,
-    input   softex_pkg::datapath_ctrl_t     ctrl_i      ,
-    output  softex_pkg::datapath_flags_t    flags_o     ,
+    input   logic                   clk_i       ,
+    input   logic                   rst_ni      ,
+    input   logic                   clear_i     ,
+    input   datapath_ctrl_t         ctrl_i      ,
+    output  datapath_flags_t        flags_o     ,
 
-    hwpe_stream_intf_stream.sink            stream_i    ,
-    hwpe_stream_intf_stream.source          stream_o
+    hwpe_stream_intf_stream.sink    x_stream_i  ,
+    hwpe_stream_intf_stream.sink    a_stream_i  ,
+    hwpe_stream_intf_stream.sink    b_stream_i  ,
+    hwpe_stream_intf_stream.source  stream_o
 );
 
     localparam int unsigned IN_WIDTH        = fpnew_pkg::fp_width(IN_FPFORMAT);
@@ -67,7 +71,9 @@ module softex_datapath #(
             acc_valid,
             cast_valid,
             mul_valid,
-            mul_ready;
+            mul_ready,
+            row_acc_valid,
+            row_acc_ready;
 
     logic   addmul_o_busy,
             exp_o_busy,
@@ -78,12 +84,14 @@ module softex_datapath #(
     logic [VECT_WIDTH - 1 : 0] [IN_WIDTH - 1 : 0]   delayed_data,
                                                     diff_vect,
                                                     exp_vect,
-                                                    mul_res;
+                                                    mul_res,
+                                                    row_acc_res;
 
     logic [VECT_WIDTH - 1 : 0]  delayed_strb,
                                 exp_strb,
                                 diff_strb,
-                                mul_strb; 
+                                mul_strb,
+                                row_acc_strb; 
 
     logic   addmul_o_tag,
             expu_o_tag,
@@ -99,16 +107,16 @@ module softex_datapath #(
     hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_d  (.clk(clk_i));
     hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_q  (.clk(clk_i));
                             
-    assign stream_i.ready   = max_ready & delay_ready;
-    assign stream_o.valid   = mul_valid;
+    assign x_stream_i.ready = max_ready & delay_ready;
+    assign stream_o.valid   = ctrl_i.softmax_mode ? mul_valid : row_acc_valid;
 
     always_comb begin
         stream_o.strb = '0;
         stream_o.data = '0;
 
         for (int i = 0; i < VECT_WIDTH; i++) begin
-            stream_o.strb [IN_WIDTH/8 * i +: IN_WIDTH/8]    = {(IN_WIDTH/8){mul_strb [i]}};
-            stream_o.data [IN_WIDTH * i +: IN_WIDTH]        = mul_res [i];
+            stream_o.strb [IN_WIDTH/8 * i +: IN_WIDTH/8]    = ctrl_i.softmax_mode ? {(IN_WIDTH/8){mul_strb [i]}} : {(IN_WIDTH/8){row_acc_strb [i]}};
+            stream_o.data [IN_WIDTH * i +: IN_WIDTH]        = ctrl_i.softmax_mode ? mul_res [i] : row_acc_res [i];
         end
     end
 
@@ -143,11 +151,11 @@ module softex_datapath #(
         .rst_ni          (  rst_ni                                          ),
         .clear_i         (  clear_i | ctrl_i.clear_regs                     ),
         .enable_i        (  '1                                              ),
-        .valid_i         (  stream_i.valid & ~ctrl_i.disable_max            ),
+        .valid_i         (  x_stream_i.valid & ~ctrl_i.disable_max          ),
         .ready_i         (  max_diff_ready & diff_ready                     ),
         .operation_i     (  softex_pkg::MAX                                 ),
-        .strb_i          (  stream_i.strb [VECT_WIDTH - 1 : 0]              ),
-        .vect_i          (  stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0]   ),
+        .strb_i          (  x_stream_i.strb [VECT_WIDTH - 1 : 0]            ),
+        .vect_i          (  x_stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0] ),
         .load_i          (  ctrl_i.max                                      ),
         .load_en_i       (  ctrl_i.load_max                                 ),
         .cur_minmax_o    (  old_max                                         ),
@@ -236,20 +244,22 @@ module softex_datapath #(
         .rst_ni     (   rst_ni                                          ),
         .enable_i   (   '1                                              ),
         .clear_i    (   clear_i                                         ),
-        .valid_i    (   stream_i.valid                                  ),
-        .ready_i    (   diff_ready                                      ),
-        .data_i     (   stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0]   ),
-        .strb_i     (   stream_i.strb [VECT_WIDTH - 1 : 0]              ),
+        .valid_i    (   x_stream_i.valid                                ),
+        .ready_i    (   ctrl_i.softmax_mode ? diff_ready : mul_ready    ),
+        .data_i     (   x_stream_i.data [VECT_WIDTH * IN_WIDTH - 1 : 0] ),
+        .strb_i     (   x_stream_i.strb [VECT_WIDTH - 1 : 0]            ),
         .valid_o    (   delay_valid                                     ),
         .ready_o    (   delay_ready                                     ),
         .data_o     (   delayed_data                                    ),
         .strb_o     (   delayed_strb                                    )
     ); 
 
-    assign addmul_op        = fma_arb_cnt == '0 ? softex_pkg::ADD : softex_pkg::MUL;
+    assign addmul_op        = ctrl_i.softmax_mode ? (fma_arb_cnt == '0 ? softex_pkg::ADD : softex_pkg::MUL) : softex_pkg::MUL;
 
     assign addmul_ready [0] = diff_ready;
     assign addmul_ready [1] = mul_ready;
+
+    assign a_stream_i.ready = mul_ready;
 
     softex_fp_vect_addmul #(
         .FPFORMAT           (   IN_FPFORMAT ),
@@ -258,39 +268,39 @@ module softex_datapath #(
         .VECT_WIDTH         (   VECT_WIDTH  ),
         .TAG_TYPE           (   logic       )    
     ) i_addmul_time_mux (
-        .clk_i              (   clk_i                                           ),
-        .rst_ni             (   rst_ni                                          ),
-        .clear_i            (   clear_i                                         ),
-        .enable_i           (   '1                                              ),
-        .round_mode_i       (   fpnew_pkg::RNE                                  ),
-        .operation_i        (   addmul_op                                       ),
-        .op_mod_add_i       (   '1                                              ),
-        .op_mod_mul_i       (   '0                                              ),
-        .busy_o             (   addmul_o_busy                                   ),
-        .add_valid_i        (   delay_valid                                     ),
-        .add_scal_valid_i   (   '1                                              ),
-        .add_ready_i        (   exp_ready                                       ),
-        .add_strb_i         (   delayed_strb                                    ),
-        .add_vect_i         (   delayed_data                                    ),
-        .add_scal_i         (   new_max                                         ),
-        .add_tag_i          (   new_max_flag & max_valid                        ),
-        .add_valid_o        (   diff_valid                                      ),
-        .add_ready_o        (   diff_ready                                      ),
-        .add_strb_o         (   diff_strb                                       ),
-        .add_res_o          (   diff_vect                                       ),
-        .add_tag_o          (   addmul_o_tag                                    ),
-        .mul_valid_i        (   add_fifo_q.valid                                ),
-        .mul_scal_valid_i   (   cast_valid                                      ),
-        .mul_ready_i        (   stream_o.ready                                  ),
-        .mul_strb_i         (   add_fifo_q.strb [VECT_WIDTH - 1 : 0]            ),
-        .mul_vect_i         (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] ),
-        .mul_scal_i         (   inv_cast                                        ),
-        .mul_tag_i          (   '0                                              ),
-        .mul_valid_o        (   mul_valid                                       ),
-        .mul_ready_o        (   mul_ready                                       ),
-        .mul_strb_o         (   mul_strb                                        ),
-        .mul_res_o          (   mul_res                                         ),
-        .mul_tag_o          (                                                   )
+        .clk_i              (   clk_i                                               ),
+        .rst_ni             (   rst_ni                                              ),
+        .clear_i            (   clear_i                                             ),
+        .enable_i           (   '1                                                  ),
+        .round_mode_i       (   fpnew_pkg::RNE                                      ),
+        .operation_i        (   addmul_op                                           ),
+        .op_mod_add_i       (   '1                                                  ),
+        .op_mod_mul_i       (   '0                                                  ),
+        .busy_o             (   addmul_o_busy                                       ),
+        .add_valid_i        (   delay_valid                                         ),
+        .add_scal_valid_i   (   '1                                                  ),
+        .add_ready_i        (   exp_ready                                           ),
+        .add_strb_i         (   delayed_strb                                        ),
+        .add_vect_i         (   delayed_data                                        ),
+        .add_scal_i         (   new_max                                             ),
+        .add_tag_i          (   new_max_flag & max_valid                            ),
+        .add_valid_o        (   diff_valid                                          ),
+        .add_ready_o        (   diff_ready                                          ),
+        .add_strb_o         (   diff_strb                                           ),
+        .add_res_o          (   diff_vect                                           ),
+        .add_tag_o          (   addmul_o_tag                                        ),
+        .mul_valid_i        (   add_fifo_q.valid                                    ),
+        .mul_scal_valid_i   (   ctrl_i.softmax_mode ? cast_valid : a_stream_i.valid ),
+        .mul_ready_i        (   stream_o.ready                                      ),
+        .mul_strb_i         (   add_fifo_q.strb [VECT_WIDTH - 1 : 0]                ),
+        .mul_vect_i         (   add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0]     ),
+        .mul_scal_i         (   ctrl_i.softmax_mode ? inv_cast : a_stream_i.data    ),
+        .mul_tag_i          (   '0                                                  ),
+        .mul_valid_o        (   mul_valid                                           ),
+        .mul_ready_o        (   mul_ready                                           ),
+        .mul_strb_o         (   mul_strb                                            ),
+        .mul_res_o          (   mul_res                                             ),
+        .mul_tag_o          (                                                       )
     );
 
     expu_top #(
@@ -300,24 +310,24 @@ module softex_datapath #(
         .N_ROWS                 (   VECT_WIDTH          ),
         .TAG_TYPE               (   logic               )
     ) i_vect_exp (
-        .clk_i      (   clk_i               ),
-        .rst_ni     (   rst_ni              ),
-        .clear_i    (   clear_i             ),
-        .enable_i   (   '1                  ),
-        .valid_i    (   diff_valid          ),
-        .ready_i    (   add_fifo_d.ready    ),
-        .strb_i     (   diff_strb           ),
-        .op_i       (   diff_vect           ),
-        .tag_i      (   addmul_o_tag        ),
-        .res_o      (   exp_vect            ),
-        .valid_o    (   exp_valid           ),
-        .ready_o    (   exp_ready           ),
-        .strb_o     (   exp_strb            ),
-        .tag_o      (   expu_o_tag          ),
-        .busy_o     (   exp_o_busy          )
+        .clk_i      (   clk_i                                               ),
+        .rst_ni     (   rst_ni                                              ),
+        .clear_i    (   clear_i                                             ),
+        .enable_i   (   '1                                                  ),
+        .valid_i    (   ctrl_i.softmax_mode ? diff_valid : mul_valid        ),
+        .ready_i    (   ctrl_i.softmax_mode ? add_fifo_d.ready : acc_ready  ),
+        .strb_i     (   ctrl_i.softmax_mode ? diff_strb : mul_strb          ),
+        .op_i       (   ctrl_i.softmax_mode ? diff_vect : mul_res           ),
+        .tag_i      (   addmul_o_tag                                        ),
+        .res_o      (   exp_vect                                            ),
+        .valid_o    (   exp_valid                                           ),
+        .ready_o    (   exp_ready                                           ),
+        .strb_o     (   exp_strb                                            ),
+        .tag_o      (   expu_o_tag                                          ),
+        .busy_o     (   exp_o_busy                                          )
     );
 
-    assign add_fifo_d.valid = exp_valid;
+    assign add_fifo_d.valid = exp_valid & ctrl_i.softmax_mode;
     assign add_fifo_d.data  = {expu_o_tag, exp_vect};
     assign add_fifo_d.strb  = {{(IN_WIDTH / 8 * VECT_WIDTH - VECT_WIDTH){1'b0}}, exp_strb};
 
@@ -425,5 +435,31 @@ module softex_datapath #(
     end
 
     assign inv_cast = inv_cast_res;
+
+    softex_row_acc #(
+        .FPFORMAT       (   IN_FPFORMAT             ),
+        .NUM_REGS       (   ROW_ACC_REGS            ),
+        .NUM_ROWS       (   DATA_WIDTH / IN_WIDTH   ),
+        .NUM_FRAC_BITS  (   ROW_ACC_BITS            )
+    ) i_row_acc (
+        .clk_i          (   clk_i                               ),
+        .rst_ni         (   rst_ni                              ),
+        .clear_i        (   clear_i                             ),
+        .round_mode_i   (   fpnew_pkg::RNE                      ),
+        .busy_o         (                                       ),
+        .strb_i         (   exp_strb                            ),
+        .valid_o        (   row_acc_valid                       ),  
+        .op_valid_i     (   exp_valid & ~ctrl_i.softmax_mode    ),
+        .op_ready_o     (   row_acc_ready                       ),
+        .ready_i        (   stream_o.ready                      ),
+        .op_i           (   exp_vect                            ),          
+        .op_positive_i  (   '0                                  ),
+        .weight_valid_i (   b_stream_i.valid                    ),          
+        .weight_ready_o (   b_stream_i.ready                    ),          
+        .weight_i       (   b_stream_i.data [IN_WIDTH-1:0]      ),
+        .last_weight_i  (   b_stream_i.data [IN_WIDTH]          ),
+        .strb_o         (   row_acc_strb                        ),
+        .res_o          (   row_acc_res                         )
+    );
 
 endmodule

@@ -10,15 +10,16 @@ import hwpe_stream_package::*;
 import softex_pkg::*;
 
 module softex_ctrl #(
-    parameter int unsigned              N_CORES         = 1                     ,
-    parameter int unsigned              N_CONTEXT       = N_CTRL_CNTX           ,
-    parameter int unsigned              IO_REGS         = N_CTRL_REGS           ,
-    parameter int unsigned              ID_WIDTH        = 8                     ,
-    parameter int unsigned              N_STATE_SLOTS   = N_CTRL_STATE_SLOTS    ,
-    parameter int unsigned              DATA_WIDTH      = DATA_W - 32           ,
-    parameter int unsigned              INT_WIDTH       = INT_W                 ,
-    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN           ,
-    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC          
+    parameter int unsigned              N_CORES             = 1                     ,
+    parameter int unsigned              N_CONTEXT           = N_CTRL_CNTX           ,
+    parameter int unsigned              IO_REGS             = N_CTRL_REGS           ,
+    parameter int unsigned              ID_WIDTH            = 8                     ,
+    parameter int unsigned              N_STATE_SLOTS       = N_CTRL_STATE_SLOTS    ,
+    parameter int unsigned              DATA_WIDTH          = DATA_W - 32           ,
+    parameter int unsigned              INT_WIDTH           = INT_W                 ,
+    parameter int unsigned              WEIGHT_LEN_WIDTH    = BUF_CNT_WIDTH         ,
+    parameter fpnew_pkg::fp_format_e    IN_FPFORMAT         = FPFORMAT_IN           ,
+    parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC          
 ) (
     input   logic                           clk_i               ,
     input   logic                           rst_ni              ,
@@ -32,6 +33,11 @@ module softex_ctrl #(
     output  logic [N_CORES - 1 : 0] [1 : 0] evt_o               ,
     output  hci_streamer_ctrl_t             in_stream_ctrl_o    ,
     output  hci_streamer_ctrl_t             out_stream_ctrl_o   ,
+    output  x_buffer_ctrl_t                 x_buffer_ctrl_o     ,
+    output  ab_buffer_ctrl_t                a_buffer_ctrl_o     ,
+    output  ab_buffer_ctrl_t                b_buffer_ctrl_o     ,
+    output  ab_addressgen_ctrl_t            a_addressgen_ctrl_o ,
+    output  ab_addressgen_ctrl_t            b_addressgen_ctrl_o ,
     output  softex_pkg::datapath_ctrl_t     datapath_ctrl_o     ,
     output  softex_pkg::slot_regfile_ctrl_t slot_ctrl_o         ,
     output  softex_pkg::cast_ctrl_t         in_cast_ctrl_o      ,
@@ -88,7 +94,10 @@ module softex_ctrl #(
             acquire_slot,
             no_operation,
             cast_input,
-            cast_output;
+            cast_output,
+            gelu_mode;
+
+    logic [WEIGHT_LEN_WIDTH-1:0]    weight_len;
 
     logic [31 : 0]  slot_cache_base_addr;
     logic   cache_base_addr_en;
@@ -189,6 +198,28 @@ module softex_ctrl #(
     assign datapath_ctrl_o.load_denominator                 = dp_load_denominator;
     assign datapath_ctrl_o.accumulator_ctrl.load_reciprocal = dp_load_reciprocal;
 
+
+    assign datapath_ctrl_o.softmax_mode                     = ~gelu_mode; 
+
+    assign x_buffer_ctrl_o.loop                             = gelu_mode;
+    assign x_buffer_ctrl_o.num_loops                        = weight_len;
+
+    assign a_buffer_ctrl_o.num_blocks                       = (weight_len - 1) >> $clog2(BUF_AB_ELEMENTS); 
+    assign a_buffer_ctrl_o.leftover                         = (weight_len - 1); 
+
+    assign b_buffer_ctrl_o.num_blocks                       = (weight_len - 1) >> $clog2(BUF_AB_ELEMENTS); 
+    assign b_buffer_ctrl_o.leftover                         = (weight_len - 1); 
+
+    assign a_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;   //FIXME ?
+    assign a_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;            // prolly FIXME, check if this breaks anything
+    assign a_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [A_ADDR];
+    assign a_addressgen_ctrl_o.ab_buf_ctrl                  = a_buffer_ctrl_o;
+
+    assign b_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;   //FIXME ?
+    assign b_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;            // prolly FIXME, check if this breaks anything
+    assign b_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [B_ADDR];
+    assign b_addressgen_ctrl_o.ab_buf_ctrl                  = b_buffer_ctrl_o;
+
     assign datapath_ctrl_o.max                              = state_slot_i.maximum;
     assign datapath_ctrl_o.denominator                      = state_slot_i.denominator;
     assign datapath_ctrl_o.accumulator_ctrl.reciprocal      = state_slot_i.denominator;
@@ -201,8 +232,10 @@ module softex_ctrl #(
     assign no_operation                                     = reg_file.hwpe_params [COMMANDS] [CMD_NO_OP];          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation 
     assign cast_input                                       = reg_file.hwpe_params [COMMANDS] [CMD_INT_INPUT];      // Cast the input from fixed point to floating point
     assign cast_output                                      = reg_file.hwpe_params [COMMANDS] [CMD_INT_OUTPUT];     // Cast the output from floating point to fixed point
+    assign gelu_mode                                        = reg_file.hwpe_params [COMMANDS] [CMD_GELU_MODE];      // We are using SoftEx to perform the GELU activation
 
     assign current_slot                                     = reg_file.hwpe_params [COMMANDS] [31 -: 16];
+    assign weight_len                                       = reg_file.hwpe_params [COMMANDS] [16+WEIGHT_LEN_WIDTH-1:16];    // Partially overlaps with the current slot index. as we do not need it in GELU mode 
 
     assign in_cast_ctrl_o.int_bits                          = reg_file.hwpe_params [CAST_CTRL] [6 : 0];
     assign in_cast_ctrl_o.is_signed                         = reg_file.hwpe_params [CAST_CTRL] [7];
@@ -235,7 +268,7 @@ module softex_ctrl #(
         out_start           = '0;
         in_start            = '0;
         dp_acc_finished     = '0;
-        dp_disable_max      = '0;
+        dp_disable_max      = '0;   //Remember to set this to 1 when we compute the gelu
         dp_dividing         = '0;
         slave_done          = '0;
         busy_o              = '1;
