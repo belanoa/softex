@@ -99,7 +99,7 @@ module softex_row_acc #(
             .op_mod_i           (   '0                                  ),
             .tag_i              (                                       ),
             .mask_i             (   strb_i [i]                          ),
-            .aux_i              (   {last_weight_i, op_positive_i}      ),
+            .aux_i              (   {last_weight_i, op_positive_i [i]}  ),
             .in_valid_i         (   weight_valid_i & op_valid_i         ),
             .in_ready_o         (   mul_ready [i]                       ),
             .flush_i            (   clear_i                             ),
@@ -122,7 +122,7 @@ module softex_row_acc #(
         assign mul_res_man [i]      = {1'b1, mul_res [i] [MANTISSA_BITS-1:0]};
 
         assign fix_pre_shift [i]    = {mul_res_man [i], {(NUM_FRAC_BITS - MANTISSA_BITS){1'b0}}};
-        assign fix_shift [i]        = fix_pre_shift [i] >> (BIAS - mul_res_exp [i]);
+        assign fix_shift [i]        = fix_pre_shift [i] >> (BIAS - 1 - mul_res_exp [i]);
 
         assign mul_res_fix [i]      = (fix_shift [i] >> 1) + fix_shift [i] [0];
 
@@ -186,8 +186,8 @@ module softex_row_acc #(
 
         assign shifted_res [i]  = int_res [i] << (leading_zeros [i] + 1);
 
-        assign mantissae [i]    = shifted_res [i] [NUM_FRAC_BITS-:MANTISSA_BITS] + shifted_res [i] [NUM_FRAC_BITS-MANTISSA_BITS];
-        assign exponents [i]    = BIAS - leading_zeros [i];
+        assign mantissae [i]    = shifted_res [i] [(NUM_FRAC_BITS-1)-:MANTISSA_BITS] + shifted_res [i] [NUM_FRAC_BITS-1-MANTISSA_BITS];
+        assign exponents [i]    = BIAS - leading_zeros [i] - 1;
 
         assign res_o [i]        = int_res [i] == '0 ? '0 : {1'b0, exponents [i], mantissae [i]};
     end
