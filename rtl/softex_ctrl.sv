@@ -52,7 +52,7 @@ module softex_ctrl #(
     // The number of bits read when the input is integer
     localparam int unsigned DATA_WIDTH_INT  = INT_WIDTH * DATA_WIDTH / IN_WIDTH > DATA_WIDTH ? DATA_WIDTH : INT_WIDTH * DATA_WIDTH / IN_WIDTH;
 
-    typedef enum logic [2:0] {
+    typedef enum logic [3:0] {
         IDLE,
         WAIT_SLOT_VALID,
         ACCUMULATION,
@@ -60,6 +60,7 @@ module softex_ctrl #(
         WAIT_ACCUMULATION,
         WAIT_INVERSION,
         DIVIDING,
+        EXP_SUM,
         FINISHED
     } softex_state_t;
 
@@ -289,7 +290,12 @@ module softex_ctrl #(
                         cache_base_addr_en = '1;
                     end
 
-                    if (~no_operation) begin
+                    if (gelu_mode) begin
+                        next_state  = EXP_SUM;
+
+                        in_start    = '1;
+                        out_start   = '1;
+                    end else if (~no_operation) begin
                         if (~state_slot_i.valid & (acc_only | div_only)) begin
                             next_state = WAIT_SLOT_VALID;
                         end else begin
@@ -396,6 +402,12 @@ module softex_ctrl #(
                 dp_dividing     = '1;
                 dp_disable_max  = '1;
 
+                if (out_stream_flags_i.done) begin
+                    next_state  = FINISHED;
+                end
+            end
+
+            EXP_SUM: begin
                 if (out_stream_flags_i.done) begin
                     next_state  = FINISHED;
                 end

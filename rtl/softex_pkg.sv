@@ -11,7 +11,7 @@ package softex_pkg;
     parameter int unsigned  DATA_W  = 256 + 32;
 
     parameter int unsigned  N_CTRL_CNTX         = 2;
-    parameter int unsigned  N_CTRL_REGS         = 6;
+    parameter int unsigned  N_CTRL_REGS         = 8;
     parameter int unsigned  N_CTRL_STATE_SLOTS  = 2;
     parameter int unsigned  CTRL_REGFILE_SCM    = 0;
 
@@ -80,7 +80,6 @@ package softex_pkg;
     parameter int unsigned  CMD_NO_OP           = 5;
     parameter int unsigned  CMD_INT_INPUT       = 6;
     parameter int unsigned  CMD_INT_OUTPUT      = 7;
-    // NEW PARAMETERS
     parameter int unsigned  CMD_GELU_MODE       = 8;
 
 
