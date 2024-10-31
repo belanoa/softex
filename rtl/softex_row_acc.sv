@@ -150,7 +150,7 @@ module softex_row_acc #(
     );
 
     softex_delay #(
-        .NUM_REGS   (   2               ),
+        .NUM_REGS   (   NUM_REGS        ),
         .DATA_WIDTH (   NUM_ROWS + 1    ),
         .NUM_ROWS   (   1               )
     ) i_tag_pipe (
@@ -161,7 +161,7 @@ module softex_row_acc #(
         .valid_i    (   mul_valids [0]                  ),
         .ready_i    (   last_op_q ? ready_i : '1        ),
         .data_i     (   {last_op_d [0], op_positive_d}  ),
-        .strb_i     (   mul_o_strb                      ),
+        .strb_i     (   '1                              ),
         .valid_o    (                                   ),
         .ready_o    (                                   ),
         .data_o     (   {last_op_q, op_positive_q}      ),
