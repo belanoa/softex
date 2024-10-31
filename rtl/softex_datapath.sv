@@ -107,7 +107,7 @@ module softex_datapath #(
     hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_d  (.clk(clk_i));
     hwpe_stream_intf_stream #(.DATA_WIDTH(IN_WIDTH * VECT_WIDTH + 1))  add_fifo_q  (.clk(clk_i));
                             
-    assign x_stream_i.ready = max_ready & delay_ready;
+    assign x_stream_i.ready = ctrl_i.softmax_mode ? (max_ready & delay_ready) : delay_ready;
     assign stream_o.valid   = ctrl_i.softmax_mode ? mul_valid : row_acc_valid;
 
     always_comb begin
