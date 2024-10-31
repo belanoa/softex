@@ -122,19 +122,34 @@ module softex_top #(
         .load_i         (   slot_in_stream      )
     );
 
-    softex_x_buffer #(
-        .DATA_WIDTH (   ACTUAL_DW   ),
-        .DEPTH      (   2           ),
-        .LATCH_BUFFER   (   0       )
-    ) i_x_buffer (
-        .clk_i      (   clk_i           ),
-        .rst_ni     (   rst_ni          ),
-        .clear_i    (   clear           ),
-        .ctrl_i     (   x_buffer_ctrl   ),
-        .flags_o    (                   ),
-        .buffer_i   (   in_stream       ),
-        .buffer_o   (   in_fifo_q       )
-    );
+    if (NUM_REGS_ROW_ACC != 1) begin : generate_loop_buffer
+        softex_x_buffer #(
+            .DATA_WIDTH (   ACTUAL_DW   ),
+            .LATCH_BUFFER   (   0       )
+        ) i_x_buffer (
+            .clk_i      (   clk_i           ),
+            .rst_ni     (   rst_ni          ),
+            .clear_i    (   clear           ),
+            .ctrl_i     (   x_buffer_ctrl   ),
+            .flags_o    (                   ),
+            .buffer_i   (   in_stream       ),
+            .buffer_o   (   in_fifo_q       )
+        );
+    end else begin : generate_no_loop_buffer
+        softex_x_buffer_single #(
+            .DATA_WIDTH     (   ACTUAL_DW   ),
+            .DEPTH          (   2           ),
+            .LATCH_BUFFER   (   0           )
+        ) i_x_buffer (
+            .clk_i      (   clk_i           ),
+            .rst_ni     (   rst_ni          ),
+            .clear_i    (   clear           ),
+            .ctrl_i     (   x_buffer_ctrl   ),
+            .flags_o    (                   ),
+            .buffer_i   (   in_stream       ),
+            .buffer_o   (   in_fifo_q       )
+        );
+    end
 
     softex_ab_buffer #(
         .N_ELEMS    (   16   )
