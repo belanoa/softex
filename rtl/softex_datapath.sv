@@ -294,7 +294,7 @@ module softex_datapath #(
         .mul_ready_i        (   ctrl_i.softmax_mode ? stream_o.ready : row_acc_ready                                    ),
         .mul_strb_i         (   ctrl_i.softmax_mode ? add_fifo_q.strb [VECT_WIDTH - 1 : 0] : delayed_strb               ),
         .mul_vect_i         (   ctrl_i.softmax_mode ? add_fifo_q.data [IN_WIDTH * VECT_WIDTH - 1 : 0] : delayed_data    ),
-        .mul_scal_i         (   ctrl_i.softmax_mode ? inv_cast : a_stream_i.data                                        ),
+        .mul_scal_i         (   ctrl_i.softmax_mode ? inv_cast : a_stream_i.data [IN_WIDTH-1:0]                         ),
         .mul_tag_i          (   '0                                                                                      ),
         .mul_valid_o        (   mul_valid                                                                               ),
         .mul_ready_o        (   mul_ready                                                                               ),

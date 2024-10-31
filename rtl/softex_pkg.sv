@@ -29,7 +29,7 @@ package softex_pkg;
     parameter int unsigned  NUM_REGS_SUM_ACC    = 2;
     parameter int unsigned  NUM_REGS_MAX        = 0;
     parameter int unsigned  NUM_REGS_INV_APPR   = 1;
-    parameter int unsigned  NUM_REGS_ROW_ACC    = 2;
+    parameter int unsigned  NUM_REGS_ROW_ACC    = 1;
 
     localparam int unsigned WIDTH_IN    = fpnew_pkg::fp_width(FPFORMAT_IN);
     localparam int unsigned WIDTH_ACC   = fpnew_pkg::fp_width(FPFORMAT_ACC);
