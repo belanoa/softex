@@ -82,7 +82,7 @@ parser.add_argument("--length"      ,   type = int,     default = 1024          
 parser.add_argument("--range"       ,   type = int,     default = 128           )
 parser.add_argument("--monotonic"   ,   type = int,     default = 0             )
 parser.add_argument("--step"        ,   type = int,     default = 1             )
-parser.add_argument("--vectors"     ,   type = int,     default = 4             )
+parser.add_argument("--vectors"     ,   type = int,     default = 1             )
 parser.add_argument("--fixed_point" ,   type = int,     default = 0             )
 parser.add_argument("--fx_len"      ,   type = int,     default = 8             )
 parser.add_argument("--i_int_bits"  ,   type = int,     default = 4             )
