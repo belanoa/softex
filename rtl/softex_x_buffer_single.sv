@@ -55,12 +55,12 @@ module softex_x_buffer_single #(
         .pop_o      (   stream_q    )
     );
 
-    assign handshake_cnt_en     = stream_q.valid & buffer_o.ready;
+    assign handshake_cnt_en     = (stream_q.valid & buffer_o.ready) & ctrl_i.loop;
     assign handshake_cnt_clr    = (handshake_cnt + 1) == ctrl_i.num_loops;
 
     assign buffer_o.data    = stream_q.data;
     assign buffer_o.valid   = stream_q.valid;
-    assign stream_q.ready   = handshake_cnt_clr & buffer_o.ready;
+    assign stream_q.ready   = ctrl_i.loop ? (handshake_cnt_clr & buffer_o.ready) : buffer_o.ready;
     assign buffer_o.strb    = stream_q.strb; 
 
 endmodule

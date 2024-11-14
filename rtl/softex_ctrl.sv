@@ -211,13 +211,13 @@ module softex_ctrl #(
     assign b_buffer_ctrl_o.num_blocks                       = (weight_len - 1) >> $clog2(BUF_AB_ELEMENTS); 
     assign b_buffer_ctrl_o.leftover                         = (weight_len - 1); 
 
-    assign a_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;   //FIXME ?
-    assign a_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;            // prolly FIXME, check if this breaks anything
+    assign a_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;
+    assign a_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;
     assign a_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [A_ADDR];
     assign a_addressgen_ctrl_o.ab_buf_ctrl                  = a_buffer_ctrl_o;
 
-    assign b_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;   //FIXME ?
-    assign b_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;            // prolly FIXME, check if this breaks anything
+    assign b_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;
+    assign b_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;
     assign b_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [B_ADDR];
     assign b_addressgen_ctrl_o.ab_buf_ctrl                  = b_buffer_ctrl_o;
 
