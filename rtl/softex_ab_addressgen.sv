@@ -13,7 +13,6 @@ module softex_ab_addressgen #(
     parameter int unsigned              N_ELEMS         = (DATA_W - 32) / WIDTH_IN  ,
     parameter int unsigned              N_BLOCKS        = BUF_AB_BLOCKS             ,
     parameter int unsigned              ELEM_WIDTH      = WIDTH_IN                  ,
-    parameter int unsigned              STRB_WIDTH      = 0                         ,
     parameter int unsigned              CNT_WIDTH       = BUF_CNT_WIDTH             ,
     parameter int unsigned              ELEM_READS      = NUM_REGS_FMA_IN                      
 ) (

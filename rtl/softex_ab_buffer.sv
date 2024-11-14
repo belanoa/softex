@@ -12,7 +12,7 @@ module softex_ab_buffer #(
     parameter int unsigned              N_ELEMS         = (DATA_W - 32) / WIDTH_IN  ,
     parameter int unsigned              N_BLOCKS        = BUF_AB_BLOCKS             ,
     parameter int unsigned              ELEM_WIDTH      = WIDTH_IN                  ,
-    parameter int unsigned              STRB_WIDTH      = 0                         ,
+    parameter int unsigned              STRB_WIDTH      = WIDTH_IN / 8              ,
     parameter int unsigned              CNT_WIDTH       = BUF_CNT_WIDTH             ,
     parameter int unsigned              ELEM_READS      = NUM_REGS_ROW_ACC          ,
     parameter logic                     LATCH_BUFFER    = USE_LATCH_BUF              
@@ -478,8 +478,8 @@ module softex_ab_buffer #(
         assign buffer_o.strb    = block_strb_out[e_read_pointer_q];
     end else begin : gen_latch_buffer
         hwpe_stream_fifo_scm #(
-            .ADDR_WIDTH (   B_ADDR_LEN                      ),
-            .DATA_WIDTH (   ELEM_WIDTH*N_ELEMS + STRB_WIDTH )
+            .ADDR_WIDTH (   B_ADDR_LEN                              ),
+            .DATA_WIDTH (   ELEM_WIDTH*N_ELEMS + STRB_WIDTH*N_ELEMS )
         ) i_latch_buffer (
             .clk            (   clk_i                               ),
             .rst_n          (   rst_ni                              ),
