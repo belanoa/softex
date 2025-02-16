@@ -438,7 +438,7 @@ module softex_tb;
             if (difference > error_threshold) begin
                 errors += 1;
 
-                $error("[TB] - Misamtch!    Expexted: 0x%h\tWas: 0x%h\tPosition: %d\tDifference: %d", n, data, pos, difference);
+                $error("[TB] - Mismatch!    Expected: 0x%h\tWas: 0x%h\tPosition: %d\tDifference: %d", n, data, pos, difference);
             end
 
             pos += 1;
