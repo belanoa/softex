@@ -43,6 +43,7 @@ gui      ?= 0
 
 PROB_STALL ?= 0.0
 OUTPUT_SIZE ?= 2
+USE_ECC ?= 0
 
 # Include directories
 INC += -I$(SW)
@@ -115,6 +116,7 @@ ifeq ($(gui), 0)
 	$(QUESTA) vsim -c vopt_tb -do "run -a" 	\
 	-gPROB_STALL=$(PROB_STALL)				\
 	-gOUTPUT_SIZE=$(OUTPUT_SIZE)			\
+	-gUSE_ECC=$(USE_ECC)					\
 	$(sim_flags)
 else
 	$(QUESTA) vsim vopt_tb        	\
@@ -122,6 +124,7 @@ else
 	-do "source $(WAVES)"         	\
 	-gPROB_STALL=$(PROB_STALL)		\
 	-gOUTPUT_SIZE=$(OUTPUT_SIZE)	\
+	-gUSE_ECC=$(USE_ECC)			\
 	$(sim_flags)
 endif
 

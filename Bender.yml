@@ -12,7 +12,7 @@ dependencies:
   ibex          : { git: "https://github.com/pulp-platform/ibex.git"        , rev: pulpissimo-v6.1.2                        }
   fpnew         : { git: "https://github.com/pulp-platform/cvfpu.git"       , rev: "pulp-v0.1.3"                            }
   common_cells  : { git: "git@github.com:pulp-platform/common_cells.git"    , rev: "v1.32.0"                                } 
-  hci           : { git: "https://github.com/pulp-platform/hci.git"         , rev: d31af36ebcaf2196fb51676b40782aa8cbd9cc69 } # branch: remove-automatic-parameter-prop
+  hci           : { git: "https://github.com/pulp-platform/hci.git"         , rev: aed9005c761827c6cbff2ea9a15f9cc37acd1169 } # branch: lg/ecc_fix_no_hwpe
   hwpe-stream   : { git: "https://github.com/pulp-platform/hwpe-stream.git" , rev: 3bc9694705b72a5b9bddc7fcde5091b9e45ba0c8 } # branch: master
   hwpe-ctrl     : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"   , rev: "2926867"                                } # branch: master
 

@@ -25,6 +25,8 @@ module softex_tb;
     parameter string        STIM_INSTR = "./stim_instr.txt";
     parameter string        STIM_DATA  = "./stim_data.txt";
     parameter int unsigned  OUTPUT_SIZE = 2;
+    parameter int unsigned  USE_ECC = 0;
+    parameter int unsigned  EW = (USE_ECC) ? 43 : 1; // 35 data check-bit + 8 meta check-bit
 
     logic clk;
     logic rst_n;
@@ -46,13 +48,15 @@ module softex_tb;
     logic [MP-1:0][3:0]  tcdm_be;
     logic [MP-1:0][31:0] tcdm_data;
     logic [MP-1:0]       tcdm_r_ready;
+    logic [EW-1:0]       tcdm_ecc;
     logic [MP-1:0] [7:0] tcdm_id;
     logic [MP-1:0][31:0] tcdm_r_data;
     logic [MP-1:0]       tcdm_r_valid;
     logic                tcdm_r_opc;
     logic                tcdm_r_user;
     logic          [7:0] tcdm_r_id;
-   
+    logic [EW-1:0]       tcdm_r_ecc;
+
     logic          periph_req;
     logic          periph_gnt;
     logic [31:0]   periph_add;
@@ -132,13 +136,14 @@ module softex_tb;
         else
             other_r_valid <= data_req & (data_addr[31:24] == 8'h80);
     end
-    
+
     for(genvar ii=0; ii<MP; ii++) begin : tcdm_binding
         assign tcdm[ii].req     = tcdm_req     [ii];
         assign tcdm[ii].add     = tcdm_add     [ii];
         assign tcdm[ii].wen     = tcdm_wen     [ii];
         assign tcdm[ii].be      = tcdm_be      [ii];
-        assign tcdm[ii].data    = tcdm_data    [ii];
+        if (~USE_ECC)
+            assign tcdm[ii].data = tcdm_data    [ii];
         //assign tcdm[ii].r_ready = tcdm_r_ready [ii];
         //assign tcdm[ii].id      = tcdm_id      [ii];
         assign tcdm_gnt     [ii] = tcdm[ii].gnt;
@@ -169,11 +174,42 @@ module softex_tb;
                          stack[0].r_valid |
                          tcdm[MP].r_valid |
                          other_r_valid    ;
-    
+
+    if (USE_ECC) begin : gen_ecc_dec_enc
+        logic [MP-1:0][1:0] err_on_data;
+        // REQUEST PHASE DECODING PAYLOAD ONLY
+        for(genvar ii=0; ii<MP; ii++) begin : data_decoding
+            hsiao_ecc_dec #(
+                .DataWidth ( 32 )
+            ) i_data_dec (
+                .in         ( { tcdm_ecc[(ii+1)*7-1+8:ii*7+8], tcdm_data[ii] } ),
+                .out        ( tcdm[ii].data ),
+                .syndrome_o ( ),
+                .err_o      (err_on_data[ii])
+            );
+        end
+
+        // RESPONSE PHASE ENCODING
+        logic [MP-1:0][38:0] tcdm_r_data_enc;
+        for(genvar ii=0; ii<MP; ii++) begin : r_data_encoding
+            hsiao_ecc_enc #(
+                .DataWidth ( 32 )
+            ) i_r_data_enc (
+                .in  (tcdm[ii].r_data),
+                .out (tcdm_r_data_enc[ii])
+            );
+            assign tcdm_r_ecc[(ii+1)*7-1:ii*7] = tcdm_r_data_enc[ii][38:32];
+        end
+        assign tcdm_r_ecc[EW-1:(7*MP)] = '0;
+    end else begin : gen_no_r_ecc
+        assign tcdm_r_ecc = '0;
+    end
+
     softex_wrap #(
         .ID_WIDTH           ( ID                 ),
         .N_CORES            ( NC                 ),
         .DW                 ( DW                 ),
+        .EW                 ( EW                 ),
         .MP                 ( MP                 )
     ) i_softex_wrap      (
         .clk_i              ( clk                ),
@@ -187,6 +223,7 @@ module softex_tb;
         .tcdm_be_o          ( tcdm_be            ),
         .tcdm_data_o        ( tcdm_data          ),
         .tcdm_r_ready_o     ( tcdm_r_ready       ),
+        .tcdm_ecc_o         ( tcdm_ecc           ),
         .tcdm_id_o          ( tcdm_id            ),
         .tcdm_gnt_i         ( tcdm_gnt           ),
         .tcdm_r_data_i      ( tcdm_r_data        ),
@@ -194,6 +231,7 @@ module softex_tb;
         .tcdm_r_opc_i       ( tcdm_r_opc         ),
         .tcdm_r_user_i      ( tcdm_r_user        ),
         .tcdm_r_id_i        ( tcdm_r_id          ),
+        .tcdm_r_ecc_i       ( tcdm_r_ecc         ),
         .periph_req_i       ( periph_req         ),
         .periph_gnt_o       ( periph_gnt         ),
         .periph_add_i       ( periph_add         ),

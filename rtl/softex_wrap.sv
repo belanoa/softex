@@ -16,6 +16,7 @@ module softex_wrap #(
     parameter int unsigned              ID_WIDTH    = 8             ,
     parameter int unsigned              N_CORES     = 8             ,
     parameter int unsigned              DW          = DATA_W        ,
+    parameter  int unsigned             EW          = 0             ,
     parameter int unsigned              MP          = DW / 32       ,
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   
 ) (
@@ -35,12 +36,14 @@ module softex_wrap #(
     output logic [      MP-1:0][31:0] tcdm_data_o         ,
     output logic [      MP-1:0]       tcdm_r_ready_o      ,
     output logic [      MP-1:0][ 7:0] tcdm_id_o           ,    
+    output logic [      EW-1:0]       tcdm_ecc_o          ,
     input  logic [      MP-1:0][31:0] tcdm_r_data_i       ,
     input  logic [      MP-1:0]       tcdm_r_valid_i      ,
     input  logic                      tcdm_r_opc_i        ,
     input  logic                      tcdm_r_user_i       ,
     input  logic               [ 7:0] tcdm_r_id_i         ,
-    // periph slave port  
+    input  logic [      EW-1:0]       tcdm_r_ecc_i        ,
+    // periph slave port
     input  logic                      periph_req_i        ,
     output logic                      periph_gnt_o        ,
     input  logic [        31:0]       periph_add_i        ,
@@ -61,7 +64,7 @@ module softex_wrap #(
       BW:  hci_package::DEFAULT_BW,
       UW:  hci_package::DEFAULT_UW,
       IW:  hci_package::DEFAULT_IW,
-      EW:  hci_package::DEFAULT_EW,
+      EW:  EW,
       EHW: hci_package::DEFAULT_EHW
     };
     `HCI_INTF(tcdm, clk_i);
@@ -81,6 +84,7 @@ module softex_wrap #(
             assign tcdm_r_ready_o   [ii] = tcdm.r_ready;
             assign tcdm_id_o        [ii] = tcdm.id;
         end
+        assign tcdm_ecc_o   = tcdm.ecc;
 
         assign tcdm.gnt     = &(tcdm_gnt_i);
         assign tcdm.r_valid = &(tcdm_r_valid_i);
@@ -88,6 +92,7 @@ module softex_wrap #(
         assign tcdm.r_opc   = tcdm_r_opc_i;
         assign tcdm.r_user  = tcdm_r_user_i;
         assign tcdm.r_id    = tcdm_r_id_i;
+        assign tcdm.r_ecc   = tcdm_r_ecc_i;
 
         assign periph.req       = periph_req_i;
         assign periph.add       = periph_add_i;
@@ -115,6 +120,7 @@ module softex_wrap #(
                     tcdm_r_ready_o  [ii] <= '0;
                     tcdm_id_o       [ii] <= '0;
                 end
+                tcdm_ecc_o   <= '0;
 
                 tcdm.gnt     <= '0;
                 tcdm.r_valid <= '0;
@@ -122,6 +128,7 @@ module softex_wrap #(
                 tcdm.r_opc   <= '0;
                 tcdm.r_user  <= '0;
                 tcdm.r_id    <= '0;
+                tcdm.r_ecc   <= '0;
 
                 // Control port
                 periph.req     <= '0;
@@ -149,6 +156,7 @@ module softex_wrap #(
                     tcdm_r_ready_o   [ii] <= tcdm.r_ready;
                     tcdm_id_o        [ii] <= tcdm.id;
                 end
+                tcdm_ecc_o   <= tcdm.ecc;
 
                 tcdm.gnt     <= &(tcdm_gnt_i);
                 tcdm.r_valid <= &(tcdm_r_valid_i);
@@ -156,6 +164,7 @@ module softex_wrap #(
                 tcdm.r_opc   <= tcdm_r_opc_i;
                 tcdm.r_user  <= tcdm_r_user_i;
                 tcdm.r_id    <= tcdm_r_id_i;
+                tcdm.r_ecc   <= tcdm_r_ecc_i;
 
                 // Control port
                 periph.req     <= periph_req_i;

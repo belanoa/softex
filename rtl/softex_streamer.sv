@@ -40,6 +40,18 @@ module softex_streamer #(
 );
 
     localparam int unsigned DW = `HCI_SIZE_GET_DW(Tcdm);
+    localparam int unsigned EW = `HCI_SIZE_GET_EW(Tcdm);
+
+    // this localparam is reused for all internal, non-ecc HCI interfaces
+    localparam hci_size_parameter_t `HCI_SIZE_PARAM(Tcdm_no_ecc) = '{
+        DW:  DW,
+        AW:  DEFAULT_AW,
+        BW:  DEFAULT_BW,
+        UW:  DEFAULT_UW,
+        IW:  DEFAULT_IW,
+        EW:  DEFAULT_EW,
+        EHW: DEFAULT_EHW
+    };
 
     hwpe_stream_intf_stream #(
         .DATA_WIDTH ( ACTUAL_DW )
@@ -67,20 +79,26 @@ module softex_streamer #(
 
     hci_core_intf #(
         .DW ( DW )
-    ) ldst_tcdm [0:0] ( 
-        .clk    (   clk_i   ) 
+    ) tcdm_no_ecc (
+        .clk    (   clk_i   )
     );
 
     hci_core_intf #(
         .DW ( DW )
-    ) load_tcdm ( 
-        .clk    (   clk_i   ) 
+    ) ldst_tcdm [0:0] (
+        .clk    (   clk_i   )
     );
 
     hci_core_intf #(
         .DW ( DW )
-    ) store_tcdm ( 
-        .clk    (   clk_i   ) 
+    ) load_tcdm (
+        .clk    (   clk_i   )
+    );
+
+    hci_core_intf #(
+        .DW ( DW )
+    ) store_tcdm (
+        .clk    (   clk_i   )
     );
 
     hci_core_intf #(
@@ -89,10 +107,36 @@ module softex_streamer #(
         .clk    (   clk_i   )
     );
 
+    if (EW > 1) begin : gen_ecc_encoder
+        errs_streamer_t ecc_errors;
+        logic [DW/ECC_CHUNK_SIZE-1:0] data_single_err, data_multi_err;
+        logic                         meta_single_err, meta_multi_err;
+
+        hci_ecc_enc #(
+            .DW ( DW ),
+            .`HCI_SIZE_PARAM(tcdm_target)    ( `HCI_SIZE_PARAM(Tcdm_no_ecc) ),
+            .`HCI_SIZE_PARAM(tcdm_initiator) ( `HCI_SIZE_PARAM(Tcdm)        )
+        ) i_hci_ecc_enc (
+            .r_data_single_err_o ( data_single_err ),
+            .r_data_multi_err_o  ( data_multi_err  ),
+            .r_meta_single_err_o ( meta_single_err ),
+            .r_meta_multi_err_o  ( meta_multi_err  ),
+            .tcdm_target         ( tcdm_no_ecc     ),
+            .tcdm_initiator      ( tcdm            )
+        );
+
+        assign ecc_errors.data_single_err = data_single_err & {ECC_N_CHUNK{tcdm.r_valid}};
+        assign ecc_errors.data_multi_err  = data_multi_err  & {ECC_N_CHUNK{tcdm.r_valid}};
+        assign ecc_errors.meta_single_err = meta_single_err & (tcdm.req & tcdm.gnt);
+        assign ecc_errors.meta_multi_err  = meta_multi_err  & (tcdm.req & tcdm.gnt);
+    end else begin : gen_no_ecc_assign
+        hci_core_assign i_no_ecc_assign ( .tcdm_target (tcdm_no_ecc), .tcdm_initiator (tcdm) );
+    end
+
     hci_core_mux_dynamic #(
-        .NB_IN_CHAN             ( 2                     ),
-        .NB_OUT_CHAN            ( 1                     ),
-        .`HCI_SIZE_PARAM(in)    ( `HCI_SIZE_PARAM(Tcdm) )
+        .NB_IN_CHAN             ( 2                            ),
+        .NB_OUT_CHAN            ( 1                            ),
+        .`HCI_SIZE_PARAM(in)    ( `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_ldst_mux (
         .clk_i              (   clk_i       ),
         .rst_ni             (   rst_ni      ),
@@ -102,14 +146,14 @@ module softex_streamer #(
     );
 
     hci_core_r_valid_filter #(
-        .`HCI_SIZE_PARAM(tcdm_target)   ( `HCI_SIZE_PARAM(Tcdm) )
+        .`HCI_SIZE_PARAM(tcdm_target)   ( `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_tcdm_r_valid_filter (
         .clk_i          (  clk_i            ),
         .rst_ni         (  rst_ni           ),
         .clear_i        (  clear_i          ),
         .enable_i       (  1'b1             ),
         .tcdm_target    (  ldst_tcdm [0]    ),
-        .tcdm_initiator (  tcdm             )
+        .tcdm_initiator (  tcdm_no_ecc      )
     );
 
     /*      LOAD CHANNEL      */
@@ -140,8 +184,8 @@ module softex_streamer #(
     );
 
     hci_core_source #(
-        .MISALIGNED_ACCESSES    (   1                     ),
-        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm) )
+        .MISALIGNED_ACCESSES    (   1                            ),
+        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_stream_in (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
@@ -155,8 +199,8 @@ module softex_streamer #(
     );
 
     hci_core_source #(
-        .MISALIGNED_ACCESSES    (   1                     ),
-        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm) )
+        .MISALIGNED_ACCESSES    (   1                            ),
+        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_slot_in (
         .clk_i          (   clk_i               ),
         .rst_ni         (   rst_ni              ),
@@ -176,8 +220,8 @@ module softex_streamer #(
     );
 
     hci_core_mux_ooo #(
-        .NB_CHAN                (   2                     ),
-        .`HCI_SIZE_PARAM(out)   (   `HCI_SIZE_PARAM(Tcdm) )
+        .NB_CHAN                (   2                            ),
+        .`HCI_SIZE_PARAM(out)   (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_load_mux (
         .clk_i              (   clk_i           ),
         .rst_ni             (   rst_ni          ),
@@ -189,8 +233,8 @@ module softex_streamer #(
     );
 
     hci_core_fifo #(
-        .FIFO_DEPTH                         (   2                     ),
-        .`HCI_SIZE_PARAM(tcdm_initiator)    (   `HCI_SIZE_PARAM(Tcdm) )
+        .FIFO_DEPTH                         (   2                            ),
+        .`HCI_SIZE_PARAM(tcdm_initiator)    (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_load_fifo (
         .clk_i          (  clk_i        ),
         .rst_ni         (  rst_ni       ),
@@ -201,7 +245,7 @@ module softex_streamer #(
     );
 
     hci_core_r_id_filter #(
-        .`HCI_SIZE_PARAM(tcdm_target)   (   `HCI_SIZE_PARAM(Tcdm) )
+        .`HCI_SIZE_PARAM(tcdm_target)   (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_load_r_id_filter (
         .clk_i          (   clk_i           ),
         .rst_ni         (   rst_ni          ),
@@ -239,8 +283,8 @@ module softex_streamer #(
     );
 
     hci_core_sink #(
-        .MISALIGNED_ACCESSES    (   1                     ),
-        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm) )
+        .MISALIGNED_ACCESSES    (   1                            ),
+        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_stream_out (
         .clk_i          (   clk_i                   ),
         .rst_ni         (   rst_ni                  ),
@@ -254,8 +298,8 @@ module softex_streamer #(
     );
 
     hci_core_sink #(
-        .MISALIGNED_ACCESSES    (   1                     ),
-        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm) )
+        .MISALIGNED_ACCESSES    (   1                            ),
+        .`HCI_SIZE_PARAM(tcdm)  (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_slot_out (
         .clk_i          (   clk_i                   ),
         .rst_ni         (   rst_ni                  ),
@@ -275,8 +319,8 @@ module softex_streamer #(
     );
 
     hci_core_mux_ooo #(
-        .NB_CHAN                (   2                     ),
-        .`HCI_SIZE_PARAM(out)   (   `HCI_SIZE_PARAM(Tcdm) )
+        .NB_CHAN                (   2                            ),
+        .`HCI_SIZE_PARAM(out)   (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_store_mux (
         .clk_i              (   clk_i               ),
         .rst_ni             (   rst_ni              ),
@@ -288,8 +332,8 @@ module softex_streamer #(
     );
 
     hci_core_fifo #(
-        .FIFO_DEPTH                         (   2                     ),
-        .`HCI_SIZE_PARAM(tcdm_initiator)    (   `HCI_SIZE_PARAM(Tcdm) )
+        .FIFO_DEPTH                         (   2                            ),
+        .`HCI_SIZE_PARAM(tcdm_initiator)    (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_store_fifo (
         .clk_i          (  clk_i        ),
         .rst_ni         (  rst_ni       ),
@@ -300,7 +344,7 @@ module softex_streamer #(
     ); 
     
     hci_core_r_id_filter #(
-        .`HCI_SIZE_PARAM(tcdm_target)   (   `HCI_SIZE_PARAM(Tcdm) )
+        .`HCI_SIZE_PARAM(tcdm_target)   (   `HCI_SIZE_PARAM(Tcdm_no_ecc) )
     ) i_store_r_id_filter (
         .clk_i          (   clk_i           ),
         .rst_ni         (   rst_ni          ),

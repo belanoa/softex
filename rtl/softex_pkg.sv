@@ -10,6 +10,9 @@ import fpnew_pkg::*;
 package softex_pkg;
     parameter int unsigned  DATA_W  = 128 + 32;
 
+    parameter int unsigned  ECC_CHUNK_SIZE = 32;
+    parameter int unsigned  ECC_N_CHUNK    = DATA_W / ECC_CHUNK_SIZE;
+
     parameter int unsigned  N_CTRL_CNTX         = 2;
     parameter int unsigned  N_CTRL_REGS         = 6;
     parameter int unsigned  N_CTRL_STATE_SLOTS  = 2;
@@ -185,6 +188,13 @@ package softex_pkg;
 
         logic                   enable;
     } cast_ctrl_t;
+
+    typedef struct packed {
+        logic [ECC_N_CHUNK-1:0]         data_single_err;
+        logic [ECC_N_CHUNK-1:0]         data_multi_err;
+        logic                           meta_single_err;
+        logic                           meta_multi_err;
+    } errs_streamer_t;
 
     function automatic fpnew_pkg::pipe_config_t softex_to_cvfpu(softex_pkg::regs_config_t arg);
         fpnew_pkg::pipe_config_t res;
