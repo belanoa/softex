@@ -5,11 +5,12 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+
+module softex_ctrl
 import hci_package::*;
 import hwpe_stream_package::*;
 import softex_pkg::*;
-
-module softex_ctrl #(
+#(
     parameter int unsigned              N_CORES         = 1                     ,
     parameter int unsigned              N_CONTEXT       = N_CTRL_CNTX           ,
     parameter int unsigned              IO_REGS         = N_CTRL_REGS           ,

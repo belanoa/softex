@@ -8,11 +8,12 @@
 
 `include "hci_helpers.svh"
 
+
+module softex_streamer
 import hwpe_stream_package::*;
 import hci_package::*;
 import softex_pkg::*;
-
-module softex_streamer #(
+#(
     parameter hci_size_parameter_t `HCI_SIZE_PARAM(Tcdm) = '0,
     parameter int unsigned ACTUAL_DW = 0
 ) (

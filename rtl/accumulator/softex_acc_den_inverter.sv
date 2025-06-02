@@ -7,9 +7,8 @@
 
 `include "../softex_macros.svh"
 
-import softex_pkg::*;
 
-module softex_acc_den_inverter #(
+module softex_acc_den_inverter import softex_pkg::*; #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_ACC      ,
     parameter softex_pkg::regs_config_t REG_POS     = softex_pkg::BEFORE   ,
     parameter int unsigned              NUM_REGS    = NUM_REGS_INV_APPR ,

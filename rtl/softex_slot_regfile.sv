@@ -1,8 +1,9 @@
+
+module softex_slot_regfile
 import softex_pkg::*;
 import hwpe_stream_package::*;
 import hci_package::*;
-
-module softex_slot_regfile #(
+#(
     parameter int unsigned  DATA_WIDTH      = DATA_W                ,
     parameter int unsigned  N_STATE_SLOTS   = N_CTRL_STATE_SLOTS    ,
     parameter int unsigned  N_BITS_ADDR     = SLOT_ADDR_BITS        ,

@@ -5,9 +5,8 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-import softex_pkg::*;
 
-module softex_acc_ctrl #(
+module softex_acc_ctrl import softex_pkg::*; #(
     parameter int unsigned  N_INV_ITERS = N_NEWTON_ITERS            ,
     parameter logic         COMB_INV    = NUM_REGS_INV_APPR == 0    
 ) (

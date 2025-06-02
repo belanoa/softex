@@ -5,10 +5,11 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+
+module expu_correction
 import softex_pkg::*;
 import fpnew_pkg::*;
-
-module expu_correction #(
+#(
     parameter fpnew_pkg::fp_format_e    FPFORMAT                = FPFORMAT_IN                   ,
     parameter int unsigned              COEFFICIENT_FRACTION    = EXPU_COEFFICIENT_FRACTION     ,
     parameter int unsigned              CONSTANT_FRACTION       = EXPU_CONSTANT_FRACTION        ,

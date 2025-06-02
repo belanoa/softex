@@ -5,10 +5,11 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+
+module softex_cast_out
 import softex_pkg::*;
 import hwpe_stream_package::*;
-
-module softex_cast_out #(
+#(
     parameter int unsigned              DATA_WIDTH  = DATA_W        ,
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
     parameter int unsigned              INT_WIDTH   = INT_W          

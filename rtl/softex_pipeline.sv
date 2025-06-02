@@ -5,9 +5,8 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-import softex_pkg::*;
 
-module softex_pipeline #(
+module softex_pipeline import softex_pkg::*; #(
     parameter softex_pkg::regs_config_t REG_POS                 = DEFAULT_REG_POS   ,
     parameter int unsigned              NUM_REGS                = 0                 ,
     parameter int unsigned              WIDTH_IN                = 1                 ,
