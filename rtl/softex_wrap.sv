@@ -8,11 +8,12 @@
 
 `include "hci_helpers.svh"
 
+
+module softex_wrap
 import hci_package::*;
 import hwpe_ctrl_package::*;
 import softex_pkg::*;
-
-module softex_wrap #(
+#(
     parameter int unsigned              ID_WIDTH    = 8             ,
     parameter int unsigned              N_CORES     = 8             ,
     parameter int unsigned              DW          = DATA_W        ,

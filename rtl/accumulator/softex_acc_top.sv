@@ -5,9 +5,8 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-import softex_pkg::*;
 
-module softex_acc_top #(
+module softex_acc_top import softex_pkg::*; #(
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC                      ,
     parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = FPFORMAT_ACC                      ,
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = FPFORMAT_IN                       ,

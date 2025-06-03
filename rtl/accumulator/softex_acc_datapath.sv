@@ -7,9 +7,8 @@
 
 `include "../softex_macros.svh"
 
-import softex_pkg::*;
 
-module softex_acc_datapath #(
+module softex_acc_datapath import softex_pkg::*; #(
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT        = FPFORMAT_ACC                      ,
     parameter fpnew_pkg::fp_format_e    ADD_FPFORMAT        = FPFORMAT_ACC                      ,
     parameter fpnew_pkg::fp_format_e    MUL_FPFORMAT        = FPFORMAT_IN                       ,

@@ -8,11 +8,11 @@
 
 `include "hci_helpers.svh"
 
+module softex_top
 import hci_package::*;
 import hwpe_stream_package::*;
 import softex_pkg::*;
-
-module softex_top #(
+#(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
     parameter int unsigned              INT_WIDTH   = INT_W         ,
     parameter int unsigned              N_CORES     = 8,

@@ -5,10 +5,11 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+
+module expu_schraudolph
 import softex_pkg::*;
 import fpnew_pkg::*;
-
-module expu_schraudolph #(
+#(
     parameter fpnew_pkg::fp_format_e    FPFORMAT        = FPFORMAT_IN       ,
     parameter int unsigned              A_FRACTION      = EXPU_A_FRACTION   ,
     parameter logic                     ENABLE_ROUNDING = 1                 ,

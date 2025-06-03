@@ -7,9 +7,8 @@
 
 `include "softex_macros.svh"
 
-import softex_pkg::*;
 
-module softex_fp_minmax_rec #(
+module softex_fp_minmax_rec import softex_pkg::*; #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
     parameter int unsigned              N_INP       = 1             ,
 

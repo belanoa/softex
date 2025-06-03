@@ -5,9 +5,8 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-import softex_pkg::*;
 
-module softex_fp_add_rec #(
+module softex_fp_add_rec import softex_pkg::*; #(
     parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_ACC      ,
     parameter int unsigned              N_INP       = 1                 ,
     parameter int unsigned              NUM_REGS    = 0                 ,

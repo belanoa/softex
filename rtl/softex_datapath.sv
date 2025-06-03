@@ -5,10 +5,11 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+
+module softex_datapath
 import hwpe_stream_package::*;
 import softex_pkg::*;
-
-module softex_datapath #(
+#(
     parameter int unsigned              DATA_WIDTH      = DATA_W            ,
     parameter fpnew_pkg::fp_format_e    IN_FPFORMAT     = FPFORMAT_IN       ,
     parameter fpnew_pkg::fp_format_e    ACC_FPFORMAT    = FPFORMAT_ACC      ,

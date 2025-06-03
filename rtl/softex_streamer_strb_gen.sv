@@ -5,11 +5,12 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
+
+module softex_streamer_strb_gen
 import hwpe_stream_package::*;
 import hci_package::*;
 import softex_pkg::*;
-
-module softex_streamer_strb_gen #(
+#(
     parameter int unsigned  DW  = DATA_W   
 ) (
     input   logic                   clk_i           ,
