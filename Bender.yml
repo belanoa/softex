@@ -50,6 +50,7 @@ sources:
     - rtl/softex_ab_buffer.sv
     - rtl/softex_ab_addressgen.sv
     - rtl/softex_row_acc.sv
+    - rtl/softex_inst_decoder.sv
 
     - target: softex_sim
       files:

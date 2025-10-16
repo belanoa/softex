@@ -90,6 +90,24 @@ package softex_pkg;
     typedef enum logic          { MIN, MAX }                min_max_mode_t;
     typedef enum logic          { ADD, MUL }                operation_t;
 
+    typedef struct packed {
+        logic [31:0] in_addr;
+        logic [31:0] out_addr;
+        logic [31:0] tot_len;
+        logic [31:0] cache_base_addr;
+        logic [15:0] slot;
+        logic [31:0] a_addr;
+        logic [31:0] b_addr;
+        logic [31:0] weight_len;
+        logic        acc_only;
+        logic        div_only;
+        logic        acquire_slot;
+        logic        last;
+        logic        set_cache_addr;
+        logic        no_op;
+        logic        gelu_mode;
+    } softex_config_t;
+
     parameter regs_config_t DEFAULT_REG_POS = AROUND;
 
     typedef struct packed {

@@ -13,19 +13,45 @@ import hci_package::*;
 import hwpe_stream_package::*;
 import softex_pkg::*;
 #(
-    parameter fpnew_pkg::fp_format_e    FPFORMAT    = FPFORMAT_IN   ,
-    parameter int unsigned              INT_WIDTH   = INT_W         ,
-    parameter int unsigned              N_CORES     = 8             ,
+    parameter fpnew_pkg::fp_format_e    FPFORMAT  = FPFORMAT_IN ,
+    parameter int unsigned              INT_WIDTH = INT_W       ,
+    parameter int unsigned              N_CORES   = 8           ,
+    parameter  logic [6:0]  Opcode                = 7'b1011011  ,
+    parameter  logic [2:0]  MainFunct3            = 3'b111      ,
+    parameter  logic [2:0]  SlotFunct3            = 3'b110      ,
+    parameter  logic [2:0]  WghtFunct3            = 3'b100      ,
+    // XIF parameters
+    parameter int unsigned  XifNumHarts           = 1           ,
+    parameter int unsigned  XifIdWidth            = 1           ,
+    parameter int unsigned  XifIssueRegisterSplit = 0           ,
+    // XIF types
+    parameter type         x_issue_req_t          = logic       ,
+    parameter type         x_issue_resp_t         = logic       ,
+    parameter type         x_register_t           = logic       ,
+    parameter type         x_commit_t             = logic       ,
+    parameter type         x_result_t             = logic       ,
     parameter hci_size_parameter_t `HCI_SIZE_PARAM(Tcdm) = '0
 ) (
-    input   logic                           clk_i   ,
-    input   logic                           rst_ni  ,
+    input   logic                           clk_i              ,
+    input   logic                           rst_ni             ,
 
-    output  logic                           busy_o  ,
-    output  logic [N_CORES - 1 : 0] [1 : 0] evt_o   ,
+    output  logic                           busy_o             ,
+    output  logic [N_CORES - 1 : 0] [1 : 0] evt_o              ,
 
-    hci_core_intf.initiator                 tcdm    ,
-    hwpe_ctrl_intf_periph.slave             periph  
+    input   x_issue_req_t                   x_issue_req_i      ,
+    output  x_issue_resp_t                  x_issue_resp_o     ,
+    input   logic                           x_issue_valid_i    ,
+    output  logic                           x_issue_ready_o    ,
+    input   x_register_t                    x_register_i       ,
+    input   logic                           x_register_valid_i ,
+    output  logic                           x_register_ready_o ,
+    input   x_commit_t                      x_commit_i         ,
+    input   logic                           x_commit_valid_i   ,
+    output  x_result_t                      x_result_o         ,
+    output  logic                           x_result_valid_o   ,
+    input   logic                           x_result_ready_i   ,
+
+    hci_core_intf.initiator                 tcdm
 );
 
     localparam int unsigned WIDTH       = fpnew_pkg::fp_width(FPFORMAT);
@@ -80,6 +106,44 @@ import softex_pkg::*;
 
     logic   clear;
 
+    softex_config_t softex_config;
+    logic           softex_config_valid;
+
+    softex_inst_decoder #(
+        .InstFifoDepth          (   4                       ),
+        .Opcode                 (   Opcode                  ),
+        .MainFunct3             (   MainFunct3              ),
+        .SlotFunct3             (   SlotFunct3              ),
+        .WghtFunct3             (   WghtFunct3              ),
+        .XifIdWidth             (   XifIdWidth              ),
+        .XifNumHarts            (   XifNumHarts             ),
+        .XifIssueRegisterSplit  (   XifIssueRegisterSplit   ),
+        .x_issue_req_t          (   x_issue_req_t           ),
+        .x_issue_resp_t         (   x_issue_resp_t          ),
+        .x_register_t           (   x_register_t            ),
+        .x_commit_t             (   x_commit_t              ),
+        .x_result_t             (   x_result_t              )
+    ) i_inst_decoder (
+        .clk_i              (   clk_i               ),
+        .rst_ni             (   rst_ni              ),
+        .clear_i            (   '0                  ),
+        .busy_i             (   busy_o              ),
+        .config_valid_o     (   softex_config_valid ),
+        .config_o           (   softex_config       ),
+        .x_issue_req_i      (   x_issue_req_i       ),
+        .x_issue_resp_o     (   x_issue_resp_o      ),
+        .x_issue_valid_i    (   x_issue_valid_i     ),
+        .x_issue_ready_o    (   x_issue_ready_o     ),
+        .x_register_i       (   x_register_i        ),
+        .x_register_valid_i (   x_register_valid_i  ),
+        .x_register_ready_o (   x_register_ready_o  ),
+        .x_commit_i         (   x_commit_i          ),
+        .x_commit_valid_i   (   x_commit_valid_i    ),
+        .x_result_o         (   x_result_o          ),
+        .x_result_valid_o   (   x_result_valid_o    ),
+        .x_result_ready_i   (   x_result_ready_i    )
+    );
+
     softex_ctrl #(
         .N_CORES    (   N_CORES     ),
         .DATA_WIDTH (   ACTUAL_DW   )
@@ -105,7 +169,8 @@ import softex_pkg::*;
         .slot_ctrl_o            (   slot_regfile_ctrl   ),
         .in_cast_ctrl_o         (   in_cast_ctrl        ),
         .out_cast_ctrl_o        (   out_cast_ctrl       ),
-        .periph                 (   periph              )
+        .config_i               (   softex_config       ),
+        .config_valid_i         (   softex_config_valid )
     );
 
     softex_slot_regfile #(
@@ -210,7 +275,7 @@ import softex_pkg::*;
         .x_stream_i (   in_fifo_q                               ),
         .a_stream_i (   a_weight_q                              ),
         .b_stream_i (   b_weight_q                              ),
-        .stream_o   (   out_fifo_d                              )   
+        .stream_o   (   out_fifo_d                              )
     );
 
     hwpe_stream_fifo #(
@@ -231,11 +296,11 @@ import softex_pkg::*;
     ) i_streamer (
         .clk_i                  (   clk_i               ),
         .rst_ni                 (   rst_ni              ),
-        .clear_i                (   clear               ),  
-        .enable_i               (   '1                  ), 
-        .in_stream_ctrl_i       (   stream_in_ctrl      ), 
+        .clear_i                (   clear               ),
+        .enable_i               (   '1                  ),
+        .in_stream_ctrl_i       (   stream_in_ctrl      ),
         .out_stream_ctrl_i      (   stream_out_ctrl     ),
-        .slot_in_ctrl_i         (   slot_in_ctrl        ), 
+        .slot_in_ctrl_i         (   slot_in_ctrl        ),
         .slot_out_ctrl_i        (   slot_out_ctrl       ),
         .a_in_stream_ctrl_i     (   a_in_stream_ctrl    ),
         .b_in_stream_ctrl_i     (   b_in_stream_ctrl    ),
@@ -247,13 +312,13 @@ import softex_pkg::*;
         .b_in_stream_flags_o    (   b_in_stream_flags   ),
         .slot_in_flags_o        (   slot_in_flgs        ),
         .slot_out_flags_o       (   slot_out_flgs       ),
-        .in_stream_o            (   in_stream           ),  
+        .in_stream_o            (   in_stream           ),
         .out_stream_i           (   out_stream          ),
-        .slot_in_stream_o       (   slot_in_stream      ),  
-        .slot_out_stream_i      (   slot_out_stream     ), 
+        .slot_in_stream_o       (   slot_in_stream      ),
+        .slot_out_stream_i      (   slot_out_stream     ),
         .a_in_stream_o          (   a_in_stream         ),
         .b_in_stream_o          (   b_in_stream         ),
-        .tcdm                   (   tcdm                ) 
+        .tcdm                   (   tcdm                )
     );
 
 endmodule

@@ -26,8 +26,8 @@ module softex_ctrl
     input   logic                           enable_i            ,
     input   hci_streamer_flags_t            in_stream_flags_i   ,
     input   hci_streamer_flags_t            out_stream_flags_i  ,
-    input   softex_pkg::datapath_flags_t    datapath_flgs_i     ,
-    input   softex_pkg::slot_t              state_slot_i        ,
+    input   datapath_flags_t                datapath_flgs_i     ,
+    input   slot_t                          state_slot_i        ,
     output  logic                           clear_o             ,
     output  logic                           busy_o              ,
     output  logic [N_CORES - 1 : 0] [1 : 0] evt_o               ,
@@ -38,12 +38,12 @@ module softex_ctrl
     output  ab_buffer_ctrl_t                b_buffer_ctrl_o     ,
     output  ab_addressgen_ctrl_t            a_addressgen_ctrl_o ,
     output  ab_addressgen_ctrl_t            b_addressgen_ctrl_o ,
-    output  softex_pkg::datapath_ctrl_t     datapath_ctrl_o     ,
-    output  softex_pkg::slot_regfile_ctrl_t slot_ctrl_o         ,
-    output  softex_pkg::cast_ctrl_t         in_cast_ctrl_o      ,
-    output  softex_pkg::cast_ctrl_t         out_cast_ctrl_o     ,
-
-    hwpe_ctrl_intf_periph.slave             periph
+    output  datapath_ctrl_t                 datapath_ctrl_o     ,
+    output  slot_regfile_ctrl_t             slot_ctrl_o         ,
+    output  cast_ctrl_t                     in_cast_ctrl_o      ,
+    output  cast_ctrl_t                     out_cast_ctrl_o     ,
+    input   softex_config_t                 config_i            ,
+    input   logic                           config_valid_i
 );
 
     localparam int unsigned IN_WIDTH    = fpnew_pkg::fp_width(IN_FPFORMAT);
@@ -114,27 +114,6 @@ module softex_ctrl
     logic   lftovr_inc,
             int_lftovr_inc;
 
-    hwpe_ctrl_package::ctrl_regfile_t   reg_file;
-    hwpe_ctrl_package::ctrl_slave_t     ctrl_slave;
-    hwpe_ctrl_package::flags_slave_t    flgs_slave;
-
-    hwpe_ctrl_slave  #(
-        .REGFILE_SCM    (   CTRL_REGFILE_SCM    ),
-        .N_CORES        (   N_CORES             ),
-        .N_CONTEXT      (   N_CONTEXT           ),
-        .N_IO_REGS      (   IO_REGS             ),
-        .N_GENERIC_REGS (   0                   ),
-        .ID_WIDTH       (   ID_WIDTH            )
-    ) i_slave (
-        .clk_i      (   clk_i       ),
-        .rst_ni     (   rst_ni      ),
-        .clear_o    (   clear       ),
-        .cfg        (   periph      ),
-        .ctrl_i     (   ctrl_slave  ),
-        .flags_o    (   flgs_slave  ),
-        .reg_file   (   reg_file    )
-    );
-
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (~rst_ni) begin
             slot_cache_base_addr <= '0;
@@ -142,7 +121,7 @@ module softex_ctrl
             if (clear) begin
                 slot_cache_base_addr <= '0;
             end else if (cache_base_addr_en) begin
-                slot_cache_base_addr <= reg_file.hwpe_params [CACHE_BASE_ADDR];
+                slot_cache_base_addr <= config_i.cache_base_addr;
             end
         end
     end
@@ -160,20 +139,20 @@ module softex_ctrl
         end
     end
 
-    assign length_lftovr        = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH / 8) - 1 : 0];
+    assign length_lftovr        = config_i.tot_len [$clog2(DATA_WIDTH / 8) - 1 : 0];
 
     // If the total length of the vector is not a multiple of the data width we need to increse the number of loads / stores by one
     assign lftovr_inc           = length_lftovr != '0;
 
     // Same as before but with integer inputs
-    assign int_length_lftovr    = reg_file.hwpe_params [TOT_LEN] [$clog2(DATA_WIDTH_INT / 8) - 1 : 0];
+    assign int_length_lftovr    = config_i.tot_len [$clog2(DATA_WIDTH_INT / 8) - 1 : 0];
 
     assign int_lftovr_inc       = int_length_lftovr != '0;
 
     assign in_stream_ctrl_o.req_start                       = in_start;
-    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = reg_file.hwpe_params [IN_ADDR];
-    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = cast_input ? reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH_INT / 8) + int_length_lftovr : reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
-    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = reg_file.hwpe_params [TOT_LEN];   // Used by the strobe generator
+    assign in_stream_ctrl_o.addressgen_ctrl.base_addr       = config_i.in_addr;
+    assign in_stream_ctrl_o.addressgen_ctrl.tot_len         = cast_input ? config_i.tot_len / (DATA_WIDTH_INT / 8) + int_length_lftovr : config_i.tot_len / (DATA_WIDTH / 8) + lftovr_inc;
+    assign in_stream_ctrl_o.addressgen_ctrl.d0_len          = config_i.tot_len;   // Used by the strobe generator
     assign in_stream_ctrl_o.addressgen_ctrl.d0_stride       = cast_input ? DATA_WIDTH_INT / 8 : DATA_WIDTH / 8;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_len          = '0;
     assign in_stream_ctrl_o.addressgen_ctrl.d1_stride       = '0;
@@ -181,9 +160,9 @@ module softex_ctrl
     assign in_stream_ctrl_o.addressgen_ctrl.dim_enable_1h   = '0;
 
     assign out_stream_ctrl_o.req_start                      = out_start;
-    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = reg_file.hwpe_params [OUT_ADDR];
-    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = cast_output ? reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH_INT / 8) + int_length_lftovr : reg_file.hwpe_params [TOT_LEN] / (DATA_WIDTH / 8) + lftovr_inc;
-    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = reg_file.hwpe_params [TOT_LEN];   // Used by the strobe generator
+    assign out_stream_ctrl_o.addressgen_ctrl.base_addr      = config_i.out_addr;
+    assign out_stream_ctrl_o.addressgen_ctrl.tot_len        = cast_output ? config_i.tot_len / (DATA_WIDTH_INT / 8) + int_length_lftovr : config_i.tot_len / (DATA_WIDTH / 8) + lftovr_inc;
+    assign out_stream_ctrl_o.addressgen_ctrl.d0_len         = config_i.tot_len;   // Used by the strobe generator
     assign out_stream_ctrl_o.addressgen_ctrl.d0_stride      = cast_output ? DATA_WIDTH_INT / 8 : DATA_WIDTH / 8;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_len         = '0;
     assign out_stream_ctrl_o.addressgen_ctrl.d1_stride      = '0;
@@ -213,49 +192,44 @@ module softex_ctrl
 
     assign a_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;
     assign a_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;
-    assign a_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [A_ADDR];
+    assign a_addressgen_ctrl_o.base_addr                    = config_i.a_addr;
     assign a_addressgen_ctrl_o.ab_buf_ctrl                  = a_buffer_ctrl_o;
 
     assign b_addressgen_ctrl_o.addressgen_start             = in_start & gelu_mode;
     assign b_addressgen_ctrl_o.x_done                       = in_stream_flags_i.ready_start;
-    assign b_addressgen_ctrl_o.base_addr                    = reg_file.hwpe_params [B_ADDR];
+    assign b_addressgen_ctrl_o.base_addr                    = config_i.b_addr;
     assign b_addressgen_ctrl_o.ab_buf_ctrl                  = b_buffer_ctrl_o;
 
     assign datapath_ctrl_o.max                              = state_slot_i.maximum;
     assign datapath_ctrl_o.denominator                      = state_slot_i.denominator;
     assign datapath_ctrl_o.accumulator_ctrl.reciprocal      = state_slot_i.denominator;
 
-    assign acc_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_ACC_ONLY];       // We stop as soon as the denominator is valid, no inversion is performed
-    assign div_only                                         = reg_file.hwpe_params [COMMANDS] [CMD_DIV_ONLY];       // Only perform the normalisation step. The maximum and the denominator are recovered from the state slot
-    assign last                                             = reg_file.hwpe_params [COMMANDS] [CMD_LAST];           // We are performing the last partial accumulation / normalisation
-    assign set_cache_addr                                   = reg_file.hwpe_params [COMMANDS] [CMD_SET_CACHE_ADDR]; // Sets the base address of the state slot cache
-    assign acquire_slot                                     = reg_file.hwpe_params [COMMANDS] [CMD_ACQUIRE_SLOT];   // This is the first partial iteration of a new operation
-    assign no_operation                                     = reg_file.hwpe_params [COMMANDS] [CMD_NO_OP];          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation
-    assign cast_input                                       = reg_file.hwpe_params [COMMANDS] [CMD_INT_INPUT];      // Cast the input from fixed point to floating point
-    assign cast_output                                      = reg_file.hwpe_params [COMMANDS] [CMD_INT_OUTPUT];     // Cast the output from floating point to fixed point
-    assign gelu_mode                                        = reg_file.hwpe_params [COMMANDS] [CMD_GELU_MODE];      // We are using SoftEx to perform the GELU activation
+    assign acc_only                                         = config_i.acc_only;       // We stop as soon as the denominator is valid, no inversion is performed
+    assign div_only                                         = config_i.div_only;       // Only perform the normalisation step. The maximum and the denominator are recovered from the state slot
+    assign last                                             = config_i.last;           // We are performing the last partial accumulation / normalisation
+    assign set_cache_addr                                   = config_i.set_cache_addr; // Sets the base address of the state slot cache
+    assign acquire_slot                                     = config_i.acquire_slot;   // This is the first partial iteration of a new operation
+    assign no_operation                                     = config_i.no_op;          // No operation has to be performed; currently used to update the cache address without necessarily starting an operation
+    assign cast_input                                       = '0;                      // Cast the input from fixed point to floating point
+    assign cast_output                                      = '0;                      // Cast the output from floating point to fixed point
+    assign gelu_mode                                        = config_i.gelu_mode;      // We are using SoftEx to perform the GELU activation
 
-    assign current_slot                                     = reg_file.hwpe_params [COMMANDS] [31 -: 16];
-    assign weight_len                                       = reg_file.hwpe_params [COMMANDS] [16+WEIGHT_LEN_WIDTH-1:16];    // Partially overlaps with the current slot index. as we do not need it in GELU mode
+    assign current_slot                                     = config_i.slot;
+    assign weight_len                                       = config_i.weight_len;
+    assign in_cast_ctrl_o.int_bits                          = '0;
+    assign in_cast_ctrl_o.is_signed                         = '0;
+    assign in_cast_ctrl_o.enable                            = '0;
 
-    assign in_cast_ctrl_o.int_bits                          = reg_file.hwpe_params [CAST_CTRL] [6 : 0];
-    assign in_cast_ctrl_o.is_signed                         = reg_file.hwpe_params [CAST_CTRL] [7];
-    assign in_cast_ctrl_o.enable                            = cast_input;
-
-    assign out_cast_ctrl_o.int_bits                         = reg_file.hwpe_params [CAST_CTRL] [14 : 8];
-    assign out_cast_ctrl_o.is_signed                        = reg_file.hwpe_params [CAST_CTRL] [15];
-    assign out_cast_ctrl_o.enable                           = cast_output;
-
-    assign ctrl_slave.done                                  = slave_done;
-    assign ctrl_slave.evt                                   = '0;
+    assign out_cast_ctrl_o.int_bits                         = '0;
+    assign out_cast_ctrl_o.is_signed                        = '0;
+    assign out_cast_ctrl_o.enable                           = '0;
 
     assign slot_ctrl_o.cache_base_addr                      = slot_cache_base_addr;
     assign slot_ctrl_o.addr                                 = current_slot;
 
-    // "request" commands are pushed as soon a partial operation is detected
-    assign slot_ctrl_o.req_valid                            = periph.req & periph.gnt & (periph.add [ID_WIDTH - 1 : 0] == (COMMANDS * 4 + 32)) & (periph.data [CMD_ACC_ONLY] | periph.data [CMD_DIV_ONLY]);
-    assign slot_ctrl_o.req_op.addr                          = periph.data [31 -: 16];
-    assign slot_ctrl_o.req_op.op                            = periph.data [CMD_ACQUIRE_SLOT] ? ALLOC : LOAD;
+    assign slot_ctrl_o.req_valid                            = config_valid_i;
+    assign slot_ctrl_o.req_op.addr                          = config_i.slot;
+    assign slot_ctrl_o.req_op.op                            = config_i.acquire_slot ? ALLOC : LOAD;
 
 
     assign slot_ctrl_o.update_valid                         = state_slot_en;
@@ -269,7 +243,7 @@ module softex_ctrl
         out_start           = '0;
         in_start            = '0;
         dp_acc_finished     = '0;
-        dp_disable_max      = '0;   //Remember to set this to 1 when we compute the gelu
+        dp_disable_max      = '0;
         dp_dividing         = '0;
         slave_done          = '0;
         busy_o              = '1;
@@ -285,7 +259,7 @@ module softex_ctrl
             IDLE: begin
                 busy_o = '0;
 
-                if (flgs_slave.start) begin
+                if (config_valid_i) begin
                     if (set_cache_addr) begin
                         cache_base_addr_en = '1;
                     end
@@ -429,8 +403,8 @@ module softex_ctrl
         endcase
     end
 
-    assign clear_o  = clear;
+    assign clear_o  = '0;
 
-    assign  evt_o   = flgs_slave.evt;
+    assign  evt_o   = slave_done; // FIXME
 
 endmodule
