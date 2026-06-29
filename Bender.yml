@@ -16,6 +16,9 @@ dependencies:
   hwpe-stream   : { git: "https://github.com/pulp-platform/hwpe-stream.git" , rev: 3bc9694705b72a5b9bddc7fcde5091b9e45ba0c8 } # branch: master
   hwpe-ctrl     : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"   , rev: "2926867"                                } # branch: master
 
+export_include_dirs:
+  - include
+
 sources:
   files:
     - rtl/softex_pkg.sv
@@ -24,7 +27,6 @@ sources:
     - rtl/softex_fp_red_sum.sv
     - rtl/softex_fp_add_rec.sv
     - rtl/softex_pipeline.sv
-    - rtl/softex_macros.svh
     - rtl/softex_delay.sv
     - rtl/softex_fp_glob_minmax.sv
     - rtl/softex_datapath.sv

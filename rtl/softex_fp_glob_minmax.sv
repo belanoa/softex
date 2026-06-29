@@ -5,7 +5,7 @@
 // Andrea Belano <andrea.belano@studio.unibo.it>
 //
 
-`include "softex_macros.svh"
+`include "softex/softex_macros.svh"
 
 
 module softex_fp_glob_minmax import softex_pkg::*; #(
